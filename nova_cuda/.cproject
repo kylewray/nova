@@ -23,7 +23,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactExtension="so" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.sharedLib" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.sharedLib" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.configuration.so.release.121452043" name="BuildLibrary" parent="com.nvidia.cuda.ide.configuration.so.release">
+				<configuration artifactExtension="dylib" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.sharedLib" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.sharedLib" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.configuration.so.release.121452043" name="BuildLibrary" parent="com.nvidia.cuda.ide.configuration.so.release">
 					<folderInfo id="com.nvidia.cuda.ide.configuration.so.release.121452043." name="/" resourcePath="">
 						<toolChain id="com.nvidia.cuda.ide.toolchain.so.release.1483064460" name="CUDA Toolkit 6.0" superClass="com.nvidia.cuda.ide.toolchain.so.release">
 							<targetPlatform archList="all" binaryParser="com.nvidia.cuda.ide.elf;com.nvidia.cuda.ide.macho;com.nvidia.cuda.ide.cubin" id="com.nvidia.cuda.ide.targetPlatform.926927526" isAbstract="false" name="Debug Platform" osList="linux,macosx" superClass="com.nvidia.cuda.ide.targetPlatform"/>
@@ -38,7 +38,8 @@
 								<inputType id="nvcc.compiler.input.c.2136915571" superClass="nvcc.compiler.input.c"/>
 							</tool>
 							<tool id="nvcc.linker.base.733063000" name="NVCC Linker" superClass="nvcc.linker.base">
-								<option defaultValue="true" id="nvcc.linker.option.shared.1966825923" name="Shared (-shared)" superClass="nvcc.linker.option.shared" valueType="boolean"/>
+								<option defaultValue="true" id="nvcc.linker.option.shared.1966825923" name="Shared (-shared)" superClass="nvcc.linker.option.shared" value="true" valueType="boolean"/>
+								<option id="nvcc.linker.option.cudart.1257788007" name="CUDA Runtime Library:" superClass="nvcc.linker.option.cudart" value="nvcc.linker.option.cudart.static" valueType="enumerated"/>
 								<inputType id="nvcc.linker.input.1405540726" superClass="nvcc.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -57,6 +58,7 @@
 					<sass major="1" minor="1"/>
 					<ptx major="1" minor="1"/>
 				</executable>
+				<editor-arch major="1" minor="1"/>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
