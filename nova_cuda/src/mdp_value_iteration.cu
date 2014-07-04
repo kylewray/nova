@@ -22,7 +22,7 @@
  */
 
 
-#include "../include/nova_cuda.h"
+#include "../include/mdp_value_iteration.h"
 
 #include <cmath>
 
