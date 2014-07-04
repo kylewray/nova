@@ -24,9 +24,9 @@
 
 #include "../include/nova_cuda.h"
 
-#include <math.h>
+#include <cmath>
 
-#include <iostream> // ToDo: Remove me.
+#include <stdio.h>
 
 // This is not C++0x, unfortunately.
 #define nullptr NULL
@@ -141,32 +141,76 @@ int value_iteration(unsigned int n, unsigned int m, const float *T, const float 
 		return -2;
 	}
 
-	// Next, determine how many iterations it will have to run.
-	int iterations = 10 * (int)std::ceil(std::log(2.0f * Rmax / (epsilon * (1.0 - gamma)) / std::log(1.0 / gamma)));
+	// Next, determine how many iterations it will have to run. Then, multiply that by 10.
+	int iterations = 50;    //10 * (int)std::ceil(std::log(2.0f * Rmax / (epsilon * (1.0 - gamma)) / std::log(1.0 / gamma)));
 
 	// Allocate the device-side memory.
-	cudaMalloc(&d_T, n * m * n * sizeof(float));
-	cudaMalloc(&d_R, n * m * n * sizeof(float));
+	if (cudaMalloc(&d_T, n * m * n * sizeof(float)) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration]: %s",
+				"Failed to allocate device-side memory for the state transitions.");
+		return -3;
+	}
+	if (cudaMalloc(&d_R, n * m * n * sizeof(float)) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration]: %s",
+				"Failed to allocate device-side memory for the rewards.");
+		return -3;
+	}
 
-	cudaMalloc(&d_V, n * sizeof(float));
-	cudaMalloc(&d_VPrime, n * sizeof(float));
+	if (cudaMalloc(&d_V, n * sizeof(float)) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration]: %s",
+				"Failed to allocate device-side memory for the value function.");
+		return -3;
+	}
+	if (cudaMalloc(&d_VPrime, n * sizeof(float)) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration]: %s",
+				"Failed to allocate device-side memory for the value function (prime).");
+		return -3;
+	}
 
-	cudaMalloc(&d_pi, n * sizeof(unsigned int));
+	if (cudaMalloc(&d_pi, n * sizeof(unsigned int)) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration]: %s",
+				"Failed to allocate device-side memory for the policy (pi).");
+		return -3;
+	}
 
-	// Ensure that V and pi are initialized to zero to start.
+	/*
+	// Assume that V and pi are initialized *properly* (either 0, or, with MPI, perhaps
+	// with previous V values).
+
 	for (int s = 0; s < n; s++) {
 		V[s] = 0.0f;
 		pi[s] = 0;
 	}
+	//*/
 
 	// Copy the data from host to device.
-	cudaMemcpy(d_T, T, n * m * n * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_R, R, n * m * n * sizeof(float), cudaMemcpyHostToDevice);
+	if (cudaMemcpy(d_T, T, n * m * n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration]: %s",
+				"Failed to copy memory from host to device for the state transitions.");
+		return -3;
+	}
+	if (cudaMemcpy(d_R, R, n * m * n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration]: %s",
+				"Failed to copy memory from host to device for the rewards.");
+		return -3;
+	}
 
-	cudaMemcpy(d_V, V, n * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_VPrime, V, n * sizeof(float), cudaMemcpyHostToDevice);
+	if (cudaMemcpy(d_V, V, n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration]: %s",
+				"Failed to copy memory from host to device for the value function.");
+		return -3;
+	}
+	if (cudaMemcpy(d_VPrime, V, n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration]: %s",
+				"Failed to copy memory from host to device for the value function (prime).");
+		return -3;
+	}
 
-	cudaMemcpy(d_pi, pi, n * sizeof(float), cudaMemcpyHostToDevice);
+	if (cudaMemcpy(d_pi, pi, n * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration]: %s",
+				"Failed to copy memory from host to device for the policy (pi).");
+		return -3;
+	}
 
 	// Execute value iteration for these number of iterations. For each iteration, however,
 	// we will run the state updates in parallel.
@@ -183,18 +227,23 @@ int value_iteration(unsigned int n, unsigned int m, const float *T, const float 
 
 	// Copy the final result, both V and pi, from device to host.
 	if (iterations % 2 == 1) {
-		cudaMemcpy(V, d_V, n * sizeof(float), cudaMemcpyDeviceToHost);
+		if (cudaMemcpy(V, d_V, n * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
+			fprintf(stderr, "Error[value_iteration]: %s",
+					"Failed to copy memory from device to host for the value function.");
+			return -3;
+		}
 	} else {
-		cudaMemcpy(V, d_VPrime, n * sizeof(float), cudaMemcpyDeviceToHost);
+		if (cudaMemcpy(V, d_VPrime, n * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
+			fprintf(stderr, "Error[value_iteration]: %s",
+					"Failed to copy memory from device to host for the value function (prime).");
+			return -3;
+		}
 	}
-	cudaMemcpy(pi, d_pi, n * sizeof(unsigned int), cudaMemcpyDeviceToHost);
-
-//	for (int s = 0; s < n; s++) {
-//		printf("V[%d] =   %f\t", s, V[s]);
-//		if (s % 8 == 7) {
-//			printf("\n");
-//		}
-//	}
+	if (cudaMemcpy(pi, d_pi, n * sizeof(unsigned int), cudaMemcpyDeviceToHost) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration]: %s",
+				"Failed to copy memory from device to host for the policy (pi).");
+		return -3;
+	}
 
 	// Free the device-side memory.
 	cudaFree(d_T);
@@ -235,37 +284,90 @@ int value_iteration_restricted_actions(unsigned int n, unsigned int m, const boo
 		return -2;
 	}
 
-	// Next, determine how many iterations it will have to run.
-	int iterations = 10 * (int)std::ceil(std::log(2.0f * Rmax / (epsilon * (1.0 - gamma)) / std::log(1.0 / gamma)));
+	// Next, determine how many iterations it will have to run. Then, multiply that by 10.
+	int iterations = 500;   // 10 * (int)std::ceil(std::log(2.0f * Rmax / (epsilon * (1.0 - gamma)) / std::log(1.0 / gamma)));
 
 	// Allocate the device-side memory.
-	cudaMalloc(&d_A, n * m * sizeof(bool));
-	cudaMalloc(&d_T, n * m * n * sizeof(float));
-	cudaMalloc(&d_R, n * m * n * sizeof(float));
+	if (cudaMalloc(&d_A, n * m * sizeof(bool)) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration_restricted_actions]: %s",
+				"Failed to allocate device-side memory for the restricted actions.");
+		return -3;
+	}
+	if (cudaMalloc(&d_T, n * m * n * sizeof(float)) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration_restricted_actions]: %s",
+				"Failed to allocate device-side memory for the state transitions.");
+		return -3;
+	}
+	if (cudaMalloc(&d_R, n * m * n * sizeof(float)) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration_restricted_actions]: %s",
+				"Failed to allocate device-side memory for the rewards.");
+		return -3;
+	}
 
-	cudaMalloc(&d_V, n * sizeof(float));
-	cudaMalloc(&d_VPrime, n * sizeof(float));
+	if (cudaMalloc(&d_V, n * sizeof(float)) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration_restricted_actions]: %s",
+				"Failed to allocate device-side memory for the value function.");
+		return -3;
+	}
+	if (cudaMalloc(&d_VPrime, n * sizeof(float)) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration_restricted_actions]: %s",
+				"Failed to allocate device-side memory for the value function (prime).");
+		return -3;
+	}
 
-	cudaMalloc(&d_pi, n * sizeof(unsigned int));
+	if (cudaMalloc(&d_pi, n * sizeof(unsigned int)) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration_restricted_actions]: %s",
+				"Failed to allocate device-side memory for the policy (pi).");
+		return -3;
+	}
 
-	// Ensure that V and pi are initialized to zero to start.
+	/*
+	// Assume that V and pi are initialized *properly* (either 0, or, with MPI, perhaps
+	// with previous V values).
+
 	for (int s = 0; s < n; s++) {
 		V[s] = 0.0f;
 		pi[s] = 0;
 	}
+	//*/
 
 	// Copy the data from host to device.
-	cudaMemcpy(d_A, A, n * m * sizeof(bool), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_T, T, n * m * n * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_R, R, n * m * n * sizeof(float), cudaMemcpyHostToDevice);
+	if (cudaMemcpy(d_A, A, n * m * sizeof(bool), cudaMemcpyHostToDevice) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration_restricted_actions]: %s",
+				"Failed to copy memory from host to device for the restricted actions.");
+		return -3;
+	}
+	if (cudaMemcpy(d_T, T, n * m * n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration_restricted_actions]: %s",
+				"Failed to copy memory from host to device for the state transitions.");
+		return -3;
+	}
+	if (cudaMemcpy(d_R, R, n * m * n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration_restricted_actions]: %s",
+				"Failed to copy memory from host to device for the rewards.");
+		return -3;
+	}
 
-	cudaMemcpy(d_V, V, n * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_VPrime, V, n * sizeof(float), cudaMemcpyHostToDevice);
+	if (cudaMemcpy(d_V, V, n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration_restricted_actions]: %s",
+				"Failed to copy memory from host to device for the value function.");
+		return -3;
+	}
+	if (cudaMemcpy(d_VPrime, V, n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration_restricted_actions]: %s",
+				"Failed to copy memory from host to device for the value function (prime).");
+		return -3;
+	}
 
-	cudaMemcpy(d_pi, pi, n * sizeof(unsigned int), cudaMemcpyHostToDevice);
+	if (cudaMemcpy(d_pi, pi, n * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration_restricted_actions]: %s",
+				"Failed to copy memory from host to device for the policy (pi).");
+		return -3;
+	}
 
 	// Execute value iteration for these number of iterations. For each iteration, however,
 	// we will run the state updates in parallel.
+	printf("Total Number of Iterations: %i\n", iterations);
 	for (int i = 0; i < iterations; i++) {
 //		printf("Iteration %d / %d\n", i, iterations);
 //		printf("Blocks: %d\nThreads: %d\nGamma: %f\nn: %d\nm: %d\n", numBlocks, numThreads, gamma, n, m);
@@ -279,11 +381,23 @@ int value_iteration_restricted_actions(unsigned int n, unsigned int m, const boo
 
 	// Copy the final result, both V and pi, from device to host.
 	if (iterations % 2 == 1) {
-		cudaMemcpy(V, d_V, n * sizeof(float), cudaMemcpyDeviceToHost);
+		if (cudaMemcpy(V, d_V, n * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
+			fprintf(stderr, "Error[value_iteration_restricted_actions]: %s",
+					"Failed to copy memory from device to host for the value function.");
+			return -3;
+		}
 	} else {
-		cudaMemcpy(V, d_VPrime, n * sizeof(float), cudaMemcpyDeviceToHost);
+		if (cudaMemcpy(V, d_VPrime, n * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
+			fprintf(stderr, "Error[value_iteration_restricted_actions]: %s",
+					"Failed to copy memory from device to host for the value function (prime).");
+			return -3;
+		}
 	}
-	cudaMemcpy(pi, d_pi, n * sizeof(unsigned int), cudaMemcpyDeviceToHost);
+	if (cudaMemcpy(pi, d_pi, n * sizeof(unsigned int), cudaMemcpyDeviceToHost) != cudaSuccess) {
+		fprintf(stderr, "Error[value_iteration_restricted_actions]: %s",
+				"Failed to copy memory from device to host for the policy (pi).");
+		return -3;
+	}
 
 //	for (int s = 0; s < n; s++) {
 //		printf("V[%d] =   %f\t", s, V[s]);

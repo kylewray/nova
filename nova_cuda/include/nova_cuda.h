@@ -41,8 +41,10 @@
  * 						action (in 0 to m-1). This will be modified.
  * @param	numBlocks	The number of CUDA blocks. Ensure that numBlocks * numThreads >= n.
  * @param	numThreads	The number of CUDA threads per block. Use 128, 256, or 512 (multiples of 32).
- * @return	Returns 0 upon success; -1 if invalid arguments were passed; -2 if the number
- * 			of blocks and threads is less than the number of states.
+ * @return	Returns:	0 upon success
+ * 						-1 if invalid arguments were passed
+ * 						-2 if the number of blocks and threads is less than the number of states
+ * 						-3 if a CUDA memcpy failed somewhere, which will also output to std::err
  */
 int value_iteration(unsigned int n, unsigned int m, const float *T, const float *R,
 		float Rmax, float gamma, float epsilon, float *V, unsigned int *pi,
