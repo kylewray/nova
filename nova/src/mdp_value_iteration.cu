@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2014 Kyle Wray
+ *  Copyright (c) 2014 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -285,7 +285,7 @@ int value_iteration_restricted_actions(unsigned int n, unsigned int m, const boo
 	}
 
 	// Next, determine how many iterations it will have to run. Then, multiply that by 10.
-	int iterations = 500;   // 10 * (int)std::ceil(std::log(2.0f * Rmax / (epsilon * (1.0 - gamma)) / std::log(1.0 / gamma)));
+	int iterations = 50;   // 10 * (int)std::ceil(std::log(2.0f * Rmax / (epsilon * (1.0 - gamma)) / std::log(1.0 / gamma)));
 
 	// Allocate the device-side memory.
 	if (cudaMalloc(&d_A, n * m * sizeof(bool)) != cudaSuccess) {
