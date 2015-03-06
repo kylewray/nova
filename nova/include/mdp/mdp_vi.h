@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2014 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -22,8 +22,8 @@
  */
 
 
-#ifndef NOVA_CUDA_H
-#define NOVA_CUDA_H
+#ifndef NOVA_MDP_VI_H
+#define NOVA_MDP_VI_H
 
 
 /**
@@ -47,7 +47,7 @@
  * 						-2 if the number of blocks and threads is less than the number of states
  * 						-3 if a CUDA memcpy failed somewhere, which will also output to std::err
  */
-int value_iteration(unsigned int n, unsigned int m, const float *T, const float *R,
+int nova_mdp_vi(unsigned int n, unsigned int m, const float *T, const float *R,
 		float Rmax, float gamma, float epsilon, float *V, unsigned int *pi,
 		unsigned int numBlocks, unsigned int numThreads);
 
@@ -73,9 +73,9 @@ int value_iteration(unsigned int n, unsigned int m, const float *T, const float 
  * @return	Returns 0 upon success; -1 if invalid arguments were passed; -2 if the number
  * 			of blocks and threads is less than the number of states.
  */
-int value_iteration_restricted_actions(unsigned int n, unsigned int m, const bool *A,
-		const float *T, const float *R, float Rmax, float gamma, float epsilon, float *V,
-		unsigned int *pi, unsigned int numBlocks, unsigned int numThreads);
+//int nova_mdp_vi_restricted_actions(unsigned int n, unsigned int m, const bool *A,
+//		const float *T, const float *R, float Rmax, float gamma, float epsilon, float *V,
+//		unsigned int *pi, unsigned int numBlocks, unsigned int numThreads);
 
 
-#endif // NOVA_CUDA_H
+#endif // NOVA_MDP_VI_H
