@@ -26,7 +26,7 @@ import numpy as np
 import os
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), \
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                 "..", "..", "nova", "wrapper"))
 from nova.mdp import *
 
@@ -93,14 +93,14 @@ class MOMDP(object):
             print("Failed to load file.")
             raise Exception()
 
-    def solve(self, epsilon=0.01, f=None):
+    def solve(self, f=None, numThreads=1024):
         """ Solve the MOMDP, using the nova python wrapper, with the given scalarization function.
 
             Parameters:
-                epsilon --  The convergence criterion. Default is 0.01. Optional.
-                f       --  The scalarization function which maps a reward vector to a single
-                            reward. If set to None, then only the first reward function is
-                            used. Default is None. Optional.
+                f           --  The scalarization function which maps a reward vector to a single
+                                reward. If set to None, then only the first reward function is
+                                used. Default is None. Optional.
+                numThreads  --  The number of CUDA threads to execute.
 
             Returns:
                 V   --  The values of each state, mapping states to values.
@@ -120,11 +120,10 @@ class MOMDP(object):
             pi = [0 for s in range(self.n)]
 
             numThreads = 1024
-            numBlocks = int(self.n / numThreads) + 1
 
             # Call the nova library to run value iteration.
-            nova_mdp_vi(self.n, self.m, self.T.flatten(), self.R[0].flatten(), self.gamma, \
-                        epsilon, V, pi, numBlocks, numThreads)
+            nova_mdp_vi(self.n, self.m, self.T.flatten(), self.R[0].flatten(), self.gamma,
+                        self.horizon, numThreads, V, pi)
 
             return V, pi
 

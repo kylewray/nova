@@ -27,51 +27,22 @@
 
 
 /**
- * Execute value iteration for the infinite horizon MDP model specified.
- * @param	n			The number of states.
- * @param	m			The number of actions.
- * @param	T			A mapping of state-action-state triples (n-m-n array) to a
- * 						transition probability.
- * @param	R			A mapping of state-action-state triples (n-m-n array) to a reward.
- * @param	gamma		The discount factor in [0.0, 1.0).
- * @param	epsilon		The convergence criterion tolerance to within optimal.
- * @param	V			The final value function, mapping states (n array) to floats.
- * @param	pi			The resultant policy, mapping every state (n array) to an
- * 						action (in 0 to m-1). This will be modified.
- * @param	numBlocks	The number of CUDA blocks. Ensure that numBlocks * numThreads >= n.
- * @param	numThreads	The number of CUDA threads per block. Use 128, 256, or 512 (multiples of 32).
- * @return	Returns:	0 upon success
- * 						-1 if invalid arguments were passed
- * 						-2 if the number of blocks and threads is less than the number of states
- * 						-3 if a CUDA memcpy failed somewhere, which will also output to std::err
+ *  Execute value iteration for the infinite horizon MDP model specified.
+ *  @param  n           The number of states.
+ *  @param  m           The number of actions.
+ *  @param  T           A mapping of state-action-state triples (n-m-n array) to a
+ *                      transition probability.
+ *  @param  R           A mapping of state-action-state triples (n-m-n array) to a reward.
+ *  @param  gamma       The discount factor in [0.0, 1.0).
+ *  @param  horizon     The number of iterations to execute (i.e., horizon).
+ *  @param  numThreads  The number of CUDA threads per block. Use 128, 256, or 512 (multiples of 32).
+ *  @param  V           The final value function, mapping states (n array) to floats.
+ *  @param  pi          The resultant policy, mapping every state (n array) to an
+ *                      action (in 0 to m-1). This will be modified.
+ *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int nova_mdp_vi(unsigned int n, unsigned int m, const float *T, const float *R,
-		float gamma, float epsilon, float *V, unsigned int *pi,
-		unsigned int numBlocks, unsigned int numThreads);
-
-/**
- * Execute value iteration for the infinite horizon MDP model specified, except this time we
- * limit actions taken at a state to within an array of available actions.
- * @param	n			The number of states.
- * @param	m			The number of actions, in total, that are possible.
- * @param	A			A mapping of states-action pairs (n-m array) to a boolean if the action
- * 						is available at that state or not.
- * @param	T			A mapping of state-action-state triples (n-m-n array) to a
- * 						transition probability.
- * @param	R			A mapping of state-action-state triples (n-m-n array) to a reward.
- * @param	gamma		The discount factor in [0.0, 1.0).
- * @param	epsilon		The convergence criterion tolerance to within optimal.
- * @param	V			The final value function, mapping states (n array) to floats.
- * @param	pi			The resultant policy, mapping every state (n array) to an
- * 						action (in 0 to m-1). This will be modified.
- * @param	numBlocks	The number of CUDA blocks. Ensure that numBlocks * numThreads >= n.
- * @param	numThreads	The number of CUDA threads per block. Use 128, 256, or 512 (multiples of 32).
- * @return	Returns 0 upon success; -1 if invalid arguments were passed; -2 if the number
- * 			of blocks and threads is less than the number of states.
- */
-//int nova_mdp_vi_restricted_actions(unsigned int n, unsigned int m, const bool *A,
-//		const float *T, const float *R, float Rmax, float gamma, float epsilon, float *V,
-//		unsigned int *pi, unsigned int numBlocks, unsigned int numThreads);
+        float gamma, unsigned int horizon, unsigned int numThreads, float *V, unsigned int *pi);
 
 
 #endif // NOVA_MDP_VI_H

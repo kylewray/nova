@@ -25,186 +25,185 @@
 #include "mdp_vi.h"
 
 #include <cmath>
-
 #include <stdio.h>
-
-// This is not C++0x, unfortunately.
-#define nullptr NULL
 
 // This is determined by hardware, so what is below is a 'safe' guess. If this is
 // off, the program might return 'nan' or 'inf'.
 #define FLT_MAX 1e+35
 
 __global__ void nova_mdp_bellman_update(unsigned int n, unsigned int m, const float *T,
-		const float *R, float gamma, const float *V, float *VPrime, unsigned int *pi)
+        const float *R, float gamma, const float *V, float *VPrime, unsigned int *pi)
 {
-	// The current state as a function of the blocks and threads.
-	int s;
+    // The current state as a function of the blocks and threads.
+    int s;
 
-	// The intermediate Q(s, a) value.
-	float Qsa;
+    // The intermediate Q(s, a) value.
+    float Qsa;
 
-	// Compute the index of the state. Return if it is beyond the state.
-	s = blockIdx.x * blockDim.x + threadIdx.x;
-	if (s >= n) {
-		return;
-	}
+    // Compute the index of the state. Return if it is beyond the state.
+    s = blockIdx.x * blockDim.x + threadIdx.x;
+    if (s >= n) {
+        return;
+    }
 
-	// Nvidia GPUs follow IEEE floating point standards, so this should be safe.
-	VPrime[s] = -FLT_MAX;
+    // Nvidia GPUs follow IEEE floating point standards, so this should be safe.
+    VPrime[s] = -FLT_MAX;
 
-	// Compute max_{a in A} Q(s, a).
-	for (int a = 0; a < m; a++) {
-		// Compute Q(s, a) for this action.
-		Qsa = R[s * m + a];
-		for (int sp = 0; sp < n; sp++) {
-			Qsa += gamma * T[s * m * n + a * n + sp] * V[sp];
-		}
+    // Compute max_{a in A} Q(s, a).
+    for (int a = 0; a < m; a++) {
+        // Compute Q(s, a) for this action.
+        Qsa = R[s * m + a];
+        for (int sp = 0; sp < n; sp++) {
+            Qsa += gamma * T[s * m * n + a * n + sp] * V[sp];
+        }
 
-		if (a == 0 || Qsa > VPrime[s]) {
-			VPrime[s] = Qsa;
-			pi[s] = a;
-		}
-	}
+        if (a == 0 || Qsa > VPrime[s]) {
+            VPrime[s] = Qsa;
+            pi[s] = a;
+        }
+    }
 }
 
 int nova_mdp_vi(unsigned int n, unsigned int m, const float *T, const float *R,
-		float gamma, float epsilon, float *V, unsigned int *pi,
-		unsigned int numBlocks, unsigned int numThreads)
+        float gamma, unsigned int horizon, unsigned int numThreads, float *V, unsigned int *pi)
 {
-	// The device pointers for the MDP: T and R.
-	float *d_T;
-	float *d_R;
+    // The device pointers for the MDP: T and R.
+    float *d_T;
+    float *d_R;
 
-	// The host and device pointers for the value functions: V and VPrime.
-	float *d_V;
-	float *d_VPrime;
+    // The host and device pointers for the value functions: V and VPrime.
+    float *d_V;
+    float *d_VPrime;
 
-	// The device pointer for the final policy: pi.
-	unsigned int *d_pi;
+    // The device pointer for the final policy: pi.
+    unsigned int *d_pi;
 
-	// First, ensure data is valid.
-	if (n == 0 || m == 0 || T == nullptr || R == nullptr ||
-			gamma < 0.0f || gamma >= 1.0f || pi == nullptr) {
-		return -1;
-	}
+    // The number of blocks
+    unsigned int numBlocks;
 
-	// Also ensure that there are enough blocks and threads to run the program.
-	if (numBlocks * numThreads < n) {
-		return -2;
-	}
+    // First, ensure data is valid.
+    if (n == 0 || m == 0 || T == nullptr || R == nullptr ||
+            gamma < 0.0f || gamma >= 1.0f || horizon < 1 ||
+            V == nullptr || pi == nullptr) {
+        return 1;
+    }
 
-	// Next, determine how many iterations it will have to run. Then, multiply that by 10.
-	int iterations = 50;    //10 * (int)std::ceil(std::log(2.0f * Rmax / (epsilon * (1.0 - gamma)) / std::log(1.0 / gamma)));
+    // Ensure threads are correct.
+    if (numThreads % 32 != 0) {
+        fprintf(stderr, "Error[value_iteration]: %s", "Invalid number of threads.");
+        return 2;
+    }
 
-	// Allocate the device-side memory.
-	if (cudaMalloc(&d_T, n * m * n * sizeof(float)) != cudaSuccess) {
-		fprintf(stderr, "Error[value_iteration]: %s",
-				"Failed to allocate device-side memory for the state transitions.");
-		return -3;
-	}
-	if (cudaMalloc(&d_R, n * m * sizeof(float)) != cudaSuccess) {
-		fprintf(stderr, "Error[value_iteration]: %s",
-				"Failed to allocate device-side memory for the rewards.");
-		return -3;
-	}
+    numBlocks = (unsigned int)((float)n / (float)numThreads) + 1;
 
-	if (cudaMalloc(&d_V, n * sizeof(float)) != cudaSuccess) {
-		fprintf(stderr, "Error[value_iteration]: %s",
-				"Failed to allocate device-side memory for the value function.");
-		return -3;
-	}
-	if (cudaMalloc(&d_VPrime, n * sizeof(float)) != cudaSuccess) {
-		fprintf(stderr, "Error[value_iteration]: %s",
-				"Failed to allocate device-side memory for the value function (prime).");
-		return -3;
-	}
+    // Allocate the device-side memory.
+    if (cudaMalloc(&d_T, n * m * n * sizeof(float)) != cudaSuccess) {
+        fprintf(stderr, "Error[value_iteration]: %s",
+                "Failed to allocate device-side memory for the state transitions.");
+        return 2;
+    }
+    if (cudaMalloc(&d_R, n * m * sizeof(float)) != cudaSuccess) {
+        fprintf(stderr, "Error[value_iteration]: %s",
+                "Failed to allocate device-side memory for the rewards.");
+        return 3;
+    }
 
-	if (cudaMalloc(&d_pi, n * sizeof(unsigned int)) != cudaSuccess) {
-		fprintf(stderr, "Error[value_iteration]: %s",
-				"Failed to allocate device-side memory for the policy (pi).");
-		return -3;
-	}
+    if (cudaMalloc(&d_V, n * sizeof(float)) != cudaSuccess) {
+        fprintf(stderr, "Error[value_iteration]: %s",
+                "Failed to allocate device-side memory for the value function.");
+        return 4;
+    }
+    if (cudaMalloc(&d_VPrime, n * sizeof(float)) != cudaSuccess) {
+        fprintf(stderr, "Error[value_iteration]: %s",
+                "Failed to allocate device-side memory for the value function (prime).");
+        return 5;
+    }
 
-	/*
-	// Assume that V and pi are initialized *properly* (either 0, or, with MPI, perhaps
-	// with previous V values).
+    if (cudaMalloc(&d_pi, n * sizeof(unsigned int)) != cudaSuccess) {
+        fprintf(stderr, "Error[value_iteration]: %s",
+                "Failed to allocate device-side memory for the policy (pi).");
+        return 6;
+    }
 
-	for (int s = 0; s < n; s++) {
-		V[s] = 0.0f;
-		pi[s] = 0;
-	}
-	//*/
+    /*
+    // Assume that V and pi are initialized *properly* (either 0, or, with MPI, perhaps
+    // with previous V values).
 
-	// Copy the data from host to device.
-	if (cudaMemcpy(d_T, T, n * m * n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-		fprintf(stderr, "Error[value_iteration]: %s",
-				"Failed to copy memory from host to device for the state transitions.");
-		return -3;
-	}
-	if (cudaMemcpy(d_R, R, n * m * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-		fprintf(stderr, "Error[value_iteration]: %s",
-				"Failed to copy memory from host to device for the rewards.");
-		return -3;
-	}
+    for (int s = 0; s < n; s++) {
+        V[s] = 0.0f;
+        pi[s] = 0;
+    }
+    //*/
 
-	if (cudaMemcpy(d_V, V, n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-		fprintf(stderr, "Error[value_iteration]: %s",
-				"Failed to copy memory from host to device for the value function.");
-		return -3;
-	}
-	if (cudaMemcpy(d_VPrime, V, n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-		fprintf(stderr, "Error[value_iteration]: %s",
-				"Failed to copy memory from host to device for the value function (prime).");
-		return -3;
-	}
+    // Copy the data from host to device.
+    if (cudaMemcpy(d_T, T, n * m * n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+        fprintf(stderr, "Error[value_iteration]: %s",
+                "Failed to copy memory from host to device for the state transitions.");
+        return 7;
+    }
+    if (cudaMemcpy(d_R, R, n * m * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+        fprintf(stderr, "Error[value_iteration]: %s",
+                "Failed to copy memory from host to device for the rewards.");
+        return 8;
+    }
 
-	if (cudaMemcpy(d_pi, pi, n * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
-		fprintf(stderr, "Error[value_iteration]: %s",
-				"Failed to copy memory from host to device for the policy (pi).");
-		return -3;
-	}
+    if (cudaMemcpy(d_V, V, n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+        fprintf(stderr, "Error[value_iteration]: %s",
+                "Failed to copy memory from host to device for the value function.");
+        return 9;
+    }
+    if (cudaMemcpy(d_VPrime, V, n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+        fprintf(stderr, "Error[value_iteration]: %s",
+                "Failed to copy memory from host to device for the value function (prime).");
+        return 10;
+    }
 
-	// Execute value iteration for these number of iterations. For each iteration, however,
-	// we will run the state updates in parallel.
-	for (int i = 0; i < iterations; i++) {
-		printf("Iteration %d / %d\n", i, iterations);
+    if (cudaMemcpy(d_pi, pi, n * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
+        fprintf(stderr, "Error[value_iteration]: %s",
+                "Failed to copy memory from host to device for the policy (pi).");
+        return 11;
+    }
 
-		if (i % 2 == 0) {
-			nova_mdp_bellman_update<<< numBlocks, numThreads >>>(n, m, d_T, d_R, gamma, d_V, d_VPrime, d_pi);
-		} else {
-			nova_mdp_bellman_update<<< numBlocks, numThreads >>>(n, m, d_T, d_R, gamma, d_VPrime, d_V, d_pi);
-		}
-	}
+    // Execute value iteration for these number of iterations. For each iteration, however,
+    // we will run the state updates in parallel.
+    for (int i = 0; i < horizon; i++) {
+        printf("Iteration %d / %d\n", i, horizon);
 
-	// Copy the final result, both V and pi, from device to host.
-	if (iterations % 2 == 1) {
-		if (cudaMemcpy(V, d_V, n * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
-			fprintf(stderr, "Error[value_iteration]: %s",
-					"Failed to copy memory from device to host for the value function.");
-			return -3;
-		}
-	} else {
-		if (cudaMemcpy(V, d_VPrime, n * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
-			fprintf(stderr, "Error[value_iteration]: %s",
-					"Failed to copy memory from device to host for the value function (prime).");
-			return -3;
-		}
-	}
-	if (cudaMemcpy(pi, d_pi, n * sizeof(unsigned int), cudaMemcpyDeviceToHost) != cudaSuccess) {
-		fprintf(stderr, "Error[value_iteration]: %s",
-				"Failed to copy memory from device to host for the policy (pi).");
-		return -3;
-	}
+        if (i % 2 == 0) {
+            nova_mdp_bellman_update<<< numBlocks, numThreads >>>(n, m, d_T, d_R, gamma, d_V, d_VPrime, d_pi);
+        } else {
+            nova_mdp_bellman_update<<< numBlocks, numThreads >>>(n, m, d_T, d_R, gamma, d_VPrime, d_V, d_pi);
+        }
+    }
 
-	// Free the device-side memory.
-	cudaFree(d_T);
-	cudaFree(d_R);
+    // Copy the final result, both V and pi, from device to host.
+    if (horizon % 2 == 1) {
+        if (cudaMemcpy(V, d_V, n * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
+            fprintf(stderr, "Error[value_iteration]: %s",
+                    "Failed to copy memory from device to host for the value function.");
+            return 12;
+        }
+    } else {
+        if (cudaMemcpy(V, d_VPrime, n * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
+            fprintf(stderr, "Error[value_iteration]: %s",
+                    "Failed to copy memory from device to host for the value function (prime).");
+            return 13;
+        }
+    }
+    if (cudaMemcpy(pi, d_pi, n * sizeof(unsigned int), cudaMemcpyDeviceToHost) != cudaSuccess) {
+        fprintf(stderr, "Error[value_iteration]: %s",
+                "Failed to copy memory from device to host for the policy (pi).");
+        return 14;
+    }
 
-	cudaFree(d_V);
-	cudaFree(d_VPrime);
+    // Free the device-side memory.
+    cudaFree(d_T);
+    cudaFree(d_R);
 
-	cudaFree(d_pi);
+    cudaFree(d_V);
+    cudaFree(d_VPrime);
 
-	return 0;
+    cudaFree(d_pi);
+
+    return 0;
 }

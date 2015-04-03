@@ -27,8 +27,9 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", 
 from nebula import *
 
 
+gridWorldFile = os.path.join(os.path.dirname(os.path.realpath(__file__)), "grid_world.mdp")
 gridWorld = MOMDP()
-gridWorld.load("grid_world.mdp")
+gridWorld.load(gridWorldFile)
 print(gridWorld)
 
 V, pi = gridWorld.solve()

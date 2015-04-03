@@ -33,19 +33,17 @@ else:
     _nova = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                     "..", "..", "lib", "nova.so"))
 
-# Define the argument types for the desired functions.
 _nova.nova_mdp_vi.argtypes = (ct.c_uint, # n
                                 ct.c_uint, # m
                                 ct.POINTER(ct.c_float), # T
                                 ct.POINTER(ct.c_float), # R
                                 ct.c_float, # gamma
-                                ct.c_float, # epsilon
+                                ct.c_uint, # horizon
+                                ct.c_uint, # numThreads
                                 ct.POINTER(ct.c_float), # V
-                                ct.POINTER(ct.c_uint), # pi
-                                ct.c_uint, # numBlocks
-                                ct.c_uint) # numThreads
+                                ct.POINTER(ct.c_uint)) # pi
 
-def nova_mdp_vi(n, m, T, R, gamma, epsilon, V, pi, numBlocks, numThreads):
+def nova_mdp_vi(n, m, T, R, gamma, horizon, numThreads, V, pi):
     """ The wrapper Python function for executing value iteration for an MDP.
 
         Parameters:
@@ -54,17 +52,16 @@ def nova_mdp_vi(n, m, T, R, gamma, epsilon, V, pi, numBlocks, numThreads):
             T           --  The state transitions as a flattened 3-dimensional array.
             R           --  The reward function as a flattened 2-dimensional array.
             gamma       --  The discount factor.
-            epsilon     --  The convergence criteria.
-            V           --  The resultant values of the states. (Modified.)
-            pi          --  The resultant actions to take at each state. (Modified.)
-            numBlocks   --  The number of CUDA blocks to execute.
+            horizon     --  The number of iterations to execute.
             numThreads  --  The number of CUDA threads to execute.
+            V           --  The resultant values of the states. Modified.
+            pi          --  The resultant actions to take at each state. Modified.
 
         Returns:
             0   --  Success.
-            -1  --  Invalid arguments were passed.
-            -2  --  The number of blocks and threads is less than the number of states.
-            -3  --  A CUDA memcpy failed somewhere, which should also output to std::err.
+            1   --  Invalid arguments were passed.
+            2   --  The number of blocks and threads is less than the number of states.
+            3   --  A CUDA memcpy failed somewhere, which should also output to std::err.
     """
 
     global _nova
@@ -78,12 +75,13 @@ def nova_mdp_vi(n, m, T, R, gamma, epsilon, V, pi, numBlocks, numThreads):
     piResult = array_type_n_uint(*pi)
 
     result = _nova.nova_mdp_vi(int(n), int(m), array_type_nmn_float(*T), array_type_nm_float(*R),
-                            float(gamma), float(epsilon), VResult, piResult,
-                            int(numBlocks), int(numThreads))
+                            float(gamma), int(horizon), int(numThreads), VResult, piResult)
 
-    for i in range(n):
-        V[i] = VResult[i]
-        pi[i] = piResult[i]
+    print(result)
+    if result == 0:
+        for i in range(n):
+            V[i] = VResult[i]
+            pi[i] = piResult[i]
 
     return result
 
