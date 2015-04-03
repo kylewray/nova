@@ -77,7 +77,6 @@ def nova_mdp_vi(n, m, T, R, gamma, horizon, numThreads, V, pi):
     result = _nova.nova_mdp_vi(int(n), int(m), array_type_nmn_float(*T), array_type_nm_float(*R),
                             float(gamma), int(horizon), int(numThreads), VResult, piResult)
 
-    print(result)
     if result == 0:
         for i in range(n):
             V[i] = VResult[i]

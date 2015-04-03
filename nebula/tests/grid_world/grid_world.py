@@ -23,11 +23,13 @@
 import os
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "src"))
+thisFilePath = os.path.dirname(os.path.realpath(__file__))
+
+sys.path.append(os.path.join(thisFilePath, "..", "..", "src"))
 from nebula import *
 
 
-gridWorldFile = os.path.join(os.path.dirname(os.path.realpath(__file__)), "grid_world.mdp")
+gridWorldFile = os.path.join(thisFilePath, "grid_world.mdp")
 gridWorld = MOMDP()
 gridWorld.load(gridWorldFile)
 print(gridWorld)
@@ -35,4 +37,14 @@ print(gridWorld)
 V, pi = gridWorld.solve()
 print(V)
 print(pi)
+
+
+gridWorldFile = os.path.join(thisFilePath, "grid_world.pomdp")
+gridWorld = MOPOMDP()
+gridWorld.load(gridWorldFile)
+print(gridWorld)
+
+#Gamma, pi = gridWorld.solve()
+#print(Gamma)
+#print(pi)
 
