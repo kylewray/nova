@@ -22,7 +22,7 @@
  */
 
 
-#include "../../include/mdp/mdp_vi.h"
+#include "mdp_vi.h"
 
 #include <cmath>
 
@@ -44,9 +44,6 @@ __global__ void nova_mdp_bellman_update(unsigned int n, unsigned int m, const fl
 	// The intermediate Q(s, a) value.
 	float Qsa;
 
-	// The 1-d index version of the 3-d arrays in the innermost loop.
-	int k;
-
 	// Compute the index of the state. Return if it is beyond the state.
 	s = blockIdx.x * blockDim.x + threadIdx.x;
 	if (s >= n) {
@@ -59,10 +56,9 @@ __global__ void nova_mdp_bellman_update(unsigned int n, unsigned int m, const fl
 	// Compute max_{a in A} Q(s, a).
 	for (int a = 0; a < m; a++) {
 		// Compute Q(s, a) for this action.
-		Qsa = 0.0f;
+		Qsa = R[s * m + a];
 		for (int sp = 0; sp < n; sp++) {
-			k = s * m * n + a * n + sp;
-			Qsa += T[k] * (R[k] + gamma * V[sp]);
+			Qsa += gamma * T[s * m * n + a * n + sp] * V[sp];
 		}
 
 		if (a == 0 || Qsa > VPrime[s]) {
@@ -73,7 +69,7 @@ __global__ void nova_mdp_bellman_update(unsigned int n, unsigned int m, const fl
 }
 
 int nova_mdp_vi(unsigned int n, unsigned int m, const float *T, const float *R,
-		float Rmax, float gamma, float epsilon, float *V, unsigned int *pi,
+		float gamma, float epsilon, float *V, unsigned int *pi,
 		unsigned int numBlocks, unsigned int numThreads)
 {
 	// The device pointers for the MDP: T and R.
@@ -107,7 +103,7 @@ int nova_mdp_vi(unsigned int n, unsigned int m, const float *T, const float *R,
 				"Failed to allocate device-side memory for the state transitions.");
 		return -3;
 	}
-	if (cudaMalloc(&d_R, n * m * n * sizeof(float)) != cudaSuccess) {
+	if (cudaMalloc(&d_R, n * m * sizeof(float)) != cudaSuccess) {
 		fprintf(stderr, "Error[value_iteration]: %s",
 				"Failed to allocate device-side memory for the rewards.");
 		return -3;
@@ -146,7 +142,7 @@ int nova_mdp_vi(unsigned int n, unsigned int m, const float *T, const float *R,
 				"Failed to copy memory from host to device for the state transitions.");
 		return -3;
 	}
-	if (cudaMemcpy(d_R, R, n * m * n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+	if (cudaMemcpy(d_R, R, n * m * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
 		fprintf(stderr, "Error[value_iteration]: %s",
 				"Failed to copy memory from host to device for the rewards.");
 		return -3;
@@ -172,8 +168,7 @@ int nova_mdp_vi(unsigned int n, unsigned int m, const float *T, const float *R,
 	// Execute value iteration for these number of iterations. For each iteration, however,
 	// we will run the state updates in parallel.
 	for (int i = 0; i < iterations; i++) {
-//		printf("Iteration %d / %d\n", i, iterations);
-//		printf("Blocks: %d\nThreads: %d\nGamma: %f\nn: %d\nm: %d\n", numBlocks, numThreads, gamma, n, m);
+		printf("Iteration %d / %d\n", i, iterations);
 
 		if (i % 2 == 0) {
 			nova_mdp_bellman_update<<< numBlocks, numThreads >>>(n, m, d_T, d_R, gamma, d_V, d_VPrime, d_pi);

@@ -56,9 +56,7 @@
  * @param	Gamma				The resultant policy; set of alpha vectors (r-n array). This will be modified.
  * @param	pi					The resultant policy; one action for each alpha-vector (r-array).
  * 								This will be modified.
- * @return	Returns 0 upon success; -1 if invalid arguments were passed; -2 if the number
- * 			of blocks and threads is less than the number of states; -3 if an error with
- * 			the CUDA functions arose.
+ * @return	Returns 0 upon success, 1 otherwise.
  */
 int nova_pomdp_pbvi(unsigned int n, unsigned int m, unsigned int z, unsigned int r,
 		unsigned int maxNonZeroBeliefs, unsigned int maxSuccessors,
@@ -67,6 +65,96 @@ int nova_pomdp_pbvi(unsigned int n, unsigned int m, unsigned int z, unsigned int
 		float gamma, unsigned int horizon,
 		unsigned int numThreads,
 		float *Gamma, unsigned int *pi);
+
+/**
+ * The initialization step of PBVI. This sets up the Gamma, pi, alphaBA, and numBlocks variables.
+ * @param	n				The number of states.
+ * @param	m				The number of actions, in total, that are possible.
+ * @param	r				The number of belief points.
+ * @param	numThreads		The number of CUDA threads per block. Use 128, 256, 512, or 1024 (multiples of 32).
+ * @param	Gamma			The resultant policy; set of alpha vectors (r-n array).
+ * @param	d_Gamma			An r-n array of the alpha-vectors. (Device-side pointer.) This will be modified.
+ * @param	d_GammaPrime	An r-n array of the alpha-vectors (copied). (Device-side pointer.) This will be modified.
+ * @param	d_pi			An r-array of the actions at each belief. (Device-side pointer.) This will be modified.
+ * @param	d_piPrime		An r-array of the actions at each belief (copied). (Device-side pointer.) This will be modified.
+ * @param	d_alphaBA		A set of intermediate alpha-vectors. (Device-side pointer.) This will be modified.
+ * @param	numBlocks		The number of blocks to execute. This will be modified.
+ * @return	Returns 0 upon success, 1 otherwise.
+ */
+int nova_pomdp_pbvi_initialize(unsigned int n, unsigned int m, unsigned int r, unsigned int numThreads,
+		float *Gamma,
+		float *&d_Gamma, float *&d_GammaPrime, unsigned int *&d_pi, unsigned int *&d_piPrime, float *&d_alphaBA,
+		unsigned int *numBlocks);
+
+/**
+ * The update step of PBVI. This applies the PBVI procedure once.
+ * @param	n					The number of states.
+ * @param	m					The number of actions, in total, that are possible.
+ * @param	z					The number of observations.
+ * @param	r					The number of belief points.
+ * @param	maxNonZeroBeliefs	The maximum number of non-zero belief states.
+ * @param	maxSuccessors		The maximum number of successor states possible.
+ * @param	d_B					A r-n array, consisting of r sets of n-vector belief distributions.
+ *  							(Device-side pointer.)
+ * @param	d_T					A mapping of state-action-state triples (n-m-n array) to a
+ * 								transition probability. (Device-side pointer.)
+ * @param	d_O					A mapping of action-state-observations triples (m-n-z array) to a
+ * 								transition probability. (Device-side pointer.)
+ * @param	d_R					A mapping of state-action triples (n-m array) to a reward.
+ * 								(Device-side pointer.)
+ * @param	d_available			A mapping of belief-action pairs (r-m array) to a boolean if the action
+ * 								is available at that belief state or not. (Device-side pointer.)
+ * @param	d_nonZeroBeliefs	A mapping from beliefs to an array of state indexes.
+ * 								(Device-side pointer.)
+ * @param	d_successors		A mapping from state-action pairs to successor state indexes.
+ * 								(Device-side pointer.)
+ * @param	gamma				The discount factor in [0.0, 1.0).
+ * @param	currentHorizon		How many applications of this method have been applied so far.
+ * @param	numThreads			The number of CUDA threads per block. Use 128, 256, 512, or 1024 (multiples of 32).
+ * @param	numBlocks			The number of blocks to execute.
+ * @param	d_Gamma				An r-n array of the alpha-vectors. (Device-side pointer.)
+ * @param	d_GammaPrime		An r-n array of the alpha-vectors (copied). (Device-side pointer.)
+ * @param	d_pi				An r-array of the actions at each belief. (Device-side pointer.)
+ * @param	d_piPrime			An r-array of the actions at each belief (copied). (Device-side pointer.)
+ * @param	d_alphaBA			A set of intermediate alpha-vectors. (Device-side pointer.)
+ * @return	Returns 0 upon success, 1 otherwise.
+ */
+int nova_pomdp_pbvi_update(unsigned int n, unsigned int m, unsigned int z, unsigned int r,
+		unsigned int maxNonZeroBeliefs, unsigned int maxSuccessors,
+		const float *d_B, const float *d_T, const float *d_O, const float *d_R,
+		const bool *d_available, const int *d_nonZeroBeliefs, const int *d_successors,
+		float gamma, unsigned int currentHorizon, unsigned int numThreads, unsigned int numBlocks,
+		float *d_Gamma, float *d_GammaPrime, unsigned int *d_pi, unsigned int *d_piPrime, float *d_alphaBA);
+
+/**
+ * The get result step of PBVI. This retrieves the alpha-vectors (Gamma) and corresponding actions (pi).
+ * @param	n				The number of states.
+ * @param	r				The number of belief points.
+ * @param	horizon			How many time steps to iterate.
+ * @param	d_Gamma			An r-n array of the alpha-vectors. (Device-side pointer.)
+ * @param	d_GammaPrime	An r-n array of the alpha-vectors (copied). (Device-side pointer.)
+ * @param	d_pi			An r-array of the actions at each belief. (Device-side pointer.)
+ * @param	d_piPrime		An r-array of the actions at each belief (copied). (Device-side pointer.)
+ * @param	d_alphaBA		A set of intermediate alpha-vectors. (Device-side pointer.)
+ * @param	Gamma			The resultant policy; set of alpha vectors (r-n array). This will be modified.
+ * @param	pi				The resultant policy; one action for each alpha-vector (r-array). This will be modified.
+ * @return	Returns 0 upon success, 1 otherwise.
+ */
+int nova_pomdp_pbvi_get_result(unsigned int n, unsigned int r, unsigned int horizon,
+		const float *d_Gamma, const float *d_GammaPrime, const unsigned int *d_pi, const unsigned int *d_piPrime,
+		float *Gamma, unsigned int *pi);
+
+/**
+ * The uninitialization step of PBVI. This sets up the Gamma, pi, alphaBA, and numBlocks variables.
+ * @param	d_Gamma			An r-n array of the alpha-vectors. (Device-side pointer.) This will be modified.
+ * @param	d_GammaPrime	An r-n array of the alpha-vectors (copied). (Device-side pointer.) This will be modified.
+ * @param	d_pi			An r-array of the actions at each belief. (Device-side pointer.) This will be modified.
+ * @param	d_piPrime		An r-array of the actions at each belief (copied). (Device-side pointer.) This will be modified.
+ * @param	d_alphaBA		A set of intermediate alpha-vectors. (Device-side pointer.) This will be modified.
+ * @return	Returns 0 upon success, 1 otherwise.
+ */
+int nova_pomdp_pbvi_uninitialize(float *&d_Gamma, float *&d_GammaPrime,
+		unsigned int *&d_pi, unsigned int *&d_piPrime, float *&d_alphaBA);
 
 /**
  * Initialize CUDA available actions object.

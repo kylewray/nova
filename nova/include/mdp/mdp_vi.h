@@ -33,8 +33,6 @@
  * @param	T			A mapping of state-action-state triples (n-m-n array) to a
  * 						transition probability.
  * @param	R			A mapping of state-action-state triples (n-m-n array) to a reward.
- * @param	Rmax		The maximum reward possible, for use in computing the number
- * 						of iterations.
  * @param	gamma		The discount factor in [0.0, 1.0).
  * @param	epsilon		The convergence criterion tolerance to within optimal.
  * @param	V			The final value function, mapping states (n array) to floats.
@@ -47,8 +45,8 @@
  * 						-2 if the number of blocks and threads is less than the number of states
  * 						-3 if a CUDA memcpy failed somewhere, which will also output to std::err
  */
-int nova_mdp_vi(unsigned int n, unsigned int m, const float *T, const float *R,
-		float Rmax, float gamma, float epsilon, float *V, unsigned int *pi,
+extern "C" int nova_mdp_vi(unsigned int n, unsigned int m, const float *T, const float *R,
+		float gamma, float epsilon, float *V, unsigned int *pi,
 		unsigned int numBlocks, unsigned int numThreads);
 
 /**
@@ -61,8 +59,6 @@ int nova_mdp_vi(unsigned int n, unsigned int m, const float *T, const float *R,
  * @param	T			A mapping of state-action-state triples (n-m-n array) to a
  * 						transition probability.
  * @param	R			A mapping of state-action-state triples (n-m-n array) to a reward.
- * @param	Rmax		The maximum reward possible, for use in computing the number
- * 						of iterations.
  * @param	gamma		The discount factor in [0.0, 1.0).
  * @param	epsilon		The convergence criterion tolerance to within optimal.
  * @param	V			The final value function, mapping states (n array) to floats.
