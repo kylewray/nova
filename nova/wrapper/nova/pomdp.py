@@ -53,7 +53,7 @@ _nova.nova_pomdp_pbvi.argtypes = (ct.c_uint, # n
                                 ct.POINTER(ct.c_uint)) # pi
 
 def nova_pomdp_pbvi(n, m, z, r, maxNonZeroBeliefs, maxSuccessors,
-        B, T, O, R, available, successors,
+        B, T, O, R, available, nonZeroBeliefs, successors,
         gamma, horizon, numThreads, Gamma, pi):
     """ The wrapper Python function for executing point-based value iteration for a POMDP.
 
@@ -95,7 +95,7 @@ def nova_pomdp_pbvi(n, m, z, r, maxNonZeroBeliefs, maxSuccessors,
     array_type_nmxs_int = ct.c_int * (int(n) * int(m) * int(maxSuccessors))
     array_type_r_uint = ct.c_uint * int(r)
 
-    GammaResult = array_type_rm_float(*Gamma)
+    GammaResult = array_type_rn_float(*Gamma)
     piResult = array_type_r_uint(*pi)
 
     result = _nova.nova_pomdp_pbvi(int(n), int(m), int(z), int(r), int(maxNonZeroBeliefs),

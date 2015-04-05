@@ -22,6 +22,7 @@
 
 import csv
 import numpy as np
+import itertools
 
 import os
 import sys
@@ -52,7 +53,16 @@ class MOPOMDP(object):
         self.O = list() # Observation transitions T(a, s', o).
         self.R = list() # Rewards R_i(s, a).
 
-        self.b0 = 0 # The initial belief state.
+        self.B = list() # The initial set of belief states.
+
+        self.available = list() # At each belief point, the actions available there.
+
+        self.maxNonZeroBeliefs = 0 # The maximum number of non-zero values in a belief point.
+        self.nonZeroBeliefs = list() # The mapping of beliefs to non-zero index values.
+
+        self.maxSuccessors = 0 # The maximum number of successors over all states.
+        self.successors = list() # A mapping from states to actions to the list of successors.
+
         self.horizon = 0 # The horizon; non-positive numbers imply infinite horizon.
         self.gamma = 0.9 # The discount factor.
 
@@ -75,9 +85,9 @@ class MOPOMDP(object):
             self.n = int(data[0][0])
             self.m = int(data[0][1])
             self.z = int(data[0][2])
-            self.k = int(data[0][3])
+            self.r = int(data[0][3])
+            self.k = int(data[0][4])
 
-            self.s0 = int(data[0][4])
             self.horizon = int(data[0][5])
             self.gamma = float(data[0][6])
 
@@ -100,9 +110,51 @@ class MOPOMDP(object):
                             for s in range(self.n)] \
                         for i in range(self.k)])
 
+            rowOffset = 1 + self.n * self.m + self.m * self.n + self.k * self.n
+            self.B = np.array([[float(data[i + rowOffset][s])
+                            for s in range(self.n)] \
+                        for i in range(self.r)])
+
+            self._compute_optimization_variables()
+
         except Exception:
             print("Failed to load file.")
             raise Exception()
+
+    def _compute_optimization_variables(self):
+        """ Compute the 'available', 'nonZeroBeliefs', and 'successors' variables. """
+
+        # First, available is an r-m array which maps beliefs to booleans if actions are available.
+        self.available = np.array([[True for a in range(self.m)] for i in range(self.r)])
+
+        # Second, nonZeroBeliefs is an r-maxNonZeroBeliefs array which states the indices of
+        # the non-zero beliefs in the belief vector. We must compute the value maxNonZeroBeliefs.
+        self.maxNonZeroBeliefs = max([len([i for i, bs in enumerate(b) if bs > 0.0]) \
+                                        for b in self.B])
+
+        # Now compute the actual values.
+        self.nonZeroBeliefs = list()
+        for b in self.B:
+            nonZeroBelief = [i for i, bs in enumerate(b) if bs > 0.0]
+            nonZeroBelief += [-1] * (self.maxNonZeroBeliefs - len(nonZeroBelief))
+            self.nonZeroBeliefs += [nonZeroBelief]
+        self.nonZeroBeliefs = np.array(self.nonZeroBeliefs)
+
+        # Third, successors is an n-m-maxSuccessor array that contains the list of state indices
+        # which have a non-zero state transition. We must compute the value of maxSuccessors.
+        self.maxSuccessors = max([len([sp for sp in range(self.n) if self.T[s][a][sp] > 0.0]) \
+                                for s, a in itertools.product(range(self.n), range(self.m))])
+
+        # Now compute the actual values.
+        self.successors = list()
+        for s in range(self.n):
+            succ = list()
+            for a in range(self.m):
+                successorsSA = [sp for sp in range(self.n) if self.T[s][a][sp] > 0.0]
+                successorsSA += [-1] * (self.maxSuccessors - len(successorsSA))
+                succ += [successorsSA]
+            self.successors += [succ]
+        self.successors = np.array(self.successors)
 
     def solve(self, f=None, numThreads=1024):
         """ Solve the MOPOMDP, using the nova python wrapper, with the given scalarization function.
@@ -114,31 +166,39 @@ class MOPOMDP(object):
                 numThreads  --  The number of CUDA threads to execute.
 
             Returns:
-                V   --  The values of each state, mapping states to values.
-                pi  --  The policy, mapping states to actions.
+                Gamma   --  The alpha-vectors, one for each belief point, mapping states to values.
+                pi      --  The policy, mapping alpha-vectors (belief points) to actions.
         """
 
         if f == None:
-            # The initial value of V is either Rmin / (1 - gamma), for gamma less than 1.0, and
+            # The initial alpha-vectors are either Rmin / (1 - gamma), for gamma less than 1.0, and
             # simply 0.0 otherwise.
-            V = None
+            Gamma = None
             if self.gamma < 1.0:
-                Rmin = np.array(self.R).min()
-                V = [float(Rmin / (1.0 - self.gamma)) for s in range(self.n)]
+                Rmin = np.array(self.R[0]).min()
+                Gamma = np.array([[float(Rmin / (1.0 - self.gamma)) for s in range(self.n)] \
+                            for i in range(self.r)])
             else:
-                V = [0.0 for s in range(self.n)]
+                Gamma = np.array([[0.0 for s in range(self.n)] for b in range(self.r)])
+            Gamma = Gamma.flatten()
 
-            pi = [0 for s in range(self.n)]
+            pi = np.array([0 for i in range(self.r)])
 
             numThreads = 1024
 
             # Call the nova library to run value iteration.
-            #result = nova_pomdp_pbvi(self.n, self.m, self.T.flatten(), self.R[0].flatten(),
-            #            self.gamma, self.horizon, numThreads, V, pi)
-            #if result != 0:
-            #    print("Failed to execute nova's solver.")
+            result = nova_pomdp_pbvi(self.n, self.m, self.z, self.r,
+                        self.maxNonZeroBeliefs, self.maxSuccessors,
+                        self.B.flatten(), self.T.flatten(), self.O.flatten(), self.R[0].flatten(),
+                        self.available.flatten(), self.nonZeroBeliefs.flatten(),
+                        self.successors.flatten(), self.gamma, self.horizon, numThreads,
+                        Gamma, pi)
+            if result != 0:
+                print("Failed to execute nova's solver.")
 
-            return V, pi
+            Gamma = Gamma.reshape((self.r, self.n))
+
+            return Gamma, pi
 
         return None
 
@@ -152,8 +212,8 @@ class MOPOMDP(object):
         result = "n:       " + str(self.n) + "\n"
         result += "m:       " + str(self.m) + "\n"
         result += "z:       " + str(self.z) + "\n"
+        result += "r:      " + str(self.r) + "\n"
         result += "k:       " + str(self.k) + "\n"
-        result += "b0:      " + str(self.b0) + "\n"
         result += "horizon: " + str(self.horizon) + "\n"
         result += "gamma:   " + str(self.gamma) + "\n\n"
 
@@ -162,6 +222,12 @@ class MOPOMDP(object):
 
         for i in range(self.k):
             result += "R_%i(s, a):\n%s" % (i + 1, str(np.array(self.R[i]))) + "\n\n"
+
+        result += "B:\n%s" % (str(np.array(self.B))) + "\n\n"
+
+        result += "available:\n%s" % (str(np.array(self.available))) + "\n\n"
+        result += "nonZeroBeliefs:\n%s" % (str(np.array(self.nonZeroBeliefs))) + "\n\n"
+        result += "successors:\n%s" % (str(np.array(self.successors))) + "\n\n"
 
         return result
 

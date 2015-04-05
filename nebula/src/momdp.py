@@ -112,12 +112,12 @@ class MOMDP(object):
             # simply 0.0 otherwise.
             V = None
             if self.gamma < 1.0:
-                Rmin = np.array(self.R).min()
-                V = [float(Rmin / (1.0 - self.gamma)) for s in range(self.n)]
+                Rmin = np.array(self.R[0]).min()
+                V = np.array([float(Rmin / (1.0 - self.gamma)) for s in range(self.n)])
             else:
-                V = [0.0 for s in range(self.n)]
+                V = np.array([0.0 for s in range(self.n)])
 
-            pi = [0 for s in range(self.n)]
+            pi = np.array([0 for s in range(self.n)])
 
             numThreads = 1024
 

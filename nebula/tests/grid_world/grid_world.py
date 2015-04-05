@@ -44,7 +44,7 @@ gridWorld = MOPOMDP()
 gridWorld.load(gridWorldFile)
 print(gridWorld)
 
-#Gamma, pi = gridWorld.solve()
-#print(Gamma)
-#print(pi)
+Gamma, pi = gridWorld.solve()
+print(Gamma)
+print(pi)
 
