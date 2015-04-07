@@ -98,19 +98,19 @@ class MOPOMDP(object):
                         for s in range(self.n)])
 
             rowOffset = 1 + self.n * self.m
-            self.O = np.array([[[float(data[(self.n * a + sp) + rowOffset][o]) \
+            self.O = np.array([[[float(data[(self.z * a + o) + rowOffset][sp]) \
                                 for o in range(self.z)] \
                             for sp in range(self.n)] \
                         for a in range(self.m)])
 
 
-            rowOffset = 1 + self.n * self.m + self.m * self.n
-            self.R = np.array([[[float(data[s + rowOffset][a])
+            rowOffset = 1 + self.n * self.m + self.m * self.z
+            self.R = np.array([[[float(data[a + rowOffset][s])
                                 for a in range(self.m)] \
                             for s in range(self.n)] \
                         for i in range(self.k)])
 
-            rowOffset = 1 + self.n * self.m + self.m * self.n + self.k * self.n
+            rowOffset = 1 + self.n * self.m + self.m * self.z + self.k * self.m
             self.B = np.array([[float(data[i + rowOffset][s])
                             for s in range(self.n)] \
                         for i in range(self.r)])

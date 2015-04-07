@@ -84,7 +84,7 @@ class MOMDP(object):
                         for s in range(self.n)])
 
             rowOffset = 1 + self.n * self.m
-            self.R = np.array([[[float(data[s + rowOffset][a])
+            self.R = np.array([[[float(data[a + rowOffset][s])
                                 for a in range(self.m)] \
                             for s in range(self.n)] \
                         for i in range(self.k)])
