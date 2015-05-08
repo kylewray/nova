@@ -141,13 +141,13 @@ class MOMDP(object):
                         for s in range(self.n)])
 
             rowOffset = 1 + self.n * self.m
-            self.R = np.array([[[float(data[a + rowOffset][s])
+            self.R = np.array([[[float(data[(self.m * i + a) + rowOffset][s])
                                 for a in range(self.m)] \
                             for s in range(self.n)] \
                         for i in range(self.k)])
 
         except Exception:
-            print("Failed to load file.")
+            print("Failed to load file '%s'." % (filename))
             raise Exception()
 
     def solve(self, f=None, numThreads=1024):

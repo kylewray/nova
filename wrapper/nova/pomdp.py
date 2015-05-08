@@ -119,7 +119,6 @@ def nova_pomdp_pbvi(n, m, z, r, maxNonZeroBeliefs, maxSuccessors,
     return result
 
 
-
 class MOPOMDP(object):
     """ A Multi-Objective Partially Observable Markov Decision Process (MOPOMDP) object
         that can load, solve, and save.
@@ -135,6 +134,7 @@ class MOPOMDP(object):
         self.n = 0 # The number of states.
         self.m = 0 # The number of actions.
         self.z = 0 # The number of observations.
+        self.r = 0 # The number of belief points.
         self.k = 1 # The number of reward functions.
 
         self.T = list() # State transitions T(s, a, s').
@@ -193,7 +193,7 @@ class MOPOMDP(object):
 
 
             rowOffset = 1 + self.n * self.m + self.m * self.z
-            self.R = np.array([[[float(data[a + rowOffset][s])
+            self.R = np.array([[[float(data[(self.m * i + a) + rowOffset][s])
                                 for a in range(self.m)] \
                             for s in range(self.n)] \
                         for i in range(self.k)])
@@ -206,7 +206,7 @@ class MOPOMDP(object):
             self._compute_optimization_variables()
 
         except Exception:
-            print("Failed to load file.")
+            print("Failed to load file '%s'." % (filename))
             raise Exception()
 
     def _compute_optimization_variables(self):
