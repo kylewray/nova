@@ -27,6 +27,7 @@ import os.path
 import csv
 import numpy as np
 
+
 # Import the correct library file depending on the platform.
 _nova = None
 if platform.system() == "Windows":
@@ -36,40 +37,44 @@ else:
     _nova = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                     "..", "..", "lib", "nova.so"))
 
-_nova.nova_mdp_vi.argtypes = (ct.c_uint, # n
-                                ct.c_uint, # m
+
+_nova.nova_mdp_vi.argtypes = (ct.c_uint,                # n
+                                ct.c_uint,              # m
+                                ct.c_uint,              # ns
+                                ct.POINTER(ct.c_int),   # S
                                 ct.POINTER(ct.c_float), # T
                                 ct.POINTER(ct.c_float), # R
-                                ct.c_float, # gamma
-                                ct.c_uint, # horizon
-                                ct.c_uint, # numThreads
+                                ct.c_float,             # gamma
+                                ct.c_uint,              # horizon
+                                ct.c_uint,              # numThreads
                                 ct.POINTER(ct.c_float), # V
-                                ct.POINTER(ct.c_uint)) # pi
+                                ct.POINTER(ct.c_uint))  # pi
 
-def nova_mdp_vi(n, m, T, R, gamma, horizon, numThreads, V, pi):
+
+def nova_mdp_vi(n, m, ns, S, T, R, gamma, horizon, numThreads, V, pi):
     """ The wrapper Python function for executing value iteration for an MDP.
 
         Parameters:
             n           --  The number of states.
             m           --  The number of actions.
-            T           --  The state transitions as a flattened 3-dimensional array.
-            R           --  The reward function as a flattened 2-dimensional array.
+            ns          --  The maximum number of successor states.
+            S           --  The successor states as a flattened 3-dimensional array (n-m-ns-array).
+            T           --  The state transitions as a flattened 3-dimensional array (n-m-ns-array).
+            R           --  The reward function as a flattened 2-dimensional array (n-m-array).
             gamma       --  The discount factor.
             horizon     --  The number of iterations to execute.
             numThreads  --  The number of CUDA threads to execute.
-            V           --  The resultant values of the states. Modified.
-            pi          --  The resultant actions to take at each state. Modified.
+            V           --  The resultant values of the states (n-array). Modified.
+            pi          --  The resultant actions to take at each state (n-array). Modified.
 
         Returns:
-            0   --  Success.
-            1   --  Invalid arguments were passed.
-            2   --  The number of blocks and threads is less than the number of states.
-            3   --  A CUDA memcpy failed somewhere, which should also output to std::err.
+            Zero on success; non-zero otherwise.
     """
 
     global _nova
 
-    array_type_nmn_float = ct.c_float * (int(n) * int(m) * int(n))
+    array_type_nmns_int = ct.c_int * (int(n) * int(m) * int(ns))
+    array_type_nmns_float = ct.c_float * (int(n) * int(m) * int(ns))
     array_type_nm_float = ct.c_float * (int(n) * int(m))
     array_type_n_float = ct.c_float * int(n)
     array_type_n_uint = ct.c_uint * int(n)
@@ -77,8 +82,10 @@ def nova_mdp_vi(n, m, T, R, gamma, horizon, numThreads, V, pi):
     VResult = array_type_n_float(*V)
     piResult = array_type_n_uint(*pi)
 
-    result = _nova.nova_mdp_vi(int(n), int(m), array_type_nmn_float(*T), array_type_nm_float(*R),
-                            float(gamma), int(horizon), int(numThreads), VResult, piResult)
+    result = _nova.nova_mdp_vi(int(n), int(m), int(ns),
+                            array_type_nmns_int(*S), array_type_nmns_float(*T), array_type_nm_float(*R),
+                            float(gamma), int(horizon), int(numThreads),
+                            VResult, piResult)
 
     if result == 0:
         for i in range(n):
@@ -99,16 +106,18 @@ class MOMDP(object):
     def __init__(self):
         """ The constructor for the MOMDP class. """
 
-        self.n = 0 # The number of states.
-        self.m = 0 # The number of actions.
-        self.k = 1 # The number of reward functions.
+        self.n = 0          # The number of states.
+        self.m = 0          # The number of actions.
+        self.ns = 0         # The maximum number of successor states.
+        self.k = 1          # The number of reward functions.
 
-        self.T = list() # State transitions T(s, a, s').
-        self.R = list() # Rewards R_i(s, a).
+        self.S = list()     # Successor states.
+        self.T = list()     # State transitions T(s, a, s').
+        self.R = list()     # Rewards R_i(s, a).
 
-        self.s0 = 0 # The initial state.
-        self.horizon = 0 # The horizon; non-positive numbers imply infinite horizon.
-        self.gamma = 0.9 # The discount factor.
+        self.s0 = 0         # The initial state.
+        self.horizon = 0    # The horizon; non-positive numbers imply infinite horizon.
+        self.gamma = 0.9    # The discount factor.
 
     def load(self, filename):
         """ Load a raw MOMDP file given the file.
@@ -128,19 +137,26 @@ class MOMDP(object):
         try:
             self.n = int(data[0][0])
             self.m = int(data[0][1])
-            self.k = int(data[0][2])
+            self.ns = int(data[0][2])
+            self.k = int(data[0][3])
 
-            self.s0 = int(data[0][3])
-            self.horizon = int(data[0][4])
-            self.gamma = float(data[0][5])
+            self.s0 = int(data[0][4])
+            self.horizon = int(data[0][5])
+            self.gamma = float(data[0][6])
 
             rowOffset = 1
-            self.T = np.array([[[float(data[(self.n * a + s) + rowOffset][sp]) \
-                                for sp in range(self.n)] \
+            self.S = np.array([[[int(data[(self.n * a + s) + rowOffset][sp]) \
+                                for sp in range(self.ns)] \
                             for a in range(self.m)] \
                         for s in range(self.n)])
 
             rowOffset = 1 + self.n * self.m
+            self.T = np.array([[[float(data[(self.n * a + s) + rowOffset][sp]) \
+                                for sp in range(self.ns)] \
+                            for a in range(self.m)] \
+                        for s in range(self.n)])
+
+            rowOffset = 1 + self.n * self.m + self.n * self.m
             self.R = np.array([[[float(data[(self.m * i + a) + rowOffset][s])
                                 for a in range(self.m)] \
                             for s in range(self.n)] \
@@ -157,7 +173,7 @@ class MOMDP(object):
                 f           --  The scalarization function which maps a reward vector to a single
                                 reward. If set to None, then only the first reward function is
                                 used. Default is None. Optional.
-                numThreads  --  The number of CUDA threads to execute.
+                numThreads  --  The number of CUDA threads to execute (multiple of 32). Default is 1024.
 
             Returns:
                 V   --  The values of each state, mapping states to values.
@@ -179,8 +195,10 @@ class MOMDP(object):
             numThreads = 1024
 
             # Call the nova library to run value iteration.
-            result = nova_mdp_vi(self.n, self.m, self.T.flatten(), self.R[0].flatten(),
-                        self.gamma, self.horizon, numThreads, V, pi)
+            result = nova_mdp_vi(self.n, self.m, self.ns,
+                        self.S.flatten(), self.T.flatten(), self.R[0].flatten(),
+                        self.gamma, self.horizon, numThreads,
+                        V, pi)
             if result != 0:
                 print("Failed to execute nova's solver.")
 
@@ -197,11 +215,13 @@ class MOMDP(object):
 
         result = "n:       " + str(self.n) + "\n"
         result += "m:       " + str(self.m) + "\n"
+        result += "ns:      " + str(self.ns) + "\n"
         result += "k:       " + str(self.k) + "\n"
         result += "s0:      " + str(self.s0) + "\n"
         result += "horizon: " + str(self.horizon) + "\n"
         result += "gamma:   " + str(self.gamma) + "\n\n"
 
+        result += "S(s, a, i):\n%s" % (str(np.array(self.S))) + "\n\n"
         result += "T(s, a, s'):\n%s" % (str(np.array(self.T))) + "\n\n"
 
         for i in range(self.k):

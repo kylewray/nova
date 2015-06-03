@@ -191,7 +191,6 @@ class MOPOMDP(object):
                             for sp in range(self.n)] \
                         for a in range(self.m)])
 
-
             rowOffset = 1 + self.n * self.m + self.m * self.z
             self.R = np.array([[[float(data[(self.m * i + a) + rowOffset][s])
                                 for a in range(self.m)] \
@@ -300,7 +299,7 @@ class MOPOMDP(object):
         result = "n:       " + str(self.n) + "\n"
         result += "m:       " + str(self.m) + "\n"
         result += "z:       " + str(self.z) + "\n"
-        result += "r:      " + str(self.r) + "\n"
+        result += "r:       " + str(self.r) + "\n"
         result += "k:       " + str(self.k) + "\n"
         result += "horizon: " + str(self.horizon) + "\n"
         result += "gamma:   " + str(self.gamma) + "\n\n"

@@ -1,5 +1,5 @@
 COMMAND = nvcc
-FLAGS = -std=c++11 -shared -O3 -use_fast_math -Xcompiler -fPIC
+FLAGS = -std=c++11 -shared -O3 -use_fast_math -Xcompiler -fPIC -Iinclude
 
 all: nova
 

@@ -1,3 +1,4 @@
-/BuildLibrary
-/obj
+lib
+obj
+*.swp
 
