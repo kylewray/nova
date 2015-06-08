@@ -22,8 +22,8 @@
  */
 
 
-#ifndef NOVA_POMDP_PBVI_H
-#define NOVA_POMDP_PBVI_H
+#ifndef POMDP_PBVI_CPU_H
+#define POMDP_PBVI_CPU_H
 
 
 /**
@@ -355,5 +355,5 @@ int nova_pomdp_pbvi_initialize_successors(unsigned int n, unsigned int m,
 int nova_pomdp_pbvi_uninitialize_successors(int *&d_successors);
 
 
-#endif // NOVA_POMDP_PBVI_H
+#endif // POMDP_PBVI_CPU_H
 

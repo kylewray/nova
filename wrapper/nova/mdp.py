@@ -38,21 +38,75 @@ else:
                     "..", "..", "lib", "nova.so"))
 
 
-_nova.nova_mdp_vi.argtypes = (ct.c_uint,                # n
-                                ct.c_uint,              # m
-                                ct.c_uint,              # ns
-                                ct.POINTER(ct.c_int),   # S
-                                ct.POINTER(ct.c_float), # T
-                                ct.POINTER(ct.c_float), # R
-                                ct.c_float,             # gamma
-                                ct.c_uint,              # horizon
-                                ct.c_uint,              # numThreads
-                                ct.POINTER(ct.c_float), # V
-                                ct.POINTER(ct.c_uint))  # pi
+_nova.mdp_vi_cpu_complete.argtypes = (ct.c_uint,                # n
+                                        ct.c_uint,              # m
+                                        ct.c_uint,              # ns
+                                        ct.POINTER(ct.c_int),   # S
+                                        ct.POINTER(ct.c_float), # T
+                                        ct.POINTER(ct.c_float), # R
+                                        ct.c_float,             # gamma
+                                        ct.c_uint,              # horizon
+                                        ct.POINTER(ct.c_float), # V
+                                        ct.POINTER(ct.c_uint))  # pi
+
+_nova.mdp_vi_gpu_complete.argtypes = (ct.c_uint,                # n
+                                        ct.c_uint,              # m
+                                        ct.c_uint,              # ns
+                                        ct.POINTER(ct.c_int),   # S
+                                        ct.POINTER(ct.c_float), # T
+                                        ct.POINTER(ct.c_float), # R
+                                        ct.c_float,             # gamma
+                                        ct.c_uint,              # horizon
+                                        ct.c_uint,              # numThreads
+                                        ct.POINTER(ct.c_float), # V
+                                        ct.POINTER(ct.c_uint))  # pi
 
 
-def nova_mdp_vi(n, m, ns, S, T, R, gamma, horizon, numThreads, V, pi):
-    """ The wrapper Python function for executing value iteration for an MDP.
+def mdp_vi_cpu_complete(n, m, ns, S, T, R, gamma, horizon, V, pi):
+    """ The wrapper Python function for executing value iteration for an MDP using the CPU.
+
+        Parameters:
+            n           --  The number of states.
+            m           --  The number of actions.
+            ns          --  The maximum number of successor states.
+            S           --  The successor states as a flattened 3-dimensional array (n-m-ns-array).
+            T           --  The state transitions as a flattened 3-dimensional array (n-m-ns-array).
+            R           --  The reward function as a flattened 2-dimensional array (n-m-array).
+            gamma       --  The discount factor.
+            horizon     --  The number of iterations to execute.
+            V           --  The resultant values of the states (n-array). Modified.
+            pi          --  The resultant actions to take at each state (n-array). Modified.
+
+        Returns:
+            Zero on success; non-zero otherwise.
+    """
+
+    global _nova
+
+    array_type_nmns_int = ct.c_int * (int(n) * int(m) * int(ns))
+    array_type_nmns_float = ct.c_float * (int(n) * int(m) * int(ns))
+    array_type_nm_float = ct.c_float * (int(n) * int(m))
+    array_type_n_float = ct.c_float * int(n)
+    array_type_n_uint = ct.c_uint * int(n)
+
+    VResult = array_type_n_float(*V)
+    piResult = array_type_n_uint(*pi)
+
+    result = _nova.mdp_vi_cpu_complete(int(n), int(m), int(ns),
+                            array_type_nmns_int(*S), array_type_nmns_float(*T), array_type_nm_float(*R),
+                            float(gamma), int(horizon),
+                            VResult, piResult)
+
+    if result == 0:
+        for i in range(n):
+            V[i] = VResult[i]
+            pi[i] = piResult[i]
+
+    return result
+
+
+def mdp_vi_gpu_complete(n, m, ns, S, T, R, gamma, horizon, numThreads, V, pi):
+    """ The wrapper Python function for executing value iteration for an MDP using the GPU.
 
         Parameters:
             n           --  The number of states.
@@ -82,7 +136,7 @@ def nova_mdp_vi(n, m, ns, S, T, R, gamma, horizon, numThreads, V, pi):
     VResult = array_type_n_float(*V)
     piResult = array_type_n_uint(*pi)
 
-    result = _nova.nova_mdp_vi(int(n), int(m), int(ns),
+    result = _nova.mdp_vi_gpu_complete(int(n), int(m), int(ns),
                             array_type_nmns_int(*S), array_type_nmns_float(*T), array_type_nm_float(*R),
                             float(gamma), int(horizon), int(numThreads),
                             VResult, piResult)
@@ -194,11 +248,16 @@ class MOMDP(object):
 
             numThreads = 1024
 
-            # Call the nova library to run value iteration.
-            result = nova_mdp_vi(self.n, self.m, self.ns,
-                        self.S.flatten(), self.T.flatten(), self.R[0].flatten(),
-                        self.gamma, self.horizon, numThreads,
-                        V, pi)
+            # Call the nova library to run value iteration. If the GPU is available, then use it.
+            # Otherwise, use the CPU.
+            result = mdp_vi_gpu_complete(self.n, self.m, self.ns,
+                            self.S.flatten(), self.T.flatten(), self.R[0].flatten(),
+                            self.gamma, self.horizon, numThreads,
+                            V, pi)
+            #result = mdp_vi_cpu_complete(self.n, self.m, self.ns,
+            #                self.S.flatten(), self.T.flatten(), self.R[0].flatten(),
+            #                self.gamma, self.horizon,
+            #                V, pi)
             if result != 0:
                 print("Failed to execute nova's solver.")
 

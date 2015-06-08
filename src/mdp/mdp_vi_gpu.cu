@@ -22,7 +22,7 @@
  */
 
 
-#include "mdp_vi.h"
+#include "mdp_vi_gpu.h"
 #include "error_codes.h"
 
 #include <cmath>
@@ -32,7 +32,7 @@
 // off, the program might return 'nan' or 'inf'.
 #define FLT_MAX 1e+35
 
-__global__ void nova_mdp_bellman_update(unsigned int n, unsigned int m, unsigned int ns,
+__global__ void mdp_bellman_update_gpu(unsigned int n, unsigned int m, unsigned int ns,
         const int *S, const float *T, const float *R, float gamma, const float *V, float *VPrime, unsigned int *pi)
 {
     // The current state as a function of the blocks and threads.
@@ -83,7 +83,7 @@ __global__ void nova_mdp_bellman_update(unsigned int n, unsigned int m, unsigned
     }
 }
 
-int nova_mdp_vi(unsigned int n, unsigned int m, unsigned int ns,
+int mdp_vi_gpu_complete(unsigned int n, unsigned int m, unsigned int ns,
                 const int *S, const float *T, const float *R,
                 float gamma, unsigned int horizon, unsigned int numThreads,
                 float *V, unsigned int *pi)
@@ -203,12 +203,12 @@ int nova_mdp_vi(unsigned int n, unsigned int m, unsigned int ns,
     // Execute value iteration for these number of iterations. For each iteration, however,
     // we will run the state updates in parallel.
     for (int i = 0; i < horizon; i++) {
-        printf("Iteration %d / %d\n", i, horizon);
+        printf("Iteration %d / %d -- GPU Version\n", i, horizon);
 
         if (i % 2 == 0) {
-            nova_mdp_bellman_update<<< numBlocks, numThreads >>>(n, m, ns, d_S, d_T, d_R, gamma, d_V, d_VPrime, d_pi);
+            mdp_bellman_update_gpu<<< numBlocks, numThreads >>>(n, m, ns, d_S, d_T, d_R, gamma, d_V, d_VPrime, d_pi);
         } else {
-            nova_mdp_bellman_update<<< numBlocks, numThreads >>>(n, m, ns, d_S, d_T, d_R, gamma, d_VPrime, d_V, d_pi);
+            mdp_bellman_update_gpu<<< numBlocks, numThreads >>>(n, m, ns, d_S, d_T, d_R, gamma, d_VPrime, d_V, d_pi);
         }
     }
 

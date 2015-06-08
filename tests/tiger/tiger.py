@@ -44,6 +44,9 @@ print(piResult)
 from pylab import *
 
 hold(True)
+title("Policy Alpha-Vectors for Tiger Problem")
+xlabel("Belief of State s2: b(s2)")
+ylabel("Value of Belief: V(b(s2))")
 for i in range(tiger.r):
     if piResult[i] == 0:
         plot([0.0, 1.0], [Gamma[i, 0], Gamma[i, 1]], linewidth=10, color='red')

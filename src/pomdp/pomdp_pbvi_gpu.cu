@@ -21,7 +21,7 @@
  *  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "pomdp_pbvi.h"
+#include "pomdp_pbvi_gpu.h"
 
 #include <stdio.h>
 
