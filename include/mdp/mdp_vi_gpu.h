@@ -47,7 +47,7 @@
  *                      action (in 0 to m-1). This will be modified.
  *  @return Returns 0 upon success, non-zero otherwise.
  */
-extern "C" int mdp_vi_gpu_complete(unsigned int n, unsigned int m, unsigned int ns,
+extern "C" int mdp_vi_complete_gpu(unsigned int n, unsigned int m, unsigned int ns,
                             const int *S, const float *T, const float *R,
                             float gamma, unsigned int horizon, unsigned int numThreads,
                             float *V, unsigned int *pi);

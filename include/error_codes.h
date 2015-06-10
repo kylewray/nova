@@ -33,6 +33,8 @@
 #define NOVA_ERROR_MEMCPY_TO_DEVICE         4
 #define NOVA_ERROR_MEMCPY_TO_HOST           5
 #define NOVA_ERROR_DEVICE_FREE              6
+#define NOVA_ERROR_KERNEL_EXECUTION         7
+#define NOVA_ERROR_DEVICE_SYNCHRONIZE       8
 
 
 #endif // NOVA_ERROR_CODES_H

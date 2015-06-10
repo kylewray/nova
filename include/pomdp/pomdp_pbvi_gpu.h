@@ -27,7 +27,7 @@
 
 
 /**
- *  Execute the entire PBVI process for the infinite horizon POMDP model specified.
+ *  Execute the entire PBVI process for the infinite horizon POMDP model specified using the GPU.
  *  @param  n                   The number of states.
  *  @param  m                   The number of actions, in total, that are possible.
  *  @param  z                   The number of observations.
@@ -53,7 +53,7 @@
  *                              This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int nova_pomdp_pbvi(unsigned int n, unsigned int m, unsigned int z, unsigned int r,
+extern "C" int pomdp_pbvi_complete_gpu(unsigned int n, unsigned int m, unsigned int z, unsigned int r,
         unsigned int maxNonZeroBeliefs, unsigned int maxSuccessors,
         const float *B, const float *T, const float *O, const float *R,
         const bool *available, const int *nonZeroBeliefs, const int *successors,
@@ -61,7 +61,7 @@ extern "C" int nova_pomdp_pbvi(unsigned int n, unsigned int m, unsigned int z, u
         float *Gamma, unsigned int *pi);
 
 /**
- *  The initialization step of PBVI. This sets up the Gamma, pi, alphaBA, and numBlocks variables.
+ *  Step 1/3: The initialization step of PBVI. This sets up the Gamma, pi, alphaBA, and numBlocks variables.
  *  @param  n               The number of states.
  *  @param  m               The number of actions, in total, that are possible.
  *  @param  r               The number of belief points.
@@ -80,7 +80,7 @@ extern "C" int nova_pomdp_pbvi(unsigned int n, unsigned int m, unsigned int z, u
  *  @param  numBlocks       The number of blocks to execute. This will be modified.
  *  @return Returns 0 upon success, 1 otherwise.
  */
-int nova_pomdp_pbvi_initialize(unsigned int n, unsigned int m, unsigned int r,
+int pomdp_pbvi_initialize_gpu(unsigned int n, unsigned int m, unsigned int r,
         unsigned int numThreads, float *Gamma, float *&d_Gamma, float *&d_GammaPrime,
         unsigned int *&d_pi, unsigned int *&d_piPrime, float *&d_alphaBA,
         unsigned int *numBlocks);
@@ -119,7 +119,7 @@ int nova_pomdp_pbvi_initialize(unsigned int n, unsigned int m, unsigned int r,
  *  @param  d_alphaBA           A set of intermediate alpha-vectors. Device-side pointer.
  *  @return Returns 0 upon success, 1 otherwise.
  */
-int nova_pomdp_pbvi_update(unsigned int n, unsigned int m, unsigned int z, unsigned int r,
+int pomdp_pbvi_update_gpu(unsigned int n, unsigned int m, unsigned int z, unsigned int r,
         unsigned int maxNonZeroBeliefs, unsigned int maxSuccessors,
         const float *d_B, const float *d_T, const float *d_O, const float *d_R,
         const bool *d_available, const int *d_nonZeroBeliefs, const int *d_successors,
@@ -128,8 +128,8 @@ int nova_pomdp_pbvi_update(unsigned int n, unsigned int m, unsigned int z, unsig
         float *d_alphaBA);
 
 /**
- *  The get result step of PBVI. This retrieves the alpha-vectors (Gamma) and corresponding
- *  actions (pi).
+ *  The get resultant policy step of PBVI. This retrieves the alpha-vectors (Gamma) and
+ *  corresponding actions (pi).
  *  @param n            The number of states.
  *  @param r            The number of belief points.
  *  @param horizon      How many time steps to iterate.
@@ -144,12 +144,12 @@ int nova_pomdp_pbvi_update(unsigned int n, unsigned int m, unsigned int z, unsig
                         This will be modified.
  *  @return Returns 0 upon success, 1 otherwise.
  */
-int nova_pomdp_pbvi_get_result(unsigned int n, unsigned int r, unsigned int horizon,
+int pomdp_pbvi_get_policy_gpu(unsigned int n, unsigned int r, unsigned int horizon,
         const float *d_Gamma, const float *d_GammaPrime, const unsigned int *d_pi,
         const unsigned int *d_piPrime, float *Gamma, unsigned int *pi);
 
 /**
- *  The uninitialization step of PBVI. This sets up the Gamma, pi, alphaBA, and numBlocks variables.
+ *  Step 3/3: The uninitialization step of PBVI. This sets up the Gamma, pi, alphaBA, and numBlocks variables.
  *  @param  d_Gamma         An r-n array of the alpha-vectors.
                             Device-side pointer. This will be modified.
  *  @param  d_GammaPrime    An r-n array of the alpha-vectors (copied).
@@ -162,11 +162,11 @@ int nova_pomdp_pbvi_get_result(unsigned int n, unsigned int r, unsigned int hori
                             Device-side pointer. This will be modified.
  *  @return Returns 0 upon success, 1 otherwise.
  */
-int nova_pomdp_pbvi_uninitialize(float *&d_Gamma, float *&d_GammaPrime,
+int pomdp_pbvi_uninitialize_gpu(float *&d_Gamma, float *&d_GammaPrime,
         unsigned int *&d_pi, unsigned int *&d_piPrime, float *&d_alphaBA);
 
 /**
- *  Execute PBVI for the infinite horizon POMDP model specified.
+ *  Step 2/3: Execute PBVI for the infinite horizon POMDP model specified.
  *  @param  n                  The number of states.
  *  @param  m                  The number of actions, in total, that are possible.
  *  @param  z                  The number of observations.
@@ -196,163 +196,12 @@ int nova_pomdp_pbvi_uninitialize(float *&d_Gamma, float *&d_GammaPrime,
  *                             This will be modified.
  *  @return Returns 0 upon success, 1 otherwise.
  */
-int nova_pomdp_pbvi_execute(unsigned int n, unsigned int m, unsigned int z, unsigned int r,
+int pomdp_pbvi_execute_gpu(unsigned int n, unsigned int m, unsigned int z, unsigned int r,
         unsigned int maxNonZeroBeliefs, unsigned int maxSuccessors,
         const float *d_B, const float *d_T, const float *d_O, const float *d_R,
         const bool *d_available, const int *d_nonZeroBeliefs, const int *d_successors,
         float gamma, unsigned int horizon, unsigned int numThreads,
         float *Gamma, unsigned int *pi);
-
-/**
- *  Initialize CUDA belief points object.
- *  @param  n       The number of states.
- *  @param  r       The number of belief points.
- *  @param  B       An r-n array, consisting of r sets of n-vector belief distributions.
- *  @param  d_B     An r-n array, consisting of r sets of n-vector belief distributions.
- *                  Device-side pointer.
- *  @return Returns 0 upon success; 1 if invalid arguments were passed; 2 if failed to allocate
-            device memory; 3 if failed to copy data.
- */
-int nova_pomdp_pbvi_initialize_belief_points(unsigned int n, unsigned int r, const float *B,
-        float *&d_B);
-
-/**
- *  Uninitialize CUDA belief points object.
- *  @param  d_B     An r-n array, consisting of r sets of n-vector belief distributions.
- *                  Device-side pointer.
- *  @return Returns 0 upon success; 1 if an error occurred with the CUDA functions arose.
- */
-int nova_pomdp_pbvi_uninitialize_belief_points(float *&d_B);
-
-/**
- *  Initialize CUDA state transitions object.
- *  @param  n       The number of states.
- *  @param  m       The number of actions, in total, that are possible.
- *  @param  T       A mapping of state-action-state triples (n-m-n array) to a
- *                  transition probability.
- *  @param  d_T     A mapping of state-action-state triples (n-m-n array) to a
- *                  transition probability. Device-side pointer.
- *  @return Returns 0 upon success; 1 if invalid arguments were passed; 2 if failed to allocate
-            device memory; 3 if failed to copy data.
- */
-int nova_pomdp_pbvi_initialize_state_transitions(unsigned int n, unsigned int m, const float *T,
-        float *&d_T);
-
-/**
- *  Uninitialize CUDA state transitions object.
- *  @param  d_T     A mapping of state-action-state triples (n-m-n array) to a
- *                  transition probability. Device-side pointer.
- *  @return Returns 0 upon success; 1 if an error occurred with the CUDA functions arose.
- */
-int nova_pomdp_pbvi_uninitialize_state_transitions(float *&d_T);
-
-/**
- *  Initialize CUDA observation transitions object.
- *  @param  n       The number of states.
- *  @param  m       The number of actions, in total, that are possible.
- *  @param  z       The number of observations.
- *  @param  O       A mapping of action-state-observation triples (m-n-z array) to a
- *                  transition probability.
- *  @param  d_O     A mapping of action-state-observation triples (m-n-z array) to a
- *                  transition probability. Device-side pointer.
- *  @return Returns 0 upon success; 1 if invalid arguments were passed; 2 if failed to allocate
-            device memory; 3 if failed to copy data.
- */
-int nova_pomdp_pbvi_initialize_observation_transitions(unsigned int n, unsigned int m,
-        unsigned int z, const float *O, float *&d_O);
-
-/**
- *  Uninitialize CUDA observation transitions object.
- *  @param  d_O     A mapping of action-state-observation triples (m-n-z array) to a
- *                  transition probability. Device-side pointer.
- *  @return Returns 0 upon success; 1 if an error occurred with the CUDA functions arose.
- */
-int nova_pomdp_pbvi_uninitialize_observation_transitions(float *&d_O);
-
-/**
- *  Initialize CUDA rewards object.
- *  @param  n       The number of states.
- *  @param  m       The number of actions, in total, that are possible.
- *  @param  R       A mapping of state-action pairs (n-m array) to a reward.
- *  @param  d_R     A mapping of state-action pairs (n-m array) to a reward.
- *                  Device-side pointer.
- *  @return Returns 0 upon success; 1 if invalid arguments were passed; 2 if failed to allocate
-            device memory; 3 if failed to copy data.
- */
-int nova_pomdp_pbvi_initialize_rewards(unsigned int n, unsigned int m, const float *R, float *&d_R);
-
-/**
- *  Uninitialize CUDA rewards object.
- *  @param  d_R     A mapping of state-action pairs (n-m array) to a reward. Device-side pointer.
- *  @return Returns 0 upon success; 1 if an error occurred with the CUDA functions arose.
- */
-int nova_pomdp_pbvi_uninitialize_rewards(float *&d_R);
-
-/**
- *  Initialize CUDA available actions object.
- *  @param  m               The number of actions, in total, that are possible.
- *  @param  r               The number of belief points.
- *  @param  available       A r-m array, consisting of r sets of m-vector availability values.
- *  @param  d_available     A r-m array, consisting of r sets of m-vector availability values.
- *                          Device-side pointer.
- *  @return Returns 0 upon success; 1 if invalid arguments were passed; 2 if failed to allocate
-            device memory; 3 if failed to copy data.
- */
-int nova_pomdp_pbvi_initialize_available(unsigned int m, unsigned int r, const bool *available,
-        bool *&d_available);
-
-/**
- *  Uninitialize CUDA available actions object.
- *  @param  d_available     A r-m array, consisting of r sets of m-vector availability values.
- *                          Device-side pointer.
- *  @return Returns 0 upon success; 1 if an error occurred with the CUDA functions arose.
- */
-int nova_pomdp_pbvi_uninitialize_available(bool *&d_available);
-
-/**
- *  Initialize CUDA non-zero belief states object.
- *  @param  r                  The number of belief points.
- *  @param  maxNonZeroBeliefs  The maximum number of non-zero belief states.
- *  @param  nonZeroBeliefs     A mapping of beliefs to an array of state indexes;
- *                             -1 denotes the end of the array.
- *  @param  d_nonZeroBeliefs   A mapping of beliefs to an array of state indexes;
- *                             -1 denotes the end of the array. Device-side pointer.
- *  @return Returns 0 upon success; 1 if invalid arguments were passed; 2 if failed to allocate
-            device memory; 3 if failed to copy data.
- */
-int nova_pomdp_pbvi_initialize_nonzero_beliefs(unsigned int r, unsigned int maxNonZeroBeliefs,
-        const int *nonZeroBeliefs, int *&d_nonZeroBeliefs);
-
-/**
- *  Uninitialize CUDA non-zero belief states object.
- *  @param  d_NonZeroBeliefs    A mapping of beliefs to an array of state indexes;
- *                              -1 denotes the end of the array. Device-side pointer.
- *  @return Returns 0 upon success; 1 if an error occurred with the CUDA functions arose.
- */
-int nova_pomdp_pbvi_uninitialize_nonzero_beliefs(int *&d_nonZeroBeliefs);
-
-/**
- *  Initialize CUDA by transferring all of the constant POMDP model information to the device.
- *  @param  n               The number of states.
- *  @param  m               The number of actions, in total, that are possible.
- *  @param  maxSuccessors   The maximum number of successor states.
- *  @param  successors      A mapping of state-action pairs a set of possible successor states;
- *                          -1 denotes the end of the array.
- *  @param  d_successors    A mapping of state-action pairs a set of possible successor states;
- *                          -1 denotes the end of the array. Device-side pointer.
- *  @return Returns 0 upon success; 1 if invalid arguments were passed; 2 if failed to allocate
-            device memory; 3 if failed to copy data.
- */
-int nova_pomdp_pbvi_initialize_successors(unsigned int n, unsigned int m,
-        unsigned int maxSuccessors, const int *successors, int *&d_successors);
-
-/**
- *  Uninitialize CUDA by transferring all of the constant POMDP model information to the device.
- *  @param  d_successors    A mapping of state-action pairs a set of possible successor states;
- *                          -1 denotes the end of the array. Device-side pointer.
- *  @return Returns 0 upon success; 1 if an error occurred with the CUDA functions arose.
- */
-int nova_pomdp_pbvi_uninitialize_successors(int *&d_successors);
 
 
 #endif // POMDP_PBVI_GPU_H

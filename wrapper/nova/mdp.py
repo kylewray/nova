@@ -38,7 +38,7 @@ else:
                     "..", "..", "lib", "nova.so"))
 
 
-_nova.mdp_vi_cpu_complete.argtypes = (ct.c_uint,                # n
+_nova.mdp_vi_complete_cpu.argtypes = (ct.c_uint,                # n
                                         ct.c_uint,              # m
                                         ct.c_uint,              # ns
                                         ct.POINTER(ct.c_int),   # S
@@ -49,7 +49,7 @@ _nova.mdp_vi_cpu_complete.argtypes = (ct.c_uint,                # n
                                         ct.POINTER(ct.c_float), # V
                                         ct.POINTER(ct.c_uint))  # pi
 
-_nova.mdp_vi_gpu_complete.argtypes = (ct.c_uint,                # n
+_nova.mdp_vi_complete_gpu.argtypes = (ct.c_uint,                # n
                                         ct.c_uint,              # m
                                         ct.c_uint,              # ns
                                         ct.POINTER(ct.c_int),   # S
@@ -62,7 +62,7 @@ _nova.mdp_vi_gpu_complete.argtypes = (ct.c_uint,                # n
                                         ct.POINTER(ct.c_uint))  # pi
 
 
-def mdp_vi_cpu_complete(n, m, ns, S, T, R, gamma, horizon, V, pi):
+def mdp_vi_complete_cpu(n, m, ns, S, T, R, gamma, horizon, V, pi):
     """ The wrapper Python function for executing value iteration for an MDP using the CPU.
 
         Parameters:
@@ -92,7 +92,7 @@ def mdp_vi_cpu_complete(n, m, ns, S, T, R, gamma, horizon, V, pi):
     VResult = array_type_n_float(*V)
     piResult = array_type_n_uint(*pi)
 
-    result = _nova.mdp_vi_cpu_complete(int(n), int(m), int(ns),
+    result = _nova.mdp_vi_complete_cpu(int(n), int(m), int(ns),
                             array_type_nmns_int(*S), array_type_nmns_float(*T), array_type_nm_float(*R),
                             float(gamma), int(horizon),
                             VResult, piResult)
@@ -105,7 +105,7 @@ def mdp_vi_cpu_complete(n, m, ns, S, T, R, gamma, horizon, V, pi):
     return result
 
 
-def mdp_vi_gpu_complete(n, m, ns, S, T, R, gamma, horizon, numThreads, V, pi):
+def mdp_vi_complete_gpu(n, m, ns, S, T, R, gamma, horizon, numThreads, V, pi):
     """ The wrapper Python function for executing value iteration for an MDP using the GPU.
 
         Parameters:
@@ -136,7 +136,7 @@ def mdp_vi_gpu_complete(n, m, ns, S, T, R, gamma, horizon, numThreads, V, pi):
     VResult = array_type_n_float(*V)
     piResult = array_type_n_uint(*pi)
 
-    result = _nova.mdp_vi_gpu_complete(int(n), int(m), int(ns),
+    result = _nova.mdp_vi_complete_gpu(int(n), int(m), int(ns),
                             array_type_nmns_int(*S), array_type_nmns_float(*T), array_type_nm_float(*R),
                             float(gamma), int(horizon), int(numThreads),
                             VResult, piResult)
@@ -250,11 +250,11 @@ class MOMDP(object):
 
             # Call the nova library to run value iteration. If the GPU is available, then use it.
             # Otherwise, use the CPU.
-            result = mdp_vi_gpu_complete(self.n, self.m, self.ns,
+            result = mdp_vi_complete_gpu(self.n, self.m, self.ns,
                             self.S.flatten(), self.T.flatten(), self.R[0].flatten(),
                             self.gamma, self.horizon, numThreads,
                             V, pi)
-            #result = mdp_vi_cpu_complete(self.n, self.m, self.ns,
+            #result = mdp_vi_complete_cpu(self.n, self.m, self.ns,
             #                self.S.flatten(), self.T.flatten(), self.R[0].flatten(),
             #                self.gamma, self.horizon,
             #                V, pi)

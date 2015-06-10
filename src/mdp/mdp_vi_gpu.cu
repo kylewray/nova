@@ -28,9 +28,11 @@
 #include <cmath>
 #include <stdio.h>
 
+
 // This is determined by hardware, so what is below is a 'safe' guess. If this is
 // off, the program might return 'nan' or 'inf'.
 #define FLT_MAX 1e+35
+
 
 __global__ void mdp_bellman_update_gpu(unsigned int n, unsigned int m, unsigned int ns,
         const int *S, const float *T, const float *R, float gamma, const float *V, float *VPrime, unsigned int *pi)
@@ -83,7 +85,8 @@ __global__ void mdp_bellman_update_gpu(unsigned int n, unsigned int m, unsigned 
     }
 }
 
-int mdp_vi_gpu_complete(unsigned int n, unsigned int m, unsigned int ns,
+
+int mdp_vi_complete_gpu(unsigned int n, unsigned int m, unsigned int ns,
                 const int *S, const float *T, const float *R,
                 float gamma, unsigned int horizon, unsigned int numThreads,
                 float *V, unsigned int *pi)
@@ -209,6 +212,20 @@ int mdp_vi_gpu_complete(unsigned int n, unsigned int m, unsigned int ns,
             mdp_bellman_update_gpu<<< numBlocks, numThreads >>>(n, m, ns, d_S, d_T, d_R, gamma, d_V, d_VPrime, d_pi);
         } else {
             mdp_bellman_update_gpu<<< numBlocks, numThreads >>>(n, m, ns, d_S, d_T, d_R, gamma, d_VPrime, d_V, d_pi);
+        }
+
+        // Check if there was an error executing the kernel.
+        if (cudaGetLastError() != cudaSuccess) {
+            fprintf(stderr, "Error[value_iteration]: %s",
+                            "Failed to execute the 'initialization of alphaBA' kernel.");
+            return NOVA_ERROR_KERNEL_EXECUTION;
+        }
+
+        // Wait for the kernel to finish before looping more.
+        if (cudaDeviceSynchronize() != cudaSuccess) {
+            fprintf(stderr, "Error[value_iteration]: %s",
+                        "Failed to synchronize the device after 'initialization of alphaBA' kernel.");
+            return NOVA_ERROR_DEVICE_SYNCHRONIZE;
         }
     }
 

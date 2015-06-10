@@ -28,6 +28,7 @@ import csv
 import numpy as np
 import itertools
 
+
 # Import the correct library file depending on the platform.
 _nova = None
 if platform.system() == "Windows":
@@ -37,26 +38,28 @@ else:
     _nova = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                     "..", "..", "lib", "nova.so"))
 
-_nova.nova_pomdp_pbvi.argtypes = (ct.c_uint, # n
-                                ct.c_uint, # m
-                                ct.c_uint, # z
-                                ct.c_uint, # r
-                                ct.c_uint, # maxNonZeroBeliefs
-                                ct.c_uint, # maxSuccessors
-                                ct.POINTER(ct.c_float), # B
-                                ct.POINTER(ct.c_float), # T
-                                ct.POINTER(ct.c_float), # O
-                                ct.POINTER(ct.c_float), # R
-                                ct.POINTER(ct.c_bool), # available
-                                ct.POINTER(ct.c_int), # nonZeroBeliefs
-                                ct.POINTER(ct.c_int), # successors
-                                ct.c_float, # gamma
-                                ct.c_uint, # horizon
-                                ct.c_uint, # numThreads
-                                ct.POINTER(ct.c_float), # Gamma
-                                ct.POINTER(ct.c_uint)) # pi
 
-def nova_pomdp_pbvi(n, m, z, r, maxNonZeroBeliefs, maxSuccessors,
+_nova.pomdp_pbvi_complete_gpu.argtypes = (ct.c_uint,            # n
+                                        ct.c_uint,              # m
+                                        ct.c_uint,              # z
+                                        ct.c_uint,              # r
+                                        ct.c_uint,              # maxNonZeroBeliefs
+                                        ct.c_uint,              # maxSuccessors
+                                        ct.POINTER(ct.c_float), # B
+                                        ct.POINTER(ct.c_float), # T
+                                        ct.POINTER(ct.c_float), # O
+                                        ct.POINTER(ct.c_float), # R
+                                        ct.POINTER(ct.c_bool),  # available
+                                        ct.POINTER(ct.c_int),   # nonZeroBeliefs
+                                        ct.POINTER(ct.c_int),   # successors
+                                        ct.c_float,             # gamma
+                                        ct.c_uint,              # horizon
+                                        ct.c_uint,              # numThreads
+                                        ct.POINTER(ct.c_float), # Gamma
+                                        ct.POINTER(ct.c_uint))  # pi
+
+
+def pomdp_pbvi_complete_gpu(n, m, z, r, maxNonZeroBeliefs, maxSuccessors,
         B, T, O, R, available, nonZeroBeliefs, successors,
         gamma, horizon, numThreads, Gamma, pi):
     """ The wrapper Python function for executing point-based value iteration for a POMDP.
@@ -102,7 +105,7 @@ def nova_pomdp_pbvi(n, m, z, r, maxNonZeroBeliefs, maxSuccessors,
     GammaResult = array_type_rn_float(*Gamma)
     piResult = array_type_r_uint(*pi)
 
-    result = _nova.nova_pomdp_pbvi(int(n), int(m), int(z), int(r), int(maxNonZeroBeliefs),
+    result = _nova.pomdp_pbvi_complete_gpu(int(n), int(m), int(z), int(r), int(maxNonZeroBeliefs),
                             int(maxSuccessors), array_type_rn_float(*B),
                             array_type_nmn_float(*T), array_type_mnz_float(*O),
                             array_type_nm_float(*R), array_type_rm_bool(*available),
@@ -274,12 +277,18 @@ class MOPOMDP(object):
             numThreads = 1024
 
             # Call the nova library to run value iteration.
-            result = nova_pomdp_pbvi(self.n, self.m, self.z, self.r,
+            result = pomdp_pbvi_complete_gpu(self.n, self.m, self.z, self.r,
                         self.maxNonZeroBeliefs, self.maxSuccessors,
                         self.B.flatten(), self.T.flatten(), self.O.flatten(), self.R[0].flatten(),
                         self.available.flatten(), self.nonZeroBeliefs.flatten(),
                         self.successors.flatten(), self.gamma, self.horizon, numThreads,
                         Gamma, pi)
+            #result = pomdp_pbvi_complete_gpu(self.n, self.m, self.z, self.r,
+            #            self.maxNonZeroBeliefs, self.maxSuccessors,
+            #            self.B.flatten(), self.T.flatten(), self.O.flatten(), self.R[0].flatten(),
+            #            self.available.flatten(), self.nonZeroBeliefs.flatten(),
+            #            self.successors.flatten(), self.gamma, self.horizon,
+            #            Gamma, pi)
             if result != 0:
                 print("Failed to execute nova's solver.")
 

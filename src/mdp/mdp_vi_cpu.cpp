@@ -28,9 +28,11 @@
 #include <stdio.h>
 #include <cstring>
 
+
 // This is determined by hardware, so what is below is a 'safe' guess. If this is
 // off, the program might return 'nan' or 'inf'.
 #define FLT_MAX 1e+35
+
 
 void mdp_bellman_update_cpu(unsigned int n, unsigned int m, unsigned int ns,
                         const int *S, const float *T, const float *R,
@@ -73,7 +75,8 @@ void mdp_bellman_update_cpu(unsigned int n, unsigned int m, unsigned int ns,
     }
 }
 
-int mdp_vi_cpu_complete(unsigned int n, unsigned int m, unsigned int ns,
+
+int mdp_vi_complete_cpu(unsigned int n, unsigned int m, unsigned int ns,
                         const int *S, const float *T, const float *R,
                         float gamma, unsigned int horizon,
                         float *V, unsigned int *pi)
