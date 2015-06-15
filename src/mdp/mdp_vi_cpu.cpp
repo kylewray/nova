@@ -34,7 +34,7 @@
 #define FLT_MAX 1e+35
 
 
-void mdp_bellman_update_cpu(unsigned int n, unsigned int m, unsigned int ns,
+void mdp_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m,
                         const int *S, const float *T, const float *R,
                         float gamma, const float *V,
                         float *VPrime, unsigned int *pi)
@@ -76,32 +76,39 @@ void mdp_bellman_update_cpu(unsigned int n, unsigned int m, unsigned int ns,
 }
 
 
-int mdp_vi_complete_cpu(unsigned int n, unsigned int m, unsigned int ns,
-                        const int *S, const float *T, const float *R,
-                        float gamma, unsigned int horizon,
-                        float *V, unsigned int *pi)
+int mdp_vi_complete_cpu(MDP *mdp, float *V, unsigned int *pi)
 {
     float *VPrime;
-    
-    VPrime = new float[n];
+
+    // First, ensure data is valid.
+    if (mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
+            mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
+            mdp->gamma < 0.0f || mdp->gamma >= 1.0f || mdp->horizon < 1 ||
+            V == nullptr || pi == nullptr) {
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    VPrime = new float[mdp->n];
 
     // We iterate over all time steps up to the horizon.
-    for (int i = 0; i < horizon; i++) {
-        printf("Iteration %d / %d -- CPU Version\n", i, horizon);
+    for (int i = 0; i < mdp->horizon; i++) {
+        printf("Iteration %d / %d -- CPU Version\n", i, mdp->horizon);
 
         // We oscillate between V and VPrime depending on the step.
         if (i % 2 == 0) {
-            mdp_bellman_update_cpu(n, m, ns, S, T, R, gamma, V, VPrime, pi);
+            mdp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->S, mdp->T, mdp->R, mdp->gamma, V, VPrime, pi);
         } else {
-            mdp_bellman_update_cpu(n, m, ns, S, T, R, gamma, VPrime, V, pi);
+            mdp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->S, mdp->T, mdp->R, mdp->gamma, VPrime, V, pi);
         }
     }
 
     // If the horizon was odd, then we must copy the value back to V from VPrime.
     // Otherwise, it was already stored in V.
-    if (horizon % 2 == 1) {
-        memcpy(V, VPrime, n * sizeof(float));
+    if (mdp->horizon % 2 == 1) {
+        memcpy(V, VPrime, mdp->n * sizeof(float));
     }
+
+    delete [] VPrime;
 
     return NOVA_SUCCESS;
 }

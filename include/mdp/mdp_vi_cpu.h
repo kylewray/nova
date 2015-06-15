@@ -26,29 +26,19 @@
 #define MDP_VI_CPU_H
 
 
+#include "mdp.h"
+
+
 /**
  *  Execute value iteration for the MDP model specified until convergence. Uses the CPU.
- *  @param  n           The number of states.
- *  @param  m           The number of actions.
- *  @param  ns          The maximum number of successor states.
- *  @param  S           A mapping of state-action-successor triples (n-m-ns array) to a
- *                      state index. Reading the array 0 to ns-1, a value of -1 means
- *                      there are no more successors (terminating any loops).
- *  @param  T           A mapping of state-action-successor triples (n-m-ns array) to a
- *                      transition probability.
- *  @param  R           A mapping of state-action pairs (n-m array) to a reward.
- *  @param  gamma       The discount factor in [0.0, 1.0).
- *  @param  horizon     The number of iterations to execute (i.e., horizon).
+ *  @param  mdp         The MDP object.
  *  @param  V           The final value function, mapping states (n array) to floats.
  *                      This will be modified.
  *  @param  pi          The resultant policy, mapping every state (n array) to an
  *                      action (in 0 to m-1). This will be modified.
  *  @return Returns 0 upon success, non-zero otherwise.
  */
-extern "C" int mdp_vi_complete_cpu(unsigned int n, unsigned int m, unsigned int ns,
-                            const int *S, const float *T, const float *R,
-                            float gamma, unsigned int horizon,
-                            float *V, unsigned int *pi);
+extern "C" int mdp_vi_complete_cpu(MDP *mdp, float *V, unsigned int *pi);
 
 
 #endif // MDP_VI_CPU_H
