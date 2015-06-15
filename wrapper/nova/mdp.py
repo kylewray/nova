@@ -191,7 +191,7 @@ class MOMDP(object):
         try:
             self.n = int(data[0][0])
             self.m = int(data[0][1])
-            self.ns = int(data[0][2])
+            self.ns = int(data[0][2]) # TODO: Swap with 'm' in position...
             self.k = int(data[0][3])
 
             self.s0 = int(data[0][4])

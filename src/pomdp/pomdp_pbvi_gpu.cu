@@ -53,10 +53,9 @@ __global__ void pomdp_pbvi_initialize_alphaBA_gpu(unsigned int n, unsigned int m
 }
 
 
-__global__ void pomdp_pbvi_compute_alphaBA_gpu(unsigned int n, unsigned int m,
-        unsigned int z, unsigned int r, unsigned int maxNonZeroBeliefs, unsigned int maxSuccessors,
-        const float *B, const float *T, const float *O, const float *R,
-        const bool *available, const int *nonZeroBeliefs, const int *successors,
+__global__ void pomdp_pbvi_compute_alphaBA_gpu(unsigned int n, unsigned int ns, unsigned int m,
+        unsigned int z, unsigned int r, unsigned int rz,
+        const int *Z, const float *B, const int *S, const float *T, const float *O, const float *R,
         float gamma, const float *Gamma, const unsigned int *pi, float *alphaBA)
 {
     // Since float and unsigned int are 4 bytes each, and we need each array to be the size of
@@ -87,8 +86,8 @@ __global__ void pomdp_pbvi_compute_alphaBA_gpu(unsigned int n, unsigned int m,
     for (unsigned int alphaIndex = threadIdx.x; alphaIndex < r; alphaIndex += blockDim.x) {
         float alphaDotBeta = 0.0f;
 
-        for (unsigned int i = 0; i < maxNonZeroBeliefs; i++) {
-            int s = nonZeroBeliefs[beliefIndex * maxNonZeroBeliefs + i];
+        for (unsigned int i = 0; i < rz; i++) {
+            int s = Z[beliefIndex * rz + i];
             if (s < 0) {
                 break;
             }
@@ -96,12 +95,12 @@ __global__ void pomdp_pbvi_compute_alphaBA_gpu(unsigned int n, unsigned int m,
             // We compute the value of this state in the alpha-vector, then multiply it by the
             // belief, and add it to the current dot product value for this alpha-vector.
             float value = 0.0f;
-            for (unsigned int j = 0; j < maxSuccessors; j++) {
-                int sp = successors[s * m * maxSuccessors + action * maxSuccessors + j];
+            for (unsigned int j = 0; j < ns; j++) {
+                int sp = S[s * m * ns + action * ns + j];
                 if (sp < 0) {
                     break;
                 }
-                value += T[s * m * n + action * n + sp] *
+                value += T[s * m * ns + action * ns + j] *
                             O[action * n * z + sp * z + observation] *
                             Gamma[alphaIndex * n + sp];
             }
@@ -109,7 +108,7 @@ __global__ void pomdp_pbvi_compute_alphaBA_gpu(unsigned int n, unsigned int m,
 
             __syncthreads();
 
-            alphaDotBeta += value * B[beliefIndex * n + s];
+            alphaDotBeta += value * B[beliefIndex * rz + i];
         }
 
         __syncthreads();
@@ -147,13 +146,13 @@ __global__ void pomdp_pbvi_compute_alphaBA_gpu(unsigned int n, unsigned int m,
         // We compute the value of this state in the alpha-vector, then multiply it by the belief,
         // and add it to the current dot product value for this alpha-vector.
         float value = 0.0f;
-        for (unsigned int i = 0; i < maxSuccessors; i++) {
-            int sp = successors[s * m * maxSuccessors + action * maxSuccessors + i];
+        for (unsigned int i = 0; i < ns; i++) {
+            int sp = S[s * m * ns + action * ns + i];
             if (sp < 0) {
                 break;
             }
             // Note: maxAlphaIndex[0] holds the maximal index value computed from the reduction.
-            value += T[s * m * n + action * n + sp] *
+            value += T[s * m * ns + action * ns + i] *
                         O[action * n * z + sp * z + observation] *
                         Gamma[maxAlphaIndex[0] * n + sp];
         }
@@ -165,10 +164,9 @@ __global__ void pomdp_pbvi_compute_alphaBA_gpu(unsigned int n, unsigned int m,
 }
 
 
-__global__ void pomdp_pbvi_update_step_gpu(unsigned int n, unsigned int m, unsigned int z,
-        unsigned int r, unsigned int maxNonZeroBeliefs, unsigned int maxSuccessors,
-        const float *B, const float *T, const float *O, const float *R,
-        const bool *available, const int *nonZeroBeliefs, const int *successors,
+__global__ void pomdp_pbvi_update_step_gpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
+        unsigned int r, unsigned int rz,
+        const int *Z, const float *B, const int *S, const float *T, const float *O, const float *R,
         float gamma, const float *Gamma, const unsigned int *pi,
         float *alphaBA, float *GammaPrime, unsigned int *piPrime)
 {
@@ -185,59 +183,64 @@ __global__ void pomdp_pbvi_update_step_gpu(unsigned int n, unsigned int m, unsig
 
     for (unsigned int action = 0; action < m; action++) {
         // Only execute if the action is available.
-        if (available[beliefIndex * m + action]) {
-            // The potential alpha-vector has been computed, so compute the value with respect
-            // to the belief state.
-            float actionValue = 0.0f;
-            for (unsigned int i = 0; i < maxNonZeroBeliefs; i++) {
-                int s = nonZeroBeliefs[beliefIndex * maxNonZeroBeliefs + i];
-                if (s < 0) {
-                    break;
-                }
-                actionValue += alphaBA[beliefIndex * m * n + action * n + s] *
-                                    B[beliefIndex * n + s];
-            }
+        //if (available[beliefIndex * m + action]) {
 
-            // If this was larger, then overwrite piPrime and GammaPrime's values.
-            if (actionValue > maxActionValue) {
-                maxActionValue = actionValue;
-
-                piPrime[beliefIndex] = action;
+        // The potential alpha-vector has been computed, so compute the value with respect
+        // to the belief state.
+        float actionValue = 0.0f;
+        for (unsigned int i = 0; i < rz; i++) {
+            int s = Z[beliefIndex * rz + i];
+            if (s < 0) {
+                break;
             }
+            actionValue += alphaBA[beliefIndex * m * n + action * n + s] * B[beliefIndex * rz + i];
         }
 
-        __syncthreads();
+        // If this was larger, then overwrite piPrime and GammaPrime's values.
+        if (actionValue > maxActionValue) {
+            maxActionValue = actionValue;
+
+            piPrime[beliefIndex] = action;
+        }
+
+        //}
+        //__syncthreads();
     }
 
     for (unsigned int s = 0; s < n; s++) {
-        GammaPrime[beliefIndex * n + s] = alphaBA[beliefIndex * m * n +
-                                                piPrime[beliefIndex] * n + s];
+        GammaPrime[beliefIndex * n + s] = alphaBA[beliefIndex * m * n + piPrime[beliefIndex] * n + s];
     }
 }
 
 
-int pomdp_pbvi_complete_gpu(unsigned int n, unsigned int m, unsigned int z, unsigned int r,
-        unsigned int maxNonZeroBeliefs, unsigned int maxSuccessors,
-        const float *B, const float *T, const float *O, const float *R,
-        const bool *available, const int *nonZeroBeliefs, const int *successors,
+int pomdp_pbvi_complete_gpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
+        unsigned int r, unsigned int rz,
+        const int *Z, const float *B, const int *S, const float *T, const float *O, const float *R,
         float gamma, unsigned int horizon, unsigned int numThreads,
         float *Gamma, unsigned int *pi)
 {
+    int *d_Z;
     float *d_B;
+    int *d_S;
     float *d_T;
     float *d_O;
     float *d_R;
-    bool *d_available;
-    int *d_nonZeroBeliefs;
-    int *d_successors;
 
     int result;
 
+    result = pomdp_initialize_nonzero_beliefs_gpu(r, rz, Z, d_Z);
+    if (result != NOVA_SUCCESS) {
+        return result;
+    }
     result = pomdp_initialize_belief_points_gpu(n, r, B, d_B);
     if (result != NOVA_SUCCESS) {
         return result;
     }
-    result = pomdp_initialize_state_transitions_gpu(n, m, T, d_T);
+    result = pomdp_initialize_successors_gpu(n, m, ns, S, d_S);
+    if (result != NOVA_SUCCESS) {
+        return result;
+    }
+    result = pomdp_initialize_state_transitions_gpu(n, m, ns, T, d_T);
     if (result != NOVA_SUCCESS) {
         return result;
     }
@@ -249,28 +252,22 @@ int pomdp_pbvi_complete_gpu(unsigned int n, unsigned int m, unsigned int z, unsi
     if (result != NOVA_SUCCESS) {
         return result;
     }
-    result = pomdp_initialize_available_gpu(m, r, available, d_available);
-    if (result != NOVA_SUCCESS) {
-        return result;
-    }
-    result = pomdp_initialize_nonzero_beliefs_gpu(r, maxNonZeroBeliefs, nonZeroBeliefs, d_nonZeroBeliefs);
-    if (result != NOVA_SUCCESS) {
-        return result;
-    }
-    result = pomdp_initialize_successors_gpu(n, m, maxSuccessors, successors, d_successors);
-    if (result != NOVA_SUCCESS) {
-        return result;
-    }
 
-    result = pomdp_pbvi_execute_gpu(n, m, z, r, maxNonZeroBeliefs, maxSuccessors,
-            d_B, d_T, d_O, d_R, d_available, d_nonZeroBeliefs, d_successors,
+    result = pomdp_pbvi_execute_gpu(n, ns, m, z, r, rz,
+            d_Z, d_B, d_S, d_T, d_O, d_R,
             gamma, horizon, numThreads, Gamma, pi);
     if (result != NOVA_SUCCESS) {
         return result;
     }
 
     result = NOVA_SUCCESS;
+    if (pomdp_uninitialize_nonzero_beliefs_gpu(d_Z) != NOVA_SUCCESS) {
+        result = NOVA_ERROR_DEVICE_FREE;
+    }
     if (pomdp_uninitialize_belief_points_gpu(d_B) != NOVA_SUCCESS) {
+        result = NOVA_ERROR_DEVICE_FREE;
+    }
+    if (pomdp_uninitialize_successors_gpu(d_S) != NOVA_SUCCESS) {
         result = NOVA_ERROR_DEVICE_FREE;
     }
     if (pomdp_uninitialize_state_transitions_gpu(d_T) != NOVA_SUCCESS) {
@@ -280,15 +277,6 @@ int pomdp_pbvi_complete_gpu(unsigned int n, unsigned int m, unsigned int z, unsi
         result = NOVA_ERROR_DEVICE_FREE;
     }
     if (pomdp_uninitialize_rewards_gpu(d_R) != NOVA_SUCCESS) {
-        result = NOVA_ERROR_DEVICE_FREE;
-    }
-    if (pomdp_uninitialize_available_gpu(d_available) != NOVA_SUCCESS) {
-        result = NOVA_ERROR_DEVICE_FREE;
-    }
-    if (pomdp_uninitialize_nonzero_beliefs_gpu(d_nonZeroBeliefs) != NOVA_SUCCESS) {
-        result = NOVA_ERROR_DEVICE_FREE;
-    }
-    if (pomdp_uninitialize_successors_gpu(d_successors) != NOVA_SUCCESS) {
         result = NOVA_ERROR_DEVICE_FREE;
     }
 
@@ -350,10 +338,9 @@ int pomdp_pbvi_initialize_gpu(unsigned int n, unsigned int m, unsigned int r,
 }
 
 
-int pomdp_pbvi_update_gpu(unsigned int n, unsigned int m, unsigned int z, unsigned int r,
-        unsigned int maxNonZeroBeliefs, unsigned int maxSuccessors,
-        const float *d_B, const float *d_T, const float *d_O, const float *d_R,
-        const bool *d_available, const int *d_nonZeroBeliefs, const int *d_successors,
+int pomdp_pbvi_update_gpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
+        unsigned int r, unsigned int rz,
+        const int *d_Z, const float *d_B, const int *d_S, const float *d_T, const float *d_O, const float *d_R,
         float gamma, unsigned int currentHorizon, unsigned int numThreads, unsigned int numBlocks,
         float *d_Gamma, float *d_GammaPrime, unsigned int *d_pi, unsigned int *d_piPrime,
         float *d_alphaBA)
@@ -376,10 +363,8 @@ int pomdp_pbvi_update_gpu(unsigned int n, unsigned int m, unsigned int z, unsign
 
     pomdp_pbvi_compute_alphaBA_gpu<<< dim3(r, m, z), numThreads,
                 numThreads * sizeof(float) + numThreads * sizeof(unsigned int) >>>(
-                n, m, z, r,
-                maxNonZeroBeliefs, maxSuccessors,
-                d_B, d_T, d_O, d_R,
-                d_available, d_nonZeroBeliefs, d_successors,
+                n, ns, m, z, r, rz,
+                d_Z, d_B, d_S, d_T, d_O, d_R,
                 gamma,
                 d_Gamma, d_pi,
                 d_alphaBA);
@@ -401,19 +386,15 @@ int pomdp_pbvi_update_gpu(unsigned int n, unsigned int m, unsigned int z, unsign
     // Execute a kernel for the first three stages of for-loops: B, A, Z, as a 3d-block,
     // and the 4th stage for-loop over Gamma as the threads.
     if (currentHorizon % 2 == 0) {
-        pomdp_pbvi_update_step_gpu<<< numBlocks, numThreads >>>(n, m, z, r,
-                maxNonZeroBeliefs, maxSuccessors,
-                d_B, d_T, d_O, d_R,
-                d_available, d_nonZeroBeliefs, d_successors,
+        pomdp_pbvi_update_step_gpu<<< numBlocks, numThreads >>>(n, ns, m, z, r, rz,
+                d_Z, d_B, d_S, d_T, d_O, d_R,
                 gamma,
                 d_Gamma, d_pi,
                 d_alphaBA,
                 d_GammaPrime, d_piPrime);
     } else {
-        pomdp_pbvi_update_step_gpu<<< numBlocks, numThreads >>>(n, m, z, r,
-                maxNonZeroBeliefs, maxSuccessors,
-                d_B, d_T, d_O, d_R,
-                d_available, d_nonZeroBeliefs, d_successors,
+        pomdp_pbvi_update_step_gpu<<< numBlocks, numThreads >>>(n, ns, m, z, r, rz,
+                d_Z, d_B, d_S, d_T, d_O, d_R,
                 gamma,
                 d_GammaPrime, d_piPrime,
                 d_alphaBA,
@@ -523,10 +504,9 @@ int pomdp_pbvi_uninitialize_gpu(float *&d_Gamma, float *&d_GammaPrime,
 }
 
 
-int pomdp_pbvi_execute_gpu(unsigned int n, unsigned int m, unsigned int z, unsigned int r,
-        unsigned int maxNonZeroBeliefs, unsigned int maxSuccessors,
-        const float *d_B, const float *d_T, const float *d_O, const float *d_R,
-        const bool *d_available, const int *d_nonZeroBeliefs, const int *d_successors,
+int pomdp_pbvi_execute_gpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
+        unsigned int r, unsigned int rz,
+        const int *d_Z, const float *d_B, const int *d_S, const float *d_T, const float *d_O, const float *d_R,
         float gamma, unsigned int horizon, unsigned int numThreads,
         float *Gamma, unsigned int *pi)
 {
@@ -548,9 +528,8 @@ int pomdp_pbvi_execute_gpu(unsigned int n, unsigned int m, unsigned int z, unsig
     int result;
 
     // Ensure the data is valid.
-    if (n == 0 || m == 0 || z == 0 || r == 0 || maxNonZeroBeliefs == 0 || maxSuccessors == 0 ||
-            d_B == nullptr || d_T == nullptr || d_O == nullptr || d_R == nullptr ||
-            d_available == nullptr || d_nonZeroBeliefs == nullptr || d_successors == nullptr ||
+    if (n == 0 || ns == 0 || m == 0 || z == 0 || r == 0 || rz == 0 ||
+            d_Z == nullptr || d_B == nullptr || d_S == nullptr || d_T == nullptr || d_O == nullptr || d_R == nullptr ||
             gamma < 0.0 || gamma >= 1.0 || horizon < 1) {
         fprintf(stderr, "Error[pomdp_pbvi_execute_gpu]: %s", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
@@ -570,9 +549,8 @@ int pomdp_pbvi_execute_gpu(unsigned int n, unsigned int m, unsigned int z, unsig
 
     // For each of the updates, run PBVI.
     for (int t = 0; t < horizon; t++) {
-        result = pomdp_pbvi_update_gpu(n, m, z, r, maxNonZeroBeliefs, maxSuccessors,
-                d_B, d_T, d_O, d_R,
-                d_available, d_nonZeroBeliefs, d_successors,
+        result = pomdp_pbvi_update_gpu(n, ns, m, z, r, rz, 
+                d_Z, d_B, d_S, d_T, d_O, d_R,
                 gamma, t, numThreads, numBlocks,
                 d_Gamma, d_GammaPrime, d_pi, d_piPrime, d_alphaBA);
         if (result != NOVA_SUCCESS) {
