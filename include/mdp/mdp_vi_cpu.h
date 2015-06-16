@@ -36,7 +36,7 @@
  *                      This will be modified.
  *  @param  pi          The resultant policy, mapping every state (n array) to an
  *                      action (in 0 to m-1). This will be modified.
- *  @return Returns 0 upon success, non-zero otherwise.
+ *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int mdp_vi_complete_cpu(MDP *mdp, float *V, unsigned int *pi);
 
