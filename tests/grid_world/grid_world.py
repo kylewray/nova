@@ -31,7 +31,7 @@ from nova.pomdp import *
 
 
 gridWorldFile = os.path.join(thisFilePath, "grid_world.mdp")
-gridWorld = MOMDP()
+gridWorld = MDP()
 gridWorld.load(gridWorldFile)
 print(gridWorld)
 

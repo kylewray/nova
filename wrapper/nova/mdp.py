@@ -165,8 +165,8 @@ def mdp_vi_complete_gpu(n, ns, m, S, T, R, gamma, horizon, numThreads, V, pi):
     return result
 
 
-class MOMDP(object):
-    """ A Multi-Objective Markov Decision Process (MOMDP) object that can load, solve, and save.
+class MDP(NovaMDP):
+    """ A Markov Decision Process (MDP) object that can load, solve, and save.
 
         Specifically, it is capable of loading raw and cassandra-like MDP files, provides
         functionality to solve them using the nova library, and enables saving the resulting
@@ -174,26 +174,26 @@ class MOMDP(object):
     """
 
     def __init__(self):
-        """ The constructor for the MOMDP class. """
+        """ The constructor for the MDP class. """
 
-        self.n = 0          # The number of states.
-        self.m = 0          # The number of actions.
-        self.ns = 0         # The maximum number of successor states.
-        self.k = 1          # The number of reward functions.
+        # Assign a nullptr for the device-side pointers. These will be set if the GPU is utilized.
+        self.d_S = ct.POINTER(ct.c_int)()
+        self.d_T = ct.POINTER(ct.c_float)()
+        self.d_R = ct.POINTER(ct.c_float)()
 
-        self.S = list()     # Successor states.
-        self.T = list()     # State transitions T(s, a, s').
-        self.R = list()     # Rewards R_i(s, a).
+        # Additional informative variables.
+        self.Rmin = None
 
-        self.s0 = 0         # The initial state.
-        self.horizon = 0    # The horizon; non-positive numbers imply infinite horizon.
-        self.gamma = 0.9    # The discount factor.
+        # Optional variables to be used for solving the SSP version.
+        self.s0 = None
+        self.goals = None
 
-    def load(self, filename):
-        """ Load a raw MOMDP file given the file.
+    def load(self, filename, scalarize=lambda x: x[0]):
+        """ Load a raw Multi-Objective MDP file given the filename and optionally a scalarization function.
 
             Parameters:
                 filename    --  The name and path of the file to load.
+                scalarize   --  Optionally define a scalarization function. Default returns the first reward.
         """
 
         # Load all the data in this object.
@@ -205,44 +205,52 @@ class MOMDP(object):
 
         # Attempt to parse all the data into their respective variables.
         try:
+            # Load the header information.
             self.n = int(data[0][0])
             self.ns = int(data[0][1])
             self.m = int(data[0][2])
-            self.k = int(data[0][3])
 
+            k = int(data[0][3])
             self.s0 = int(data[0][4])
+
             self.horizon = int(data[0][5])
             self.gamma = float(data[0][6])
 
+            # Functions to convert flattened NumPy arrays to C arrays.
+            array_type_nmns_int = ct.c_int * (self.n * self.m * self.ns)
+            array_type_nmns_float = ct.c_float * (self.n * self.m * self.ns)
+            array_type_nm_float = ct.c_float * (self.n * self.m)
+
+            # Load each of the larger data structures into memory and immediately
+            # convert them to their C object type to save memory.
             rowOffset = 1
-            self.S = np.array([[[int(data[(self.n * a + s) + rowOffset][sp]) \
+            self.S = array_type_nmns_int(*np.array([[[int(data[(self.n * a + s) + rowOffset][sp]) \
                                 for sp in range(self.ns)] \
                             for a in range(self.m)] \
-                        for s in range(self.n)])
+                        for s in range(self.n)]).flatten())
 
             rowOffset = 1 + self.n * self.m
-            self.T = np.array([[[float(data[(self.n * a + s) + rowOffset][sp]) \
+            self.T = array_type_nmns_float(*np.array([[[float(data[(self.n * a + s) + rowOffset][sp]) \
                                 for sp in range(self.ns)] \
                             for a in range(self.m)] \
-                        for s in range(self.n)])
+                        for s in range(self.n)]).flatten())
 
             rowOffset = 1 + self.n * self.m + self.n * self.m
-            self.R = np.array([[[float(data[(self.m * i + a) + rowOffset][s])
+            self.R = array_type_nm_float(*scalarize(np.array([[[float(data[(self.m * i + a) + rowOffset][s])
                                 for a in range(self.m)] \
                             for s in range(self.n)] \
-                        for i in range(self.k)])
+                        for i in range(k)])).flatten())
+
+            self.Rmin = min([self.R[i] for i in range(self.n * self.m)])
 
         except Exception:
             print("Failed to load file '%s'." % (filename))
             raise Exception()
 
-    def solve(self, f=None, numThreads=1024):
-        """ Solve the MOMDP, using the nova python wrapper, with the given scalarization function.
+    def solve(self, numThreads=1024):
+        """ Solve the MDP using the nova Python wrapper.
 
             Parameters:
-                f           --  The scalarization function which maps a reward vector to a single
-                                reward. If set to None, then only the first reward function is
-                                used. Default is None. Optional.
                 numThreads  --  The number of CUDA threads to execute (multiple of 32). Default is 1024.
 
             Returns:
@@ -250,57 +258,54 @@ class MOMDP(object):
                 pi  --  The policy, mapping states to actions.
         """
 
-        if f == None:
-            # The initial value of V is either Rmin / (1 - gamma), for gamma less than 1.0, and
-            # simply 0.0 otherwise.
-            V = None
-            if self.gamma < 1.0:
-                Rmin = np.array(self.R[0]).min()
-                V = np.array([float(Rmin / (1.0 - self.gamma)) for s in range(self.n)])
-            else:
-                V = np.array([0.0 for s in range(self.n)])
+        global _nova
 
-            pi = np.array([0 for s in range(self.n)])
+        # Create V and pi, assigning them their respective initial values.
+        V = np.array([0.0 for s in range(self.n)])
+        if self.gamma < 1.0:
+            V = np.array([float(self.Rmin / (1.0 - self.gamma)) for s in range(self.n)])
+        pi = np.array([0 for s in range(self.n)])
 
-            numThreads = 1024
+        # Create functions to convert flattened NumPy arrays to C arrays.
+        array_type_n_float = ct.c_float * self.n
+        array_type_n_uint = ct.c_uint * self.n
 
-            # Call the nova library to run value iteration. If the GPU is available, then use it.
-            # Otherwise, use the CPU.
-            result = mdp_vi_complete_gpu(self.n, self.ns, self.m,
-                            self.S.flatten(), self.T.flatten(), self.R[0].flatten(),
-                            self.gamma, self.horizon, numThreads,
-                            V, pi)
-            #result = mdp_vi_complete_cpu(self.n, self.ns, self.m,
-            #                self.S.flatten(), self.T.flatten(), self.R[0].flatten(),
-            #                self.gamma, self.horizon,
-            #                V, pi)
-            if result != 0:
-                print("Failed to execute nova's solver.")
+        # Create C arrays for the result.
+        VResult = array_type_n_float(*V)
+        piResult = array_type_n_uint(*pi)
 
-            return V, pi
+        # Solve the MDP using the nova library and return the solution. If it
+        # fails to use the GPU version, then it tries the CPU version.
+        result = _nova.mdp_vi_complete_gpu(self, int(numThreads), VResult, piResult)
+        if result != 0:
+            result = _nova.mdp_vi_complete_cpu(self, VResult, piResult)
 
-        return None
+        if result == 0:
+            V = [VResult[i] for i in range(self.n)]
+            pi = [piResult[i] for i in range(self.n)]
+        else:
+            print("Failed to solve MDP using the 'nova' library.")
+            raise Exception()
+
+        return V, pi
 
     def __str__(self):
-        """ Return the string of the MOMDP values akin to the raw file format.
+        """ Return the string of the MDP values akin to the raw file format.
 
             Returns:
-                The string of the MOMDP in a similar format as the raw file format.
+                The string of the MDP in a similar format as the raw file format.
         """
 
         result = "n:       " + str(self.n) + "\n"
         result += "m:       " + str(self.m) + "\n"
         result += "ns:      " + str(self.ns) + "\n"
-        result += "k:       " + str(self.k) + "\n"
         result += "s0:      " + str(self.s0) + "\n"
         result += "horizon: " + str(self.horizon) + "\n"
         result += "gamma:   " + str(self.gamma) + "\n\n"
 
-        result += "S(s, a, i):\n%s" % (str(np.array(self.S))) + "\n\n"
-        result += "T(s, a, s'):\n%s" % (str(np.array(self.T))) + "\n\n"
-
-        for i in range(self.k):
-            result += "R_%i(s, a):\n%s" % (i + 1, str(np.array(self.R[i]))) + "\n\n"
+        result += "S(s, a, i):\n%s" % (str(self.S)) + "\n\n"
+        result += "T(s, a, s'):\n%s" % (str(self.T)) + "\n\n"
+        result += "R(s, a):\n%s" % (str(self.R)) + "\n\n"
 
         return result
 
