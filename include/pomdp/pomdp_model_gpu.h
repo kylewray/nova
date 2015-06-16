@@ -26,135 +26,92 @@
 #define NOVA_POMDP_MODEL_GPU_H
 
 
+#include "pomdp.h"
+
+
 /**
  *  Initialize CUDA non-zero belief states object.
- *  @param  r                  The number of belief points.
- *  @param  maxNonZeroBeliefs  The maximum number of non-zero belief states.
- *  @param  nonZeroBeliefs     A mapping of beliefs to an array of state indexes;
- *                             -1 denotes the end of the array.
- *  @param  d_nonZeroBeliefs   A mapping of beliefs to an array of state indexes;
- *                             -1 denotes the end of the array. Device-side pointer.
- *  @return Returns 0 upon success; 1 if invalid arguments were passed; 2 if failed to allocate
-            device memory; 3 if failed to copy data.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_initialize_nonzero_beliefs_gpu(unsigned int r, unsigned int rz,
-        const int *Z, int *&d_Z);
+int pomdp_initialize_nonzero_beliefs_gpu(POMDP *pomdp);
 
 /**
  *  Uninitialize CUDA non-zero belief states object.
- *  @param  d_NonZeroBeliefs    A mapping of beliefs to an array of state indexes;
- *                              -1 denotes the end of the array. Device-side pointer.
- *  @return Returns 0 upon success; 1 if an error occurred with the CUDA functions arose.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_uninitialize_nonzero_beliefs_gpu(int *&d_Z);
+int pomdp_uninitialize_nonzero_beliefs_gpu(POMDP *pomdp);
 
 /**
  *  Initialize CUDA belief points object.
- *  @param  n       The number of states.
- *  @param  r       The number of belief points.
- *  @param  B       An r-n array, consisting of r sets of n-vector belief distributions.
- *  @param  d_B     An r-n array, consisting of r sets of n-vector belief distributions.
- *                  Device-side pointer.
- *  @return Returns 0 upon success; 1 if invalid arguments were passed; 2 if failed to allocate
-            device memory; 3 if failed to copy data.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_initialize_belief_points_gpu(unsigned int r, unsigned int rz, const float *B,
-        float *&d_B);
+int pomdp_initialize_belief_points_gpu(POMDP *pomdp);
 
 /**
  *  Uninitialize CUDA belief points object.
- *  @param  d_B     An r-n array, consisting of r sets of n-vector belief distributions.
- *                  Device-side pointer.
- *  @return Returns 0 upon success; 1 if an error occurred with the CUDA functions arose.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_uninitialize_belief_points_gpu(float *&d_B);
+int pomdp_uninitialize_belief_points_gpu(POMDP *pomdp);
 
 /**
  *  Initialize CUDA by transferring all of the constant POMDP model information to the device.
- *  @param  n               The number of states.
- *  @param  m               The number of actions, in total, that are possible.
- *  @param  maxSuccessors   The maximum number of successor states.
- *  @param  successors      A mapping of state-action pairs a set of possible successor states;
- *                          -1 denotes the end of the array.
- *  @param  d_successors    A mapping of state-action pairs a set of possible successor states;
- *                          -1 denotes the end of the array. Device-side pointer.
- *  @return Returns 0 upon success; 1 if invalid arguments were passed; 2 if failed to allocate
-            device memory; 3 if failed to copy data.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_initialize_successors_gpu(unsigned int n, unsigned int m, unsigned int ns,
-        const int *S, int *&d_S);
+int pomdp_initialize_successors_gpu(POMDP *pomdp);
 
 /**
  *  Uninitialize CUDA by transferring all of the constant POMDP model information to the device.
- *  @param  d_successors    A mapping of state-action pairs a set of possible successor states;
- *                          -1 denotes the end of the array. Device-side pointer.
- *  @return Returns 0 upon success; 1 if an error occurred with the CUDA functions arose.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_uninitialize_successors_gpu(int *&d_S);
+int pomdp_uninitialize_successors_gpu(POMDP *pomdp);
 
 /**
  *  Initialize CUDA state transitions object.
- *  @param  n       The number of states.
- *  @param  m       The number of actions, in total, that are possible.
- *  @param  T       A mapping of state-action-state triples (n-m-n array) to a
- *                  transition probability.
- *  @param  d_T     A mapping of state-action-state triples (n-m-n array) to a
- *                  transition probability. Device-side pointer.
- *  @return Returns 0 upon success; 1 if invalid arguments were passed; 2 if failed to allocate
-            device memory; 3 if failed to copy data.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_initialize_state_transitions_gpu(unsigned int n, unsigned int m, unsigned int ns,
-        const float *T, float *&d_T);
+int pomdp_initialize_state_transitions_gpu(POMDP *pomdp);
 
 /**
  *  Uninitialize CUDA state transitions object.
- *  @param  d_T     A mapping of state-action-state triples (n-m-n array) to a
- *                  transition probability. Device-side pointer.
- *  @return Returns 0 upon success; 1 if an error occurred with the CUDA functions arose.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_uninitialize_state_transitions_gpu(float *&d_T);
+int pomdp_uninitialize_state_transitions_gpu(POMDP *pomdp);
 
 /**
  *  Initialize CUDA observation transitions object.
- *  @param  n       The number of states.
- *  @param  m       The number of actions, in total, that are possible.
- *  @param  z       The number of observations.
- *  @param  O       A mapping of action-state-observation triples (m-n-z array) to a
- *                  transition probability.
- *  @param  d_O     A mapping of action-state-observation triples (m-n-z array) to a
- *                  transition probability. Device-side pointer.
- *  @return Returns 0 upon success; 1 if invalid arguments were passed; 2 if failed to allocate
-            device memory; 3 if failed to copy data.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_initialize_observation_transitions_gpu(unsigned int n, unsigned int m,
-        unsigned int z, const float *O, float *&d_O);
+int pomdp_initialize_observation_transitions_gpu(POMDP *pomdp);
 
 /**
  *  Uninitialize CUDA observation transitions object.
- *  @param  d_O     A mapping of action-state-observation triples (m-n-z array) to a
- *                  transition probability. Device-side pointer.
- *  @return Returns 0 upon success; 1 if an error occurred with the CUDA functions arose.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_uninitialize_observation_transitions_gpu(float *&d_O);
+int pomdp_uninitialize_observation_transitions_gpu(POMDP *pomdp);
 
 /**
  *  Initialize CUDA rewards object.
- *  @param  n       The number of states.
- *  @param  m       The number of actions, in total, that are possible.
- *  @param  R       A mapping of state-action pairs (n-m array) to a reward.
- *  @param  d_R     A mapping of state-action pairs (n-m array) to a reward.
- *                  Device-side pointer.
- *  @return Returns 0 upon success; 1 if invalid arguments were passed; 2 if failed to allocate
-            device memory; 3 if failed to copy data.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_initialize_rewards_gpu(unsigned int n, unsigned int m, const float *R, float *&d_R);
+int pomdp_initialize_rewards_gpu(POMDP *pomdp);
 
 /**
  *  Uninitialize CUDA rewards object.
- *  @param  d_R     A mapping of state-action pairs (n-m array) to a reward. Device-side pointer.
- *  @return Returns 0 upon success; 1 if an error occurred with the CUDA functions arose.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_uninitialize_rewards_gpu(float *&d_R);
+int pomdp_uninitialize_rewards_gpu(POMDP *pomdp);
 
 
 #endif // NOVA_POMDP_MODEL_GPU_H

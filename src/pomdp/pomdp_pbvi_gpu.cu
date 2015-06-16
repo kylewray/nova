@@ -54,9 +54,9 @@ __global__ void pomdp_pbvi_initialize_alphaBA_gpu(unsigned int n, unsigned int m
 
 
 __global__ void pomdp_pbvi_compute_alphaBA_gpu(unsigned int n, unsigned int ns, unsigned int m,
-        unsigned int z, unsigned int r, unsigned int rz,
-        const int *Z, const float *B, const int *S, const float *T, const float *O, const float *R,
-        float gamma, const float *Gamma, const unsigned int *pi, float *alphaBA)
+        unsigned int z, unsigned int r, unsigned int rz, float gamma,
+        const int *S, const float *T, const float *O, const float *R, const int *Z, const float *B,
+        const float *Gamma, const unsigned int *pi, float *alphaBA)
 {
     // Since float and unsigned int are 4 bytes each, and we need each array to be the size of
     // the number of threads, we will need to call this with:
@@ -165,9 +165,9 @@ __global__ void pomdp_pbvi_compute_alphaBA_gpu(unsigned int n, unsigned int ns, 
 
 
 __global__ void pomdp_pbvi_update_step_gpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
-        unsigned int r, unsigned int rz,
-        const int *Z, const float *B, const int *S, const float *T, const float *O, const float *R,
-        float gamma, const float *Gamma, const unsigned int *pi,
+        unsigned int r, unsigned int rz, float gamma,
+        const int *S, const float *T, const float *O, const float *R, const int *Z, const float *B,
+        const float *Gamma, const unsigned int *pi,
         float *alphaBA, float *GammaPrime, unsigned int *piPrime)
 {
     // Each block will run a different belief. Our overall goal: Compute the value
@@ -213,70 +213,57 @@ __global__ void pomdp_pbvi_update_step_gpu(unsigned int n, unsigned int ns, unsi
 }
 
 
-int pomdp_pbvi_complete_gpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
-        unsigned int r, unsigned int rz,
-        const int *Z, const float *B, const int *S, const float *T, const float *O, const float *R,
-        float gamma, unsigned int horizon, unsigned int numThreads,
-        float *Gamma, unsigned int *pi)
+int pomdp_pbvi_complete_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma, unsigned int *pi)
 {
-    int *d_Z;
-    float *d_B;
-    int *d_S;
-    float *d_T;
-    float *d_O;
-    float *d_R;
-
     int result;
 
-    result = pomdp_initialize_nonzero_beliefs_gpu(r, rz, Z, d_Z);
+    result = pomdp_initialize_nonzero_beliefs_gpu(pomdp);
     if (result != NOVA_SUCCESS) {
         return result;
     }
-    result = pomdp_initialize_belief_points_gpu(n, r, B, d_B);
+    result = pomdp_initialize_belief_points_gpu(pomdp);
     if (result != NOVA_SUCCESS) {
         return result;
     }
-    result = pomdp_initialize_successors_gpu(n, m, ns, S, d_S);
+    result = pomdp_initialize_successors_gpu(pomdp);
     if (result != NOVA_SUCCESS) {
         return result;
     }
-    result = pomdp_initialize_state_transitions_gpu(n, m, ns, T, d_T);
+    result = pomdp_initialize_state_transitions_gpu(pomdp);
     if (result != NOVA_SUCCESS) {
         return result;
     }
-    result = pomdp_initialize_observation_transitions_gpu(n, m, z, O, d_O);
+    result = pomdp_initialize_observation_transitions_gpu(pomdp);
     if (result != NOVA_SUCCESS) {
         return result;
     }
-    result = pomdp_initialize_rewards_gpu(n, m, R, d_R);
+    result = pomdp_initialize_rewards_gpu(pomdp);
     if (result != NOVA_SUCCESS) {
         return result;
     }
 
-    result = pomdp_pbvi_execute_gpu(n, ns, m, z, r, rz,
-            d_Z, d_B, d_S, d_T, d_O, d_R,
-            gamma, horizon, numThreads, Gamma, pi);
+    result = pomdp_pbvi_execute_gpu(pomdp, numThreads, Gamma, pi);
     if (result != NOVA_SUCCESS) {
         return result;
     }
 
     result = NOVA_SUCCESS;
-    if (pomdp_uninitialize_nonzero_beliefs_gpu(d_Z) != NOVA_SUCCESS) {
+    if (pomdp_uninitialize_nonzero_beliefs_gpu(pomdp) != NOVA_SUCCESS) {
         result = NOVA_ERROR_DEVICE_FREE;
     }
-    if (pomdp_uninitialize_belief_points_gpu(d_B) != NOVA_SUCCESS) {
+    if (pomdp_uninitialize_belief_points_gpu(pomdp) != NOVA_SUCCESS) {
         result = NOVA_ERROR_DEVICE_FREE;
     }
-    if (pomdp_uninitialize_successors_gpu(d_S) != NOVA_SUCCESS) {
+    if (pomdp_uninitialize_successors_gpu(pomdp) != NOVA_SUCCESS) {
         result = NOVA_ERROR_DEVICE_FREE;
     }
-    if (pomdp_uninitialize_state_transitions_gpu(d_T) != NOVA_SUCCESS) {
+    if (pomdp_uninitialize_state_transitions_gpu(pomdp) != NOVA_SUCCESS) {
         result = NOVA_ERROR_DEVICE_FREE;
     }
-    if (pomdp_uninitialize_observation_transitions_gpu(d_O) != NOVA_SUCCESS) {
+    if (pomdp_uninitialize_observation_transitions_gpu(pomdp) != NOVA_SUCCESS) {
         result = NOVA_ERROR_DEVICE_FREE;
     }
-    if (pomdp_uninitialize_rewards_gpu(d_R) != NOVA_SUCCESS) {
+    if (pomdp_uninitialize_rewards_gpu(pomdp) != NOVA_SUCCESS) {
         result = NOVA_ERROR_DEVICE_FREE;
     }
 
@@ -284,31 +271,26 @@ int pomdp_pbvi_complete_gpu(unsigned int n, unsigned int ns, unsigned int m, uns
 }
 
 
-int pomdp_pbvi_initialize_gpu(unsigned int n, unsigned int m, unsigned int r,
-        unsigned int numThreads, float *Gamma, float *&d_Gamma, float *&d_GammaPrime,
-        unsigned int *&d_pi, unsigned int *&d_piPrime, float *&d_alphaBA,
-        unsigned int *numBlocks)
+int pomdp_pbvi_initialize_gpu(POMDP *pomdp)
 {
-    *numBlocks = (unsigned int)((float)r / (float)numThreads) + 1;
-
     // Create the device-side Gamma.
-    if (cudaMalloc(&d_Gamma, r * n * sizeof(float)) != cudaSuccess) {
+    if (cudaMalloc(&pomdp->d_Gamma, pomdp->r * pomdp->n * sizeof(float)) != cudaSuccess) {
         fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s",
                 "Failed to allocate device-side memory for Gamma.");
         return NOVA_ERROR_DEVICE_MALLOC;
     }
-    if (cudaMemcpy(d_Gamma, Gamma, r * n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+    if (cudaMemcpy(pomdp->d_Gamma, pomdp->Gamma, pomdp->r * pomdp->n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
         fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s",
                 "Failed to copy memory from host to device for Gamma.");
         return NOVA_ERROR_MEMCPY_TO_DEVICE;
     }
 
-    if (cudaMalloc(&d_GammaPrime, r * n * sizeof(float)) != cudaSuccess) {
+    if (cudaMalloc(&pomdp->d_GammaPrime, pomdp->r * pomdp->n * sizeof(float)) != cudaSuccess) {
         fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s",
                 "Failed to allocate device-side memory for Gamma (prime).");
         return NOVA_ERROR_DEVICE_MALLOC;
     }
-    if (cudaMemcpy(d_GammaPrime, Gamma, r * n * sizeof(float),
+    if (cudaMemcpy(pomdp->d_GammaPrime, pomdp->Gamma, pomdp->r * pomdp->n * sizeof(float),
                     cudaMemcpyHostToDevice) != cudaSuccess) {
         fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s",
                 "Failed to copy memory from host to device for Gamma (prime).");
@@ -316,19 +298,19 @@ int pomdp_pbvi_initialize_gpu(unsigned int n, unsigned int m, unsigned int r,
     }
 
     // Create the device-side pi.
-    if (cudaMalloc(&d_pi, r * sizeof(unsigned int)) != cudaSuccess) {
+    if (cudaMalloc(&pomdp->d_pi, pomdp->r * sizeof(unsigned int)) != cudaSuccess) {
         fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s",
                 "Failed to allocate device-side memory for pi.");
         return NOVA_ERROR_DEVICE_MALLOC;
     }
-    if (cudaMalloc(&d_piPrime, r * sizeof(unsigned int)) != cudaSuccess) {
+    if (cudaMalloc(&pomdp->d_piPrime, pomdp->r * sizeof(unsigned int)) != cudaSuccess) {
         fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s",
                 "Failed to allocate device-side memory for pi (prime).");
         return NOVA_ERROR_MEMCPY_TO_DEVICE;
     }
 
     // Create the device-side memory for the intermediate variable alphaBA.
-    if (cudaMalloc(&d_alphaBA, r * m * n * sizeof(float)) != cudaSuccess) {
+    if (cudaMalloc(&pomdp->d_alphaBA, pomdp->r * pomdp->m * pomdp->n * sizeof(float)) != cudaSuccess) {
         fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s",
                 "Failed to allocate device-side memory for alphaBA.");
         return NOVA_ERROR_DEVICE_MALLOC;
@@ -338,14 +320,13 @@ int pomdp_pbvi_initialize_gpu(unsigned int n, unsigned int m, unsigned int r,
 }
 
 
-int pomdp_pbvi_update_gpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
-        unsigned int r, unsigned int rz,
-        const int *d_Z, const float *d_B, const int *d_S, const float *d_T, const float *d_O, const float *d_R,
-        float gamma, unsigned int currentHorizon, unsigned int numThreads, unsigned int numBlocks,
-        float *d_Gamma, float *d_GammaPrime, unsigned int *d_pi, unsigned int *d_piPrime,
-        float *d_alphaBA)
+int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int currentHorizon, unsigned int numThreads)
 {
-    pomdp_pbvi_initialize_alphaBA_gpu<<< dim3(r, m, 1), numThreads >>>(n, m, r, d_R, d_alphaBA);
+    // The number of blocks in the main CUDA kernel call.
+    int numBlocks;
+
+    pomdp_pbvi_initialize_alphaBA_gpu<<< dim3(pomdp->r, pomdp->m, 1), numThreads >>>(
+                                            pomdp->n, pomdp->m, pomdp->r, pomdp->d_R, pomdp->d_alphaBA);
 
     // Check if there was an error executing the kernel.
     if (cudaGetLastError() != cudaSuccess) {
@@ -361,13 +342,12 @@ int pomdp_pbvi_update_gpu(unsigned int n, unsigned int ns, unsigned int m, unsig
         return NOVA_ERROR_DEVICE_SYNCHRONIZE;
     }
 
-    pomdp_pbvi_compute_alphaBA_gpu<<< dim3(r, m, z), numThreads,
-                numThreads * sizeof(float) + numThreads * sizeof(unsigned int) >>>(
-                n, ns, m, z, r, rz,
-                d_Z, d_B, d_S, d_T, d_O, d_R,
-                gamma,
-                d_Gamma, d_pi,
-                d_alphaBA);
+    pomdp_pbvi_compute_alphaBA_gpu<<< dim3(pomdp->r, pomdp->m, pomdp->z), numThreads,
+                                    numThreads * sizeof(float) + numThreads * sizeof(unsigned int) >>>(
+                            pomdp->n, pomdp->ns, pomdp->m, pomdp->z, pomdp->r, pomdp->rz, pomdp->gamma,
+                            pomdp->d_S, pomdp->d_T, pomdp->d_O, pomdp->d_R, pomdp->d_Z, pomdp->d_B,
+                            pomdp->d_Gamma, pomdp->d_pi,
+                            pomdp->d_alphaBA);
 
     // Check if there was an error executing the kernel.
     if (cudaGetLastError() != cudaSuccess) {
@@ -383,22 +363,25 @@ int pomdp_pbvi_update_gpu(unsigned int n, unsigned int ns, unsigned int m, unsig
         return NOVA_ERROR_DEVICE_SYNCHRONIZE;
     }
 
+    // Compute the number of blocks.
+    numBlocks = (unsigned int)((float)pomdp->r / (float)numThreads) + 1;
+
     // Execute a kernel for the first three stages of for-loops: B, A, Z, as a 3d-block,
     // and the 4th stage for-loop over Gamma as the threads.
     if (currentHorizon % 2 == 0) {
-        pomdp_pbvi_update_step_gpu<<< numBlocks, numThreads >>>(n, ns, m, z, r, rz,
-                d_Z, d_B, d_S, d_T, d_O, d_R,
-                gamma,
-                d_Gamma, d_pi,
-                d_alphaBA,
-                d_GammaPrime, d_piPrime);
+        pomdp_pbvi_update_step_gpu<<< numBlocks, numThreads >>>(
+                pomdp->n, pomdp->ns, pomdp->m, pomdp->z, pomdp->r, pomdp->rz, pomdp->gamma,
+                pomdp->d_S, pomdp->d_T, pomdp->d_O, pomdp->d_R, pomdp->d_Z, pomdp->d_B,
+                pomdp->d_Gamma, pomdp->d_pi,
+                pomdp->d_alphaBA,
+                pomdp->d_GammaPrime, pomdp->d_piPrime);
     } else {
-        pomdp_pbvi_update_step_gpu<<< numBlocks, numThreads >>>(n, ns, m, z, r, rz,
-                d_Z, d_B, d_S, d_T, d_O, d_R,
-                gamma,
-                d_GammaPrime, d_piPrime,
-                d_alphaBA,
-                d_Gamma, d_pi);
+        pomdp_pbvi_update_step_gpu<<< numBlocks, numThreads >>>(
+                pomdp->n, pomdp->ns, pomdp->m, pomdp->z, pomdp->r, pomdp->rz, pomdp->gamma,
+                pomdp->d_S, pomdp->d_T, pomdp->d_O, pomdp->d_R, pomdp->d_Z, pomdp->d_B,
+                pomdp->d_GammaPrime, pomdp->d_piPrime,
+                pomdp->d_alphaBA,
+                pomdp->d_Gamma, pomdp->d_pi);
     }
 
     // Check if there was an error executing the kernel.
@@ -419,33 +402,31 @@ int pomdp_pbvi_update_gpu(unsigned int n, unsigned int ns, unsigned int m, unsig
 }
 
 
-int pomdp_pbvi_get_policy_gpu(unsigned int n, unsigned int r, unsigned int horizon,
-        const float *d_Gamma, const float *d_GammaPrime, const unsigned int *d_pi,
-        const unsigned int *d_piPrime, float *Gamma, unsigned int *pi)
+int pomdp_pbvi_get_policy_gpu(POMDP *pomdp, float *Gamma, unsigned int *pi)
 {
     // Copy the final result of Gamma and pi to the variables. This assumes
     // that the memory has been allocated.
-    if (horizon % 2 == 1) {
-        if (cudaMemcpy(Gamma, d_Gamma, r * n * sizeof(float),
+    if (pomdp->horizon % 2 == 1) {
+        if (cudaMemcpy(pomdp->Gamma, pomdp->d_Gamma, pomdp->r * pomdp->n * sizeof(float),
                         cudaMemcpyDeviceToHost) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s",
                     "Failed to copy memory from device to host for Gamma.");
             return NOVA_ERROR_MEMCPY_TO_HOST;
         }
-        if (cudaMemcpy(pi, d_pi, r * sizeof(unsigned int),
+        if (cudaMemcpy(pomdp->pi, pomdp->d_pi, pomdp->r * sizeof(unsigned int),
                         cudaMemcpyDeviceToHost) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s",
                     "Failed to copy memory from device to host for pi.");
             return NOVA_ERROR_MEMCPY_TO_HOST;
         }
     } else {
-        if (cudaMemcpy(Gamma, d_GammaPrime, r * n * sizeof(float),
+        if (cudaMemcpy(pomdp->Gamma, pomdp->d_GammaPrime, pomdp->r * pomdp->n * sizeof(float),
                         cudaMemcpyDeviceToHost) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s",
                     "Failed to copy memory from device to host for Gamma (prime).");
             return NOVA_ERROR_MEMCPY_TO_HOST;
         }
-        if (cudaMemcpy(pi, d_piPrime, r * sizeof(unsigned int),
+        if (cudaMemcpy(pomdp->pi, pomdp->d_piPrime, pomdp->r * sizeof(unsigned int),
                         cudaMemcpyDeviceToHost) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s",
                     "Failed to copy memory from device to host for pi (prime).");
@@ -457,80 +438,16 @@ int pomdp_pbvi_get_policy_gpu(unsigned int n, unsigned int r, unsigned int horiz
 }
 
 
-int pomdp_pbvi_uninitialize_gpu(float *&d_Gamma, float *&d_GammaPrime,
-        unsigned int *&d_pi, unsigned int *&d_piPrime, float *&d_alphaBA)
+int pomdp_pbvi_execute_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma, unsigned int *pi)
 {
-    if (d_Gamma != nullptr) {
-        if (cudaFree(d_Gamma) != cudaSuccess) {
-            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
-                    "Failed to allocate device-side memory for the Gamma (the alpha-vectors).");
-        }
-    }
-    d_Gamma = nullptr;
-
-    if (d_GammaPrime != nullptr) {
-        if (cudaFree(d_GammaPrime) != cudaSuccess) {
-            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
-                    "Failed to allocate device-side memory for the GammaPrime (the alpha-vectors' copy).");
-        }
-    }
-    d_GammaPrime = nullptr;
-
-    if (d_pi != nullptr) {
-        if (cudaFree(d_pi) != cudaSuccess) {
-            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
-                    "Failed to allocate device-side memory for the pi (the policy).");
-        }
-    }
-    d_pi = nullptr;
-
-    if (d_piPrime != nullptr) {
-        if (cudaFree(d_piPrime) != cudaSuccess) {
-            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
-                    "Failed to allocate device-side memory for the piPrime (the policy copy).");
-        }
-    }
-    d_piPrime = nullptr;
-
-    if (d_alphaBA != nullptr) {
-        if (cudaFree(d_alphaBA) != cudaSuccess) {
-            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
-                    "Failed to allocate device-side memory for alphaBA (alpha-vector collection).");
-        }
-    }
-    d_alphaBA = nullptr;
-
-    return NOVA_SUCCESS;
-}
-
-
-int pomdp_pbvi_execute_gpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
-        unsigned int r, unsigned int rz,
-        const int *d_Z, const float *d_B, const int *d_S, const float *d_T, const float *d_O, const float *d_R,
-        float gamma, unsigned int horizon, unsigned int numThreads,
-        float *Gamma, unsigned int *pi)
-{
-    // The device pointers for the alpha-vectors: Gamma and GammaPrime.
-    float *d_Gamma;
-    float *d_GammaPrime;
-
-    // The device pointers for the actions taken on each alpha-vector: pi and piPrime.
-    unsigned int *d_pi;
-    unsigned int *d_piPrime;
-
-    // The device pointer for the intermediate alpha-vectors computed in the inner for loop.
-    float *d_alphaBA;
-
-    // The number of blocks to execute in the main PBVI step.
-    unsigned int numBlocks;
-
     // The result from calling other functions.
     int result;
 
     // Ensure the data is valid.
-    if (n == 0 || ns == 0 || m == 0 || z == 0 || r == 0 || rz == 0 ||
-            d_Z == nullptr || d_B == nullptr || d_S == nullptr || d_T == nullptr || d_O == nullptr || d_R == nullptr ||
-            gamma < 0.0 || gamma >= 1.0 || horizon < 1) {
+    if (pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 || pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
+            pomdp->d_S == nullptr || pomdp->d_T == nullptr || pomdp->d_O == nullptr || pomdp->d_R == nullptr ||
+            pomdp->d_Z == nullptr || pomdp->d_B == nullptr ||
+            pomdp->gamma < 0.0 || pomdp->gamma >= 1.0 || pomdp->horizon < 1) {
         fprintf(stderr, "Error[pomdp_pbvi_execute_gpu]: %s", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -541,32 +458,74 @@ int pomdp_pbvi_execute_gpu(unsigned int n, unsigned int ns, unsigned int m, unsi
         return NOVA_ERROR_INVALID_CUDA_PARAM;
     }
 
-    result = pomdp_pbvi_initialize_gpu(n, m, r, numThreads, Gamma, d_Gamma, d_GammaPrime,
-                                d_pi, d_piPrime, d_alphaBA, &numBlocks);
+    result = pomdp_pbvi_initialize_gpu(pomdp);
     if (result != NOVA_SUCCESS) {
         return result;
     }
 
     // For each of the updates, run PBVI.
-    for (int t = 0; t < horizon; t++) {
-        result = pomdp_pbvi_update_gpu(n, ns, m, z, r, rz, 
-                d_Z, d_B, d_S, d_T, d_O, d_R,
-                gamma, t, numThreads, numBlocks,
-                d_Gamma, d_GammaPrime, d_pi, d_piPrime, d_alphaBA);
+    for (int t = 0; t < pomdp->horizon; t++) {
+        result = pomdp_pbvi_update_gpu(pomdp, t, numThreads);
         if (result != NOVA_SUCCESS) {
             return result;
         }
     }
 
-    result = pomdp_pbvi_get_policy_gpu(n, r, horizon, d_Gamma, d_GammaPrime, d_pi, d_piPrime, Gamma, pi);
+    result = pomdp_pbvi_get_policy_gpu(pomdp, Gamma, pi);
     if (result != NOVA_SUCCESS) {
         return result;
     }
 
-    result = pomdp_pbvi_uninitialize_gpu(d_Gamma, d_GammaPrime, d_pi, d_piPrime, d_alphaBA);
+    result = pomdp_pbvi_uninitialize_gpu(pomdp);
     if (result != NOVA_SUCCESS) {
         return result;
     }
+
+    return NOVA_SUCCESS;
+}
+
+
+int pomdp_pbvi_uninitialize_gpu(POMDP *pomdp)
+{
+    if (pomdp->d_Gamma != nullptr) {
+        if (cudaFree(pomdp->d_Gamma) != cudaSuccess) {
+            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
+                    "Failed to allocate device-side memory for the Gamma (the alpha-vectors).");
+        }
+    }
+    pomdp->d_Gamma = nullptr;
+
+    if (pomdp->d_GammaPrime != nullptr) {
+        if (cudaFree(pomdp->d_GammaPrime) != cudaSuccess) {
+            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
+                    "Failed to allocate device-side memory for the GammaPrime (the alpha-vectors' copy).");
+        }
+    }
+    pomdp->d_GammaPrime = nullptr;
+
+    if (pomdp->d_pi != nullptr) {
+        if (cudaFree(pomdp->d_pi) != cudaSuccess) {
+            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
+                    "Failed to allocate device-side memory for the pi (the policy).");
+        }
+    }
+    pomdp->d_pi = nullptr;
+
+    if (pomdp->d_piPrime != nullptr) {
+        if (cudaFree(pomdp->d_piPrime) != cudaSuccess) {
+            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
+                    "Failed to allocate device-side memory for the piPrime (the policy copy).");
+        }
+    }
+    pomdp->d_piPrime = nullptr;
+
+    if (pomdp->d_alphaBA != nullptr) {
+        if (cudaFree(pomdp->d_alphaBA) != cudaSuccess) {
+            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
+                    "Failed to allocate device-side memory for alphaBA (alpha-vector collection).");
+        }
+    }
+    pomdp->d_alphaBA = nullptr;
 
     return NOVA_SUCCESS;
 }
