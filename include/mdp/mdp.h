@@ -44,6 +44,7 @@
  *  @param  d_R         Device-side pointer of R.
  */
 typedef struct NovaMDP {
+    // Core Variables (User-Defined)
     unsigned int n;
     unsigned int ns;
     unsigned int m;
@@ -55,9 +56,18 @@ typedef struct NovaMDP {
     float *T;
     float *R;
 
+    // Computation Variables (Utilized by Processes Only)
+    float *V;
+    float *VPrime;
+    unsigned int *pi;
+
     int *d_S;
     float *d_T;
     float *d_R;
+
+    float *d_V;
+    float *d_VPrime;
+    unsigned int *d_pi;
 } MDP;
 
 
