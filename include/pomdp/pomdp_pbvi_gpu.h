@@ -44,9 +44,10 @@ extern "C" int pomdp_pbvi_complete_gpu(POMDP *pomdp, unsigned int numThreads, fl
 /**
  *  Step 1/3: The initialization step of PBVI. This sets up the Gamma, pi, alphaBA, and numBlocks variables.
  *  @param  pomdp           The POMDP object.
+ *  @param  Gamma   The resultant policy; set of alpha vectors (r-n array). This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_pbvi_initialize_gpu(POMDP *pomdp);
+int pomdp_pbvi_initialize_gpu(POMDP *pomdp, float *Gamma);
 
 /**
  *  The update step of PBVI. This applies the PBVI procedure once.

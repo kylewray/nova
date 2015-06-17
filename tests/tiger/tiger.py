@@ -31,7 +31,7 @@ from nova.pomdp import *
 
 
 tigerFile = os.path.join(thisFilePath, "tiger.pomdp")
-tiger = MOPOMDP()
+tiger = POMDP()
 tiger.load(tigerFile)
 print(tiger)
 

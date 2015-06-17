@@ -28,6 +28,11 @@
 
 /*
  *  A structure for a POMDP object within nova.
+ *
+ *  Only define the variables n through B. All others are nullptr by default, and are
+ *  cleaned up by calling the relevant uninitialize functions. The generic uninitialize_pomdp
+ *  function will free everything, instead of having to manage all other variables yourself.
+ *
  *  @param  n               The number of states.
  *  @param  ns              The maximum number of successor states possible.
  *  @param  m               The number of actions, in total, that are possible.
@@ -66,7 +71,7 @@
  *  @param  d_alphaBA       Device-side pointer; intermediate alpha-vectors. GPU version only.
  */
 typedef struct NovaPOMDP {
-    // Core Parameters
+    // Core Variables (User-Defined)
     unsigned int n;
     unsigned int ns;
     unsigned int m;
@@ -77,7 +82,6 @@ typedef struct NovaPOMDP {
     float gamma;
     unsigned int horizon;
 
-    // CPU-Specific Variables
     int *S;
     float *T;
     float *O;
@@ -85,12 +89,12 @@ typedef struct NovaPOMDP {
     int *Z;
     float *B;
 
+    // Computation Variables (Utilized by Processes Only)
     float *Gamma;
     float *GammaPrime;
     unsigned int *pi;
     unsigned int *piPrime;
 
-    // GPU-Specific Variables
     int *d_S;
     float *d_T;
     float *d_O;

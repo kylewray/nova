@@ -41,7 +41,7 @@ print(pi)
 
 
 gridWorldFile = os.path.join(thisFilePath, "grid_world.pomdp")
-gridWorld = MOPOMDP()
+gridWorld = POMDP()
 gridWorld.load(gridWorldFile)
 print(gridWorld)
 
