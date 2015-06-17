@@ -217,14 +217,6 @@ int pomdp_pbvi_complete_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma,
 {
     int result;
 
-    result = pomdp_initialize_nonzero_beliefs_gpu(pomdp);
-    if (result != NOVA_SUCCESS) {
-        return result;
-    }
-    result = pomdp_initialize_belief_points_gpu(pomdp);
-    if (result != NOVA_SUCCESS) {
-        return result;
-    }
     result = pomdp_initialize_successors_gpu(pomdp);
     if (result != NOVA_SUCCESS) {
         return result;
@@ -241,6 +233,14 @@ int pomdp_pbvi_complete_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma,
     if (result != NOVA_SUCCESS) {
         return result;
     }
+    result = pomdp_initialize_nonzero_beliefs_gpu(pomdp);
+    if (result != NOVA_SUCCESS) {
+        return result;
+    }
+    result = pomdp_initialize_belief_points_gpu(pomdp);
+    if (result != NOVA_SUCCESS) {
+        return result;
+    }
 
     result = pomdp_pbvi_execute_gpu(pomdp, numThreads, Gamma, pi);
     if (result != NOVA_SUCCESS) {
@@ -248,12 +248,6 @@ int pomdp_pbvi_complete_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma,
     }
 
     result = NOVA_SUCCESS;
-    if (pomdp_uninitialize_nonzero_beliefs_gpu(pomdp) != NOVA_SUCCESS) {
-        result = NOVA_ERROR_DEVICE_FREE;
-    }
-    if (pomdp_uninitialize_belief_points_gpu(pomdp) != NOVA_SUCCESS) {
-        result = NOVA_ERROR_DEVICE_FREE;
-    }
     if (pomdp_uninitialize_successors_gpu(pomdp) != NOVA_SUCCESS) {
         result = NOVA_ERROR_DEVICE_FREE;
     }
@@ -264,6 +258,12 @@ int pomdp_pbvi_complete_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma,
         result = NOVA_ERROR_DEVICE_FREE;
     }
     if (pomdp_uninitialize_rewards_gpu(pomdp) != NOVA_SUCCESS) {
+        result = NOVA_ERROR_DEVICE_FREE;
+    }
+    if (pomdp_uninitialize_nonzero_beliefs_gpu(pomdp) != NOVA_SUCCESS) {
+        result = NOVA_ERROR_DEVICE_FREE;
+    }
+    if (pomdp_uninitialize_belief_points_gpu(pomdp) != NOVA_SUCCESS) {
         result = NOVA_ERROR_DEVICE_FREE;
     }
 
@@ -369,10 +369,15 @@ int pomdp_pbvi_execute_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma, 
 
 int pomdp_pbvi_uninitialize_gpu(POMDP *pomdp)
 {
+    int result;
+
+    result = NOVA_SUCCESS;
+
     if (pomdp->d_Gamma != nullptr) {
         if (cudaFree(pomdp->d_Gamma) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
                     "Failed to allocate device-side memory for the Gamma (the alpha-vectors).");
+            result = NOVA_ERROR_DEVICE_FREE;
         }
     }
     pomdp->d_Gamma = nullptr;
@@ -381,6 +386,7 @@ int pomdp_pbvi_uninitialize_gpu(POMDP *pomdp)
         if (cudaFree(pomdp->d_GammaPrime) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
                     "Failed to allocate device-side memory for the GammaPrime (the alpha-vectors' copy).");
+            result = NOVA_ERROR_DEVICE_FREE;
         }
     }
     pomdp->d_GammaPrime = nullptr;
@@ -389,6 +395,7 @@ int pomdp_pbvi_uninitialize_gpu(POMDP *pomdp)
         if (cudaFree(pomdp->d_pi) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
                     "Failed to allocate device-side memory for the pi (the policy).");
+            result = NOVA_ERROR_DEVICE_FREE;
         }
     }
     pomdp->d_pi = nullptr;
@@ -397,6 +404,7 @@ int pomdp_pbvi_uninitialize_gpu(POMDP *pomdp)
         if (cudaFree(pomdp->d_piPrime) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
                     "Failed to allocate device-side memory for the piPrime (the policy copy).");
+            result = NOVA_ERROR_DEVICE_FREE;
         }
     }
     pomdp->d_piPrime = nullptr;
@@ -405,11 +413,12 @@ int pomdp_pbvi_uninitialize_gpu(POMDP *pomdp)
         if (cudaFree(pomdp->d_alphaBA) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
                     "Failed to allocate device-side memory for alphaBA (alpha-vector collection).");
+            result = NOVA_ERROR_DEVICE_FREE;
         }
     }
     pomdp->d_alphaBA = nullptr;
 
-    return NOVA_SUCCESS;
+    return result;
 }
 
 
