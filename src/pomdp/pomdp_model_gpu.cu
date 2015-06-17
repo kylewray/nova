@@ -28,48 +28,6 @@
 #include <stdio.h>
 
 
-int pomdp_initialize_nonzero_beliefs_gpu(POMDP *pomdp)
-{
-    // Ensure the data is valid.
-    if (pomdp->r == 0 || pomdp->rz == 0 || pomdp->Z == nullptr) {
-        fprintf(stderr, "Error[pomdp_initialize_nonzero_beliefs_gpu]: %s", "Invalid input.");
-        return NOVA_ERROR_INVALID_DATA;
-    }
-
-    // Allocate the memory on the device.
-    if (cudaMalloc(&pomdp->d_Z, pomdp->r * pomdp->rz * sizeof(int)) != cudaSuccess) {
-        fprintf(stderr, "Error[pomdp_initialize_nonzero_beliefs_gpu]: %s",
-                "Failed to allocate device-side memory for the non-zero belief states.");
-        return NOVA_ERROR_DEVICE_MALLOC;
-    }
-
-    // Copy the data from the host to the device.
-    if (cudaMemcpy(pomdp->d_Z, pomdp->Z, pomdp->r * pomdp->rz * sizeof(int),
-                    cudaMemcpyHostToDevice) != cudaSuccess) {
-        fprintf(stderr, "Error[pomdp_initialize_nonzero_beliefs_gpu]: %s",
-                "Failed to copy memory from host to device for the non-zero belief states.");
-        return NOVA_ERROR_MEMCPY_TO_DEVICE;
-    }
-
-    return NOVA_SUCCESS;
-}
-
-
-int pomdp_uninitialize_nonzero_beliefs_gpu(POMDP *pomdp)
-{
-    if (pomdp->d_Z != nullptr) {
-        if (cudaFree(pomdp->d_Z) != cudaSuccess) {
-            fprintf(stderr, "Error[pomdp_uninitialize_nonzero_beliefs_gpu]: %s",
-                    "Failed to allocate device-side memory for the non-zero belief states.");
-            return NOVA_ERROR_DEVICE_FREE;
-        }
-    }
-    pomdp->d_Z = nullptr;
-
-    return NOVA_SUCCESS;
-}
-
-
 int pomdp_initialize_belief_points_gpu(POMDP *pomdp)
 {
     // Ensure the data is valid.
@@ -271,6 +229,48 @@ int pomdp_uninitialize_rewards_gpu(POMDP *pomdp)
         }
     }
     pomdp->d_R = nullptr;
+
+    return NOVA_SUCCESS;
+}
+
+
+int pomdp_initialize_nonzero_beliefs_gpu(POMDP *pomdp)
+{
+    // Ensure the data is valid.
+    if (pomdp->r == 0 || pomdp->rz == 0 || pomdp->Z == nullptr) {
+        fprintf(stderr, "Error[pomdp_initialize_nonzero_beliefs_gpu]: %s", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    // Allocate the memory on the device.
+    if (cudaMalloc(&pomdp->d_Z, pomdp->r * pomdp->rz * sizeof(int)) != cudaSuccess) {
+        fprintf(stderr, "Error[pomdp_initialize_nonzero_beliefs_gpu]: %s",
+                "Failed to allocate device-side memory for the non-zero belief states.");
+        return NOVA_ERROR_DEVICE_MALLOC;
+    }
+
+    // Copy the data from the host to the device.
+    if (cudaMemcpy(pomdp->d_Z, pomdp->Z, pomdp->r * pomdp->rz * sizeof(int),
+                    cudaMemcpyHostToDevice) != cudaSuccess) {
+        fprintf(stderr, "Error[pomdp_initialize_nonzero_beliefs_gpu]: %s",
+                "Failed to copy memory from host to device for the non-zero belief states.");
+        return NOVA_ERROR_MEMCPY_TO_DEVICE;
+    }
+
+    return NOVA_SUCCESS;
+}
+
+
+int pomdp_uninitialize_nonzero_beliefs_gpu(POMDP *pomdp)
+{
+    if (pomdp->d_Z != nullptr) {
+        if (cudaFree(pomdp->d_Z) != cudaSuccess) {
+            fprintf(stderr, "Error[pomdp_uninitialize_nonzero_beliefs_gpu]: %s",
+                    "Failed to allocate device-side memory for the non-zero belief states.");
+            return NOVA_ERROR_DEVICE_FREE;
+        }
+    }
+    pomdp->d_Z = nullptr;
 
     return NOVA_SUCCESS;
 }

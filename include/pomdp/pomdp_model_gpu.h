@@ -30,34 +30,6 @@
 
 
 /**
- *  Initialize CUDA non-zero belief states object.
- *  @param  pomdp   The POMDP object.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-int pomdp_initialize_nonzero_beliefs_gpu(POMDP *pomdp);
-
-/**
- *  Uninitialize CUDA non-zero belief states object.
- *  @param  pomdp   The POMDP object.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-int pomdp_uninitialize_nonzero_beliefs_gpu(POMDP *pomdp);
-
-/**
- *  Initialize CUDA belief points object.
- *  @param  pomdp   The POMDP object.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-int pomdp_initialize_belief_points_gpu(POMDP *pomdp);
-
-/**
- *  Uninitialize CUDA belief points object.
- *  @param  pomdp   The POMDP object.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-int pomdp_uninitialize_belief_points_gpu(POMDP *pomdp);
-
-/**
  *  Initialize CUDA by transferring all of the constant POMDP model information to the device.
  *  @param  pomdp   The POMDP object.
  *  @return Returns zero upon success, non-zero otherwise.
@@ -112,6 +84,34 @@ int pomdp_initialize_rewards_gpu(POMDP *pomdp);
  *  @return Returns zero upon success, non-zero otherwise.
  */
 int pomdp_uninitialize_rewards_gpu(POMDP *pomdp);
+
+/**
+ *  Initialize CUDA non-zero belief states object.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+int pomdp_initialize_nonzero_beliefs_gpu(POMDP *pomdp);
+
+/**
+ *  Uninitialize CUDA non-zero belief states object.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+int pomdp_uninitialize_nonzero_beliefs_gpu(POMDP *pomdp);
+
+/**
+ *  Initialize CUDA belief points object.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+int pomdp_initialize_belief_points_gpu(POMDP *pomdp);
+
+/**
+ *  Uninitialize CUDA belief points object.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+int pomdp_uninitialize_belief_points_gpu(POMDP *pomdp);
 
 
 #endif // NOVA_POMDP_MODEL_GPU_H
