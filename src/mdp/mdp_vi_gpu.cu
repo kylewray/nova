@@ -34,8 +34,8 @@
 #define FLT_MAX 1e+35
 
 
-__global__ void mdp_bellman_update_gpu(unsigned int n, unsigned int ns, unsigned int m,
-        const int *S, const float *T, const float *R, float gamma, const float *V, float *VPrime, unsigned int *pi)
+__global__ void mdp_bellman_update_gpu(unsigned int n, unsigned int ns, unsigned int m, float gamma,
+        const int *S, const float *T, const float *R, const float *V, float *VPrime, unsigned int *pi)
 {
     // The current state as a function of the blocks and threads.
     int s;
@@ -192,9 +192,9 @@ int mdp_vi_complete_gpu(MDP *mdp, unsigned int numThreads,
         printf("Iteration %d / %d -- GPU Version\n", i, mdp->horizon);
 
         if (i % 2 == 0) {
-            mdp_bellman_update_gpu<<< numBlocks, numThreads >>>(mdp->n, mdp->ns, mdp->m, mdp->d_S, mdp->d_T, mdp->d_R, mdp->gamma, d_V, d_VPrime, d_pi);
-        } else {
-            mdp_bellman_update_gpu<<< numBlocks, numThreads >>>(mdp->n, mdp->ns, mdp->m, mdp->d_S, mdp->d_T, mdp->d_R, mdp->gamma, d_VPrime, d_V, d_pi);
+            mdp_bellman_update_gpu<<< numBlocks, numThreads >>>(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->d_S, mdp->d_T, mdp->d_R, d_V, d_VPrime, d_pi);
+        } else {                                                                                     
+            mdp_bellman_update_gpu<<< numBlocks, numThreads >>>(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->d_S, mdp->d_T, mdp->d_R, d_VPrime, d_V, d_pi);
         }
 
         // Check if there was an error executing the kernel.

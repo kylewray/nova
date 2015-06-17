@@ -31,34 +31,33 @@
  *  @param  n           The number of states.
  *  @param  ns          The maximum number of successor states.
  *  @param  m           The number of actions.
+ *  @param  gamma       The discount factor in [0.0, 1.0).
+ *  @param  horizon     The number of iterations to execute (i.e., horizon).
  *  @param  S           A mapping of state-action-successor triples (n-m-ns array) to a
  *                      state index. Reading the array 0 to ns-1, a value of -1 means
  *                      there are no more successors (terminating any loops).
- *  @param  d_S         Device-side pointer of S.
  *  @param  T           A mapping of state-action-successor triples (n-m-ns array) to a
  *                      transition probability.
- *  @param  d_T         Device-side pointer of T.
  *  @param  R           A mapping of state-action pairs (n-m array) to a reward.
+ *  @param  d_S         Device-side pointer of S.
+ *  @param  d_T         Device-side pointer of T.
  *  @param  d_R         Device-side pointer of R.
- *  @param  gamma       The discount factor in [0.0, 1.0).
- *  @param  horizon     The number of iterations to execute (i.e., horizon).
  */
 typedef struct NovaMDP {
     unsigned int n;
     unsigned int ns;
     unsigned int m;
 
-    int *S;
-    int *d_S;
-
-    float *T;
-    float *d_T;
-
-    float *R;
-    float *d_R;
-
     float gamma;
     unsigned int horizon;
+
+    int *S;
+    float *T;
+    float *R;
+
+    int *d_S;
+    float *d_T;
+    float *d_R;
 } MDP;
 
 

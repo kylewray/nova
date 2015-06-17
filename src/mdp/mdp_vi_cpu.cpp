@@ -34,9 +34,8 @@
 #define FLT_MAX 1e+35
 
 
-void mdp_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m,
-                        const int *S, const float *T, const float *R,
-                        float gamma, const float *V,
+void mdp_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, float gamma, 
+                        const int *S, const float *T, const float *R, const float *V,
                         float *VPrime, unsigned int *pi)
 {
     // The intermediate Q(s, a) value.
@@ -96,9 +95,9 @@ int mdp_vi_complete_cpu(MDP *mdp, float *V, unsigned int *pi)
 
         // We oscillate between V and VPrime depending on the step.
         if (i % 2 == 0) {
-            mdp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->S, mdp->T, mdp->R, mdp->gamma, V, VPrime, pi);
+            mdp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, V, VPrime, pi);
         } else {
-            mdp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->S, mdp->T, mdp->R, mdp->gamma, VPrime, V, pi);
+            mdp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, VPrime, V, pi);
         }
     }
 
