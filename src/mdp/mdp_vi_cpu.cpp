@@ -115,13 +115,13 @@ int mdp_vi_execute_cpu(MDP *mdp, float *V, unsigned int *pi)
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
             mdp->gamma < 0.0f || mdp->gamma >= 1.0f || mdp->horizon < 1 ||
             V == nullptr || pi == nullptr) {
-        fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s", "Invalid arguments.");
+        fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
     result = mdp_vi_initialize_cpu(mdp, V);
     if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s", "Failed to initialize the CPU variables.");
+        fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Failed to initialize the CPU variables.");
         return result;
     }
 
@@ -130,20 +130,20 @@ int mdp_vi_execute_cpu(MDP *mdp, float *V, unsigned int *pi)
     while (mdp->currentHorizon < mdp->horizon) {
         result = mdp_vi_update_cpu(mdp);
         if (result != NOVA_SUCCESS) {
-            fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s", "Failed to perform Bellman update on the CPU.");
+            fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Failed to perform Bellman update on the CPU.");
             return result;
         }
     }
 
     result = mdp_vi_get_policy_cpu(mdp, V, pi);
     if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s", "Failed to get the policy.");
+        fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Failed to get the policy.");
         return result;
     }
 
     result = mdp_vi_uninitialize_cpu(mdp);
     if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s", "Failed to uninitialize the CPU variables.");
+        fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Failed to uninitialize the CPU variables.");
         return result;
     }
 

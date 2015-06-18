@@ -275,43 +275,43 @@ int pomdp_pbvi_initialize_gpu(POMDP *pomdp, float *Gamma)
 {
     // Create the device-side Gamma.
     if (cudaMalloc(&pomdp->d_Gamma, pomdp->r * pomdp->n * sizeof(float)) != cudaSuccess) {
-        fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s",
+        fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s\n",
                 "Failed to allocate device-side memory for Gamma.");
         return NOVA_ERROR_DEVICE_MALLOC;
     }
     if (cudaMemcpy(pomdp->d_Gamma, Gamma, pomdp->r * pomdp->n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-        fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s",
+        fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s\n",
                 "Failed to copy memory from host to device for Gamma.");
         return NOVA_ERROR_MEMCPY_TO_DEVICE;
     }
 
     if (cudaMalloc(&pomdp->d_GammaPrime, pomdp->r * pomdp->n * sizeof(float)) != cudaSuccess) {
-        fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s",
+        fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s\n",
                 "Failed to allocate device-side memory for Gamma (prime).");
         return NOVA_ERROR_DEVICE_MALLOC;
     }
     if (cudaMemcpy(pomdp->d_GammaPrime, Gamma, pomdp->r * pomdp->n * sizeof(float),
                     cudaMemcpyHostToDevice) != cudaSuccess) {
-        fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s",
+        fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s\n",
                 "Failed to copy memory from host to device for Gamma (prime).");
         return NOVA_ERROR_MEMCPY_TO_DEVICE;
     }
 
     // Create the device-side pi.
     if (cudaMalloc(&pomdp->d_pi, pomdp->r * sizeof(unsigned int)) != cudaSuccess) {
-        fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s",
+        fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s\n",
                 "Failed to allocate device-side memory for pi.");
         return NOVA_ERROR_DEVICE_MALLOC;
     }
     if (cudaMalloc(&pomdp->d_piPrime, pomdp->r * sizeof(unsigned int)) != cudaSuccess) {
-        fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s",
+        fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s\n",
                 "Failed to allocate device-side memory for pi (prime).");
         return NOVA_ERROR_MEMCPY_TO_DEVICE;
     }
 
     // Create the device-side memory for the intermediate variable alphaBA.
     if (cudaMalloc(&pomdp->d_alphaBA, pomdp->r * pomdp->m * pomdp->n * sizeof(float)) != cudaSuccess) {
-        fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s",
+        fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s\n",
                 "Failed to allocate device-side memory for alphaBA.");
         return NOVA_ERROR_DEVICE_MALLOC;
     }
@@ -330,13 +330,13 @@ int pomdp_pbvi_execute_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma, 
             pomdp->d_S == nullptr || pomdp->d_T == nullptr || pomdp->d_O == nullptr || pomdp->d_R == nullptr ||
             pomdp->d_Z == nullptr || pomdp->d_B == nullptr ||
             pomdp->gamma < 0.0 || pomdp->gamma >= 1.0 || pomdp->horizon < 1) {
-        fprintf(stderr, "Error[pomdp_pbvi_execute_gpu]: %s", "Invalid arguments.");
+        fprintf(stderr, "Error[pomdp_pbvi_execute_gpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
     // Ensure threads are correct.
     if (numThreads % 32 != 0) {
-        fprintf(stderr, "Error[pomdp_pbvi_execute_gpu]: %s", "Invalid number of threads.");
+        fprintf(stderr, "Error[pomdp_pbvi_execute_gpu]: %s\n", "Invalid number of threads.");
         return NOVA_ERROR_INVALID_CUDA_PARAM;
     }
 
@@ -375,7 +375,7 @@ int pomdp_pbvi_uninitialize_gpu(POMDP *pomdp)
 
     if (pomdp->d_Gamma != nullptr) {
         if (cudaFree(pomdp->d_Gamma) != cudaSuccess) {
-            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
+            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s\n",
                     "Failed to allocate device-side memory for the Gamma (the alpha-vectors).");
             result = NOVA_ERROR_DEVICE_FREE;
         }
@@ -384,7 +384,7 @@ int pomdp_pbvi_uninitialize_gpu(POMDP *pomdp)
 
     if (pomdp->d_GammaPrime != nullptr) {
         if (cudaFree(pomdp->d_GammaPrime) != cudaSuccess) {
-            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
+            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s\n",
                     "Failed to allocate device-side memory for the GammaPrime (the alpha-vectors' copy).");
             result = NOVA_ERROR_DEVICE_FREE;
         }
@@ -393,7 +393,7 @@ int pomdp_pbvi_uninitialize_gpu(POMDP *pomdp)
 
     if (pomdp->d_pi != nullptr) {
         if (cudaFree(pomdp->d_pi) != cudaSuccess) {
-            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
+            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s\n",
                     "Failed to allocate device-side memory for the pi (the policy).");
             result = NOVA_ERROR_DEVICE_FREE;
         }
@@ -402,7 +402,7 @@ int pomdp_pbvi_uninitialize_gpu(POMDP *pomdp)
 
     if (pomdp->d_piPrime != nullptr) {
         if (cudaFree(pomdp->d_piPrime) != cudaSuccess) {
-            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
+            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s\n",
                     "Failed to allocate device-side memory for the piPrime (the policy copy).");
             result = NOVA_ERROR_DEVICE_FREE;
         }
@@ -411,7 +411,7 @@ int pomdp_pbvi_uninitialize_gpu(POMDP *pomdp)
 
     if (pomdp->d_alphaBA != nullptr) {
         if (cudaFree(pomdp->d_alphaBA) != cudaSuccess) {
-            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s",
+            fprintf(stderr, "Error[pomdp_pbvi_uninitialize_gpu]: %s\n",
                     "Failed to allocate device-side memory for alphaBA (alpha-vector collection).");
             result = NOVA_ERROR_DEVICE_FREE;
         }
@@ -432,14 +432,14 @@ int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int currentHorizon, unsigned in
 
     // Check if there was an error executing the kernel.
     if (cudaGetLastError() != cudaSuccess) {
-        fprintf(stderr, "Error[pomdp_pbvi_update_gpu]: %s",
+        fprintf(stderr, "Error[pomdp_pbvi_update_gpu]: %s\n",
                         "Failed to execute the 'initialization of alphaBA' kernel.");
         return NOVA_ERROR_KERNEL_EXECUTION;
     }
 
     // Wait for the kernel to finish before looping more.
     if (cudaDeviceSynchronize() != cudaSuccess) {
-        fprintf(stderr, "Error[pomdp_pbvi_update_gpu]: %s",
+        fprintf(stderr, "Error[pomdp_pbvi_update_gpu]: %s\n",
                     "Failed to synchronize the device after 'initialization of alphaBA' kernel.");
         return NOVA_ERROR_DEVICE_SYNCHRONIZE;
     }
@@ -453,14 +453,14 @@ int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int currentHorizon, unsigned in
 
     // Check if there was an error executing the kernel.
     if (cudaGetLastError() != cudaSuccess) {
-        fprintf(stderr, "Error[pomdp_pbvi_update_gpu]: %s",
+        fprintf(stderr, "Error[pomdp_pbvi_update_gpu]: %s\n",
                         "Failed to execute the 'compute_alphaBA' kernel.");
         return NOVA_ERROR_KERNEL_EXECUTION;
     }
 
     // Wait for the kernel to finish before looping more.
     if (cudaDeviceSynchronize() != cudaSuccess) {
-        fprintf(stderr, "Error[pomdp_pbvi_update_gpu]: %s",
+        fprintf(stderr, "Error[pomdp_pbvi_update_gpu]: %s\n",
                         "Failed to synchronize the device after 'compute_alphaBA' kernel.");
         return NOVA_ERROR_DEVICE_SYNCHRONIZE;
     }
@@ -488,14 +488,14 @@ int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int currentHorizon, unsigned in
 
     // Check if there was an error executing the kernel.
     if (cudaGetLastError() != cudaSuccess) {
-        fprintf(stderr, "Error[pomdp_pbvi_update_gpu]: %s",
+        fprintf(stderr, "Error[pomdp_pbvi_update_gpu]: %s\n",
                         "Failed to execute the 'pomdp_pbvi_update_step_gpu' kernel.");
         return NOVA_ERROR_KERNEL_EXECUTION;
     }
 
     // Wait for the kernel to finish before looping more.
     if (cudaDeviceSynchronize() != cudaSuccess) {
-        fprintf(stderr, "Error[pomdp_pbvi_update_gpu]: %s",
+        fprintf(stderr, "Error[pomdp_pbvi_update_gpu]: %s\n",
                         "Failed to synchronize the device after 'pomdp_pbvi_update_step_gpu' kernel.");
         return NOVA_ERROR_DEVICE_SYNCHRONIZE;
     }
@@ -511,26 +511,26 @@ int pomdp_pbvi_get_policy_gpu(POMDP *pomdp, float *Gamma, unsigned int *pi)
     if (pomdp->horizon % 2 == 1) {
         if (cudaMemcpy(Gamma, pomdp->d_Gamma, pomdp->r * pomdp->n * sizeof(float),
                         cudaMemcpyDeviceToHost) != cudaSuccess) {
-            fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s",
+            fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s\n",
                     "Failed to copy memory from device to host for Gamma.");
             return NOVA_ERROR_MEMCPY_TO_HOST;
         }
         if (cudaMemcpy(pi, pomdp->d_pi, pomdp->r * sizeof(unsigned int),
                         cudaMemcpyDeviceToHost) != cudaSuccess) {
-            fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s",
+            fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s\n",
                     "Failed to copy memory from device to host for pi.");
             return NOVA_ERROR_MEMCPY_TO_HOST;
         }
     } else {
         if (cudaMemcpy(Gamma, pomdp->d_GammaPrime, pomdp->r * pomdp->n * sizeof(float),
                         cudaMemcpyDeviceToHost) != cudaSuccess) {
-            fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s",
+            fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s\n",
                     "Failed to copy memory from device to host for Gamma (prime).");
             return NOVA_ERROR_MEMCPY_TO_HOST;
         }
         if (cudaMemcpy(pi, pomdp->d_piPrime, pomdp->r * sizeof(unsigned int),
                         cudaMemcpyDeviceToHost) != cudaSuccess) {
-            fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s",
+            fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s\n",
                     "Failed to copy memory from device to host for pi (prime).");
             return NOVA_ERROR_MEMCPY_TO_HOST;
         }

@@ -32,13 +32,13 @@ int mdp_initialize_successors_gpu(MDP *mdp)
 {
     // Ensure the data is valid.
     if (mdp->n == 0 || mdp->m == 0 || mdp->ns == 0 || mdp->S == nullptr) {
-        fprintf(stderr, "Error[mdp_initialize_successors_gpu]: %s", "Invalid input.");
+        fprintf(stderr, "Error[mdp_initialize_successors_gpu]: %s\n", "Invalid input.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
     // Allocate the memory on the device.
     if (cudaMalloc(&mdp->d_S, mdp->n * mdp->m * mdp->ns * sizeof(int)) != cudaSuccess) {
-        fprintf(stderr, "Error[mdp_initialize_successors_gpu]: %s",
+        fprintf(stderr, "Error[mdp_initialize_successors_gpu]: %s\n",
                 "Failed to allocate device-side memory for the successor states.");
         return NOVA_ERROR_DEVICE_MALLOC;
     }
@@ -46,7 +46,7 @@ int mdp_initialize_successors_gpu(MDP *mdp)
     // Copy the data from the host to the device.
     if (cudaMemcpy(mdp->d_S, mdp->S, mdp->n * mdp->m * mdp->ns * sizeof(int),
                     cudaMemcpyHostToDevice) != cudaSuccess) {
-        fprintf(stderr, "Error[mdp_initialize_successors_gpu]: %s",
+        fprintf(stderr, "Error[mdp_initialize_successors_gpu]: %s\n",
                 "Failed to copy memory from host to device for the successor states.");
         return NOVA_ERROR_MEMCPY_TO_DEVICE;
     }
@@ -59,7 +59,7 @@ int mdp_uninitialize_successors_gpu(MDP *mdp)
 {
     if (mdp->d_S != nullptr) {
         if (cudaFree(mdp->d_S) != cudaSuccess) {
-            fprintf(stderr, "Error[mdp_uninitialize_successors_gpu]: %s",
+            fprintf(stderr, "Error[mdp_uninitialize_successors_gpu]: %s\n",
                     "Failed to allocate device-side memory for the successor states.");
             return NOVA_ERROR_DEVICE_FREE;
         }
@@ -74,20 +74,20 @@ int mdp_initialize_state_transitions_gpu(MDP *mdp)
 {
     // Ensure the data is valid.
     if (mdp->n == 0 || mdp->m == 0 || mdp->ns == 0 || mdp->T == nullptr) {
-        fprintf(stderr, "Error[mdp_initialize_state_transitions_gpu]: %s", "Invalid input.");
+        fprintf(stderr, "Error[mdp_initialize_state_transitions_gpu]: %s\n", "Invalid input.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
     // Allocate the memory on the device.
     if (cudaMalloc(&mdp->d_T, mdp->n * mdp->m * mdp->ns * sizeof(float)) != cudaSuccess) {
-        fprintf(stderr, "Error[mdp_initialize_state_transitions_gpu]: %s",
+        fprintf(stderr, "Error[mdp_initialize_state_transitions_gpu]: %s\n",
                 "Failed to allocate device-side memory for the state transitions.");
         return NOVA_ERROR_DEVICE_MALLOC;
     }
 
     // Copy the data from the host to the device.
     if (cudaMemcpy(mdp->d_T, mdp->T, mdp->n * mdp->m * mdp->ns * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-        fprintf(stderr, "Error[nova_mdp_pbvi_initialize_state_transitions]: %s",
+        fprintf(stderr, "Error[nova_mdp_pbvi_initialize_state_transitions]: %s\n",
                 "Failed to copy memory from host to device for the state transitions.");
         return NOVA_ERROR_MEMCPY_TO_DEVICE;
     }
@@ -100,7 +100,7 @@ int mdp_uninitialize_state_transitions_gpu(MDP *mdp)
 {
     if (mdp->d_T != nullptr) {
         if (cudaFree(mdp->d_T) != cudaSuccess) {
-            fprintf(stderr, "Error[mdp_uninitialize_state_transitions_gpu]: %s",
+            fprintf(stderr, "Error[mdp_uninitialize_state_transitions_gpu]: %s\n",
                     "Failed to allocate device-side memory for the state transitions.");
             return NOVA_ERROR_DEVICE_FREE;
         }
@@ -115,20 +115,20 @@ int mdp_initialize_rewards_gpu(MDP *mdp)
 {
     // Ensure the data is valid.
     if (mdp->n == 0 || mdp->m == 0 || mdp->R == nullptr) {
-        fprintf(stderr, "Error[mdp_initialize_rewards_gpu]: %s", "Invalid input.");
+        fprintf(stderr, "Error[mdp_initialize_rewards_gpu]: %s\n", "Invalid input.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
     // Allocate the memory on the device.
     if (cudaMalloc(&mdp->d_R, mdp->n * mdp->m * sizeof(float)) != cudaSuccess) {
-        fprintf(stderr, "Error[mdp_initialize_rewards_gpu]: %s",
+        fprintf(stderr, "Error[mdp_initialize_rewards_gpu]: %s\n",
                 "Failed to allocate device-side memory for the rewards.");
         return NOVA_ERROR_DEVICE_MALLOC;
     }
 
     // Copy the data from the host to the device.
     if (cudaMemcpy(mdp->d_R, mdp->R, mdp->n * mdp->m * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-        fprintf(stderr, "Error[mdp_initialize_rewards_gpu]: %s",
+        fprintf(stderr, "Error[mdp_initialize_rewards_gpu]: %s\n",
                 "Failed to copy memory from host to device for the rewards.");
         return NOVA_ERROR_MEMCPY_TO_DEVICE;
     }
@@ -141,7 +141,7 @@ int mdp_uninitialize_rewards_gpu(MDP *mdp)
 {
     if (mdp->d_R != nullptr) {
         if (cudaFree(mdp->d_R) != cudaSuccess) {
-            fprintf(stderr, "Error[mdp_uninitialize_rewards_gpu]: %s",
+            fprintf(stderr, "Error[mdp_uninitialize_rewards_gpu]: %s\n",
                     "Failed to allocate device-side memory for the rewards.");
             return NOVA_ERROR_DEVICE_FREE;
         }
