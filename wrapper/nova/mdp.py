@@ -49,9 +49,15 @@ class NovaMDP(ct.Structure):
                 ("S", ct.POINTER(ct.c_int)),
                 ("T", ct.POINTER(ct.c_float)),
                 ("R", ct.POINTER(ct.c_float)),
+                ("V", ct.POINTER(ct.c_float)),
+                ("VPrime", ct.POINTER(ct.c_float)),
+                ("pi", ct.POINTER(ct.c_uint)),
                 ("d_S", ct.POINTER(ct.c_int)),
                 ("d_T", ct.POINTER(ct.c_float)),
                 ("d_R", ct.POINTER(ct.c_float)),
+                ("d_V", ct.POINTER(ct.c_float)),
+                ("d_VPrime", ct.POINTER(ct.c_float)),
+                ("d_pi", ct.POINTER(ct.c_uint)),
                 ]
 
 
@@ -102,9 +108,15 @@ def mdp_vi_complete_cpu(n, ns, m, gamma, horizon, S, T, R, V, pi):
                                 array_type_nmns_int(*S),
                                 array_type_nmns_float(*T),
                                 array_type_nm_float(*R),
+                                ct.POINTER(ct.c_float)(),
+                                ct.POINTER(ct.c_float)(),
+                                ct.POINTER(ct.c_uint)(),
                                 ct.POINTER(ct.c_int)(),
                                 ct.POINTER(ct.c_float)(),
-                                ct.POINTER(ct.c_float)()),
+                                ct.POINTER(ct.c_float)(),
+                                ct.POINTER(ct.c_float)(),
+                                ct.POINTER(ct.c_float)(),
+                                ct.POINTER(ct.c_uint)()),
                             VResult, piResult)
 
     if result == 0:
@@ -153,9 +165,15 @@ def mdp_vi_complete_gpu(n, ns, m, S, T, R, gamma, horizon, numThreads, V, pi):
                                 array_type_nmns_int(*S),
                                 array_type_nmns_float(*T),
                                 array_type_nm_float(*R),
+                                ct.POINTER(ct.c_float)(),
+                                ct.POINTER(ct.c_float)(),
+                                ct.POINTER(ct.c_uint)(),
                                 ct.POINTER(ct.c_int)(),
-                                ct.POINTER(ct.c_float)(), 
-                                ct.POINTER(ct.c_float)()),
+                                ct.POINTER(ct.c_float)(),
+                                ct.POINTER(ct.c_float)(),
+                                ct.POINTER(ct.c_float)(),
+                                ct.POINTER(ct.c_float)(),
+                                ct.POINTER(ct.c_uint)()),
                             int(numThreads), VResult, piResult)
 
     if result == 0:
@@ -178,9 +196,15 @@ class MDP(NovaMDP):
         """ The constructor for the MDP class. """
 
         # Assign a nullptr for the device-side pointers. These will be set if the GPU is utilized.
+        self.V = ct.POINTER(ct.c_float)()
+        self.VPrime = ct.POINTER(ct.c_float)()
+        self.pi = ct.POINTER(ct.c_uint)()
         self.d_S = ct.POINTER(ct.c_int)()
         self.d_T = ct.POINTER(ct.c_float)()
         self.d_R = ct.POINTER(ct.c_float)()
+        self.d_V = ct.POINTER(ct.c_float)()
+        self.d_VPrime = ct.POINTER(ct.c_float)()
+        self.d_pi = ct.POINTER(ct.c_uint)()
 
         # Additional informative variables.
         self.Rmin = None
