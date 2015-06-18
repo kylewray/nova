@@ -34,42 +34,42 @@
  *  @param  mdp   The MDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int mdp_initialize_successors_gpu(MDP *mdp);
+extern "C" int mdp_initialize_successors_gpu(MDP *mdp);
 
 /**
  *  Uninitialize CUDA by transferring all of the constant MDP model information to the device.
  *  @param  mdp   The MDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int mdp_uninitialize_successors_gpu(MDP *mdp);
+extern "C" int mdp_uninitialize_successors_gpu(MDP *mdp);
 
 /**
  *  Initialize CUDA state transitions object.
  *  @param  mdp   The MDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int mdp_initialize_state_transitions_gpu(MDP *mdp);
+extern "C" int mdp_initialize_state_transitions_gpu(MDP *mdp);
 
 /**
  *  Uninitialize CUDA state transitions object.
  *  @param  mdp   The MDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int mdp_uninitialize_state_transitions_gpu(MDP *mdp);
+extern "C" int mdp_uninitialize_state_transitions_gpu(MDP *mdp);
 
 /**
  *  Initialize CUDA rewards object.
  *  @param  mdp   The MDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int mdp_initialize_rewards_gpu(MDP *mdp);
+extern "C" int mdp_initialize_rewards_gpu(MDP *mdp);
 
 /**
  *  Uninitialize CUDA rewards object.
  *  @param  mdp   The MDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int mdp_uninitialize_rewards_gpu(MDP *mdp);
+extern "C" int mdp_uninitialize_rewards_gpu(MDP *mdp);
 
 
 #endif // NOVA_MDP_MODEL_GPU_H

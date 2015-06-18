@@ -121,195 +121,14 @@ int mdp_vi_complete_gpu(MDP *mdp, unsigned int numThreads, float *V, unsigned in
     }
 
     return result;
-
-    /*
-    // The host and device pointers for the value functions: V and VPrime.
-    float *d_V;
-    float *d_VPrime;
-
-    // The device pointer for the final policy: pi.
-    unsigned int *d_pi;
-
-    // The number of blocks
-    unsigned int numBlocks;
-
-    // The final return message code, which is set during freeing memory at the end.
-    unsigned int result;
-
-    // First, ensure data is valid.
-    if (mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
-            mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
-            mdp->gamma < 0.0f || mdp->gamma >= 1.0f || mdp->horizon < 1 ||
-            V == nullptr || pi == nullptr) {
-        return NOVA_ERROR_INVALID_DATA;
-    }
-
-    // Ensure threads are correct.
-    if (numThreads % 32 != 0) {
-        fprintf(stderr, "Error[value_iteration]: %s", "Invalid number of threads.");
-        return NOVA_ERROR_INVALID_CUDA_PARAM;
-    }
-
-    numBlocks = (unsigned int)((float)mdp->n / (float)numThreads) + 1;
-
-    // Allocate the device-side memory.
-    if (cudaMalloc(&mdp->d_S, mdp->n * mdp->m * mdp->ns * sizeof(int)) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to allocate device-side memory for the successor states.");
-        return NOVA_ERROR_DEVICE_MALLOC;
-    }
-    if (cudaMalloc(&mdp->d_T, mdp->n * mdp->m * mdp->ns * sizeof(float)) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to allocate device-side memory for the state transitions.");
-        return NOVA_ERROR_DEVICE_MALLOC;
-    }
-    if (cudaMalloc(&mdp->d_R, mdp->n * mdp->m * sizeof(float)) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to allocate device-side memory for the rewards.");
-        return NOVA_ERROR_DEVICE_MALLOC;
-    }
-
-    if (cudaMalloc(&d_V, mdp->n * sizeof(float)) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to allocate device-side memory for the value function.");
-        return NOVA_ERROR_DEVICE_MALLOC;
-    }
-    if (cudaMalloc(&d_VPrime, mdp->n * sizeof(float)) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to allocate device-side memory for the value function (prime).");
-        return NOVA_ERROR_DEVICE_MALLOC;
-    }
-
-    if (cudaMalloc(&d_pi, mdp->n * sizeof(unsigned int)) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to allocate device-side memory for the policy (pi).");
-        return NOVA_ERROR_DEVICE_MALLOC;
-    }
-
-    // Copy the data from host to device.
-    if (cudaMemcpy(mdp->d_S, mdp->S, mdp->n * mdp->m * mdp->ns * sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to copy memory from host to device for the successors.");
-        return NOVA_ERROR_MEMCPY_TO_DEVICE;
-    }
-    if (cudaMemcpy(mdp->d_T, mdp->T, mdp->n * mdp->m * mdp->ns * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to copy memory from host to device for the state transitions.");
-        return NOVA_ERROR_MEMCPY_TO_DEVICE;
-    }
-    if (cudaMemcpy(mdp->d_R, mdp->R, mdp->n * mdp->m * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to copy memory from host to device for the rewards.");
-        return NOVA_ERROR_MEMCPY_TO_DEVICE;
-    }
-
-    if (cudaMemcpy(d_V, V, mdp->n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to copy memory from host to device for the value function.");
-        return NOVA_ERROR_MEMCPY_TO_DEVICE;
-    }
-    if (cudaMemcpy(d_VPrime, V, mdp->n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to copy memory from host to device for the value function (prime).");
-        return NOVA_ERROR_MEMCPY_TO_DEVICE;
-    }
-
-    if (cudaMemcpy(d_pi, pi, mdp->n * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to copy memory from host to device for the policy (pi).");
-        return NOVA_ERROR_MEMCPY_TO_DEVICE;
-    }
-
-    // Execute value iteration for these number of iterations. For each iteration, however,
-    // we will run the state updates in parallel.
-    for (int i = 0; i < mdp->horizon; i++) {
-        printf("Iteration %d / %d -- GPU Version\n", i, mdp->horizon);
-
-        if (i % 2 == 0) {
-            mdp_bellman_update_gpu<<< numBlocks, numThreads >>>(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->d_S, mdp->d_T, mdp->d_R, d_V, d_VPrime, d_pi);
-        } else {                                                                                     
-            mdp_bellman_update_gpu<<< numBlocks, numThreads >>>(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->d_S, mdp->d_T, mdp->d_R, d_VPrime, d_V, d_pi);
-        }
-
-        // Check if there was an error executing the kernel.
-        if (cudaGetLastError() != cudaSuccess) {
-            fprintf(stderr, "Error[value_iteration]: %s",
-                            "Failed to execute the 'initialization of alphaBA' kernel.");
-            return NOVA_ERROR_KERNEL_EXECUTION;
-        }
-
-        // Wait for the kernel to finish before looping more.
-        if (cudaDeviceSynchronize() != cudaSuccess) {
-            fprintf(stderr, "Error[value_iteration]: %s",
-                        "Failed to synchronize the device after 'initialization of alphaBA' kernel.");
-            return NOVA_ERROR_DEVICE_SYNCHRONIZE;
-        }
-    }
-
-    // Copy the final result, both V and pi, from device to host.
-    if (mdp->horizon % 2 == 1) {
-        if (cudaMemcpy(V, d_V, mdp->n * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
-            fprintf(stderr, "Error[value_iteration]: %s",
-                    "Failed to copy memory from device to host for the value function.");
-            return NOVA_ERROR_MEMCPY_TO_HOST;
-        }
-    } else {
-        if (cudaMemcpy(V, d_VPrime, mdp->n * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
-            fprintf(stderr, "Error[value_iteration]: %s",
-                    "Failed to copy memory from device to host for the value function (prime).");
-            return NOVA_ERROR_MEMCPY_TO_HOST;
-        }
-    }
-    if (cudaMemcpy(pi, d_pi, mdp->n * sizeof(unsigned int), cudaMemcpyDeviceToHost) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to copy memory from device to host for the policy (pi).");
-        return NOVA_ERROR_MEMCPY_TO_HOST;
-    }
-
-    // Free the device-side memory. Note that we continue on error, since it is just cleaning
-    // memory, but it is always nice to know if this failed anywhere.
-    result = NOVA_SUCCESS;
-
-    if (cudaFree(mdp->d_S) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to free memory from device for the successor states.");
-        result = NOVA_ERROR_DEVICE_FREE;
-    }
-    if (cudaFree(mdp->d_T) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to free memory from device for the state transitions.");
-        result = NOVA_ERROR_DEVICE_FREE;
-    }
-    if (cudaFree(mdp->d_R) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to free memory from device for the rewards.");
-        result = NOVA_ERROR_DEVICE_FREE;
-    }
-
-    if (cudaFree(d_V) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to free memory from device for the value function.");
-        result = NOVA_ERROR_DEVICE_FREE;
-    }
-    if (cudaFree(d_VPrime) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to free memory from device for the value function (prime).");
-        result = NOVA_ERROR_DEVICE_FREE;
-    }
-
-    if (cudaFree(d_pi) != cudaSuccess) {
-        fprintf(stderr, "Error[value_iteration]: %s",
-                "Failed to free memory from device for the policy (pi).");
-        result = NOVA_ERROR_DEVICE_FREE;
-    }
-
-    return result;
-    */
 }
 
 
 int mdp_vi_initialize_gpu(MDP *mdp, float *V)
 {
+    // Reset the current horizon.
+    mdp->currentHorizon = 0;
+
     // Create the device-side V.
     if (cudaMalloc(&mdp->d_V, mdp->n * sizeof(float)) != cudaSuccess) {
         fprintf(stderr, "Error[mdp_vi_initialize_gpu]: %s",
@@ -360,30 +179,35 @@ int mdp_vi_execute_gpu(MDP *mdp, unsigned int numThreads, float *V, unsigned int
 
     // Ensure threads are correct.
     if (numThreads % 32 != 0) {
-        fprintf(stderr, "Error[value_iteration]: %s", "Invalid number of threads.");
+        fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s", "Invalid number of threads.");
         return NOVA_ERROR_INVALID_CUDA_PARAM;
     }
 
     result = mdp_vi_initialize_gpu(mdp, V);
     if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s", "Failed to initialize GPU variables.");
         return result;
     }
 
-    // For each of the updates, run VI.
-    for (int t = 0; t < mdp->horizon; t++) {
-        result = mdp_vi_update_gpu(mdp, t, numThreads);
+    // We iterate over all time steps up to the horizon. Initialize set the currentHorizon to 0,
+    // and the update increments it.
+    while (mdp->currentHorizon < mdp->horizon) {
+        result = mdp_vi_update_gpu(mdp, numThreads);
         if (result != NOVA_SUCCESS) {
+            fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s", "Failed to perform Bellman update on the GPU.");
             return result;
         }
     }
 
     result = mdp_vi_get_policy_gpu(mdp, V, pi);
     if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s", "Failed to get the policy.");
         return result;
     }
 
     result = mdp_vi_uninitialize_gpu(mdp);
     if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s", "Failed to uninitialize the GPU variables.");
         return result;
     }
 
@@ -396,6 +220,9 @@ int mdp_vi_uninitialize_gpu(MDP *mdp)
     int result;
 
     result = NOVA_SUCCESS;
+
+    // Reset the current horizon.
+    mdp->currentHorizon = 0;
 
     if (mdp->d_V != nullptr) {
         if (cudaFree(mdp->d_V) != cudaSuccess) {
@@ -428,7 +255,7 @@ int mdp_vi_uninitialize_gpu(MDP *mdp)
 }
 
 
-int mdp_vi_update_gpu(MDP *mdp, unsigned int currentHorizon, unsigned int numThreads)
+int mdp_vi_update_gpu(MDP *mdp, unsigned int numThreads)
 {
     unsigned int numBlocks;
 
@@ -437,7 +264,7 @@ int mdp_vi_update_gpu(MDP *mdp, unsigned int currentHorizon, unsigned int numThr
 
     // Execute value iteration for these number of iterations. For each iteration, however,
     // we will run the state updates in parallel.
-    if (currentHorizon % 2 == 0) {
+    if (mdp->currentHorizon % 2 == 0) {
         mdp_bellman_update_gpu<<< numBlocks, numThreads >>>(
                     mdp->n, mdp->ns, mdp->m, mdp->gamma,
                     mdp->d_S, mdp->d_T, mdp->d_R,
@@ -463,6 +290,8 @@ int mdp_vi_update_gpu(MDP *mdp, unsigned int currentHorizon, unsigned int numThr
         return NOVA_ERROR_DEVICE_SYNCHRONIZE;
     }
 
+    mdp->currentHorizon++;
+
     return NOVA_SUCCESS;
 }
 
@@ -471,7 +300,7 @@ int mdp_vi_get_policy_gpu(MDP *mdp, float *V, unsigned int *pi)
 {
     // Copy the final result, both V and pi, from device to host. This assumes
     // that the memory has been allocated.
-    if (mdp->horizon % 2 == 1) {
+    if (mdp->horizon % 2 == 0) {
         if (cudaMemcpy(V, mdp->d_V, mdp->n * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
             fprintf(stderr, "Error[mdp_vi_get_policy_gpu]: %s",
                     "Failed to copy memory from device to host for the value function.");

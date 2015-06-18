@@ -39,9 +39,15 @@
  *  @param  T           A mapping of state-action-successor triples (n-m-ns array) to a
  *                      transition probability.
  *  @param  R           A mapping of state-action pairs (n-m array) to a reward.
+ *  @param  V           The value of the states (n-array).
+ *  @param  VPrime      The value of the states (n-array) copy.
+ *  @param  pi          The action to take at each state (n-array).
  *  @param  d_S         Device-side pointer of S.
  *  @param  d_T         Device-side pointer of T.
  *  @param  d_R         Device-side pointer of R.
+ *  @param  d_V         Device-side pointer of V.
+ *  @param  d_VPrime    Device-side pointer of VPrime.
+ *  @param  d_pi        Device-side pointer of pi.
  */
 typedef struct NovaMDP {
     // Core Variables (User-Defined)
@@ -57,6 +63,8 @@ typedef struct NovaMDP {
     float *R;
 
     // Computation Variables (Utilized by Processes Only)
+    unsigned int currentHorizon;
+
     float *V;
     float *VPrime;
     unsigned int *pi;

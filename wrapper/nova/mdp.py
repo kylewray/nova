@@ -49,6 +49,7 @@ class NovaMDP(ct.Structure):
                 ("S", ct.POINTER(ct.c_int)),
                 ("T", ct.POINTER(ct.c_float)),
                 ("R", ct.POINTER(ct.c_float)),
+                ("currentHorizon", ct.c_uint),
                 ("V", ct.POINTER(ct.c_float)),
                 ("VPrime", ct.POINTER(ct.c_float)),
                 ("pi", ct.POINTER(ct.c_uint)),
@@ -108,6 +109,7 @@ def mdp_vi_complete_cpu(n, ns, m, gamma, horizon, S, T, R, V, pi):
                                 array_type_nmns_int(*S),
                                 array_type_nmns_float(*T),
                                 array_type_nm_float(*R),
+                                int(0),
                                 ct.POINTER(ct.c_float)(),
                                 ct.POINTER(ct.c_float)(),
                                 ct.POINTER(ct.c_uint)(),
@@ -165,6 +167,7 @@ def mdp_vi_complete_gpu(n, ns, m, S, T, R, gamma, horizon, numThreads, V, pi):
                                 array_type_nmns_int(*S),
                                 array_type_nmns_float(*T),
                                 array_type_nm_float(*R),
+                                int(0),
                                 ct.POINTER(ct.c_float)(),
                                 ct.POINTER(ct.c_float)(),
                                 ct.POINTER(ct.c_uint)(),
@@ -196,6 +199,7 @@ class MDP(NovaMDP):
         """ The constructor for the MDP class. """
 
         # Assign a nullptr for the device-side pointers. These will be set if the GPU is utilized.
+        self.currentHorizon = int(0)
         self.V = ct.POINTER(ct.c_float)()
         self.VPrime = ct.POINTER(ct.c_float)()
         self.pi = ct.POINTER(ct.c_uint)()
@@ -328,9 +332,14 @@ class MDP(NovaMDP):
         result += "horizon: " + str(self.horizon) + "\n"
         result += "gamma:   " + str(self.gamma) + "\n\n"
 
-        result += "S(s, a, i):\n%s" % (str(self.S)) + "\n\n"
-        result += "T(s, a, s'):\n%s" % (str(self.T)) + "\n\n"
-        result += "R(s, a):\n%s" % (str(self.R)) + "\n\n"
+        result += "S(s, a, s'):\n%s" % (str(np.array([self.S[i] \
+                    for i in range(self.n * self.m * self.ns)]).reshape((self.n, self.m, self.ns)))) + "\n\n"
+
+        result += "T(s, a, s'):\n%s" % (str(np.array([self.T[i] \
+                    for i in range(self.n * self.m * self.ns)]).reshape((self.n, self.m, self.ns)))) + "\n\n"
+
+        result += "R(s, a):\n%s" % (str(np.array([self.R[i] \
+                    for i in range(self.n * self.m)]).reshape((self.n, self.m)))) + "\n\n"
 
         return result
 

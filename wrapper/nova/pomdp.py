@@ -314,12 +314,23 @@ class POMDP(NovaPOMDP):
         result += "horizon: " + str(self.horizon) + "\n"
         result += "gamma:   " + str(self.gamma) + "\n\n"
 
-        result += "S:\n%s" % (str(self.S)) + "\n\n"
-        result += "T(s, a, s'):\n%s" % (str(self.T)) + "\n\n"
-        result += "O(a, s', o):\n%s" % (str(self.O)) + "\n\n"
-        result += "R(s, a):\n%s" % (str(self.R)) + "\n\n"
-        result += "Z:\n%s" % (str(self.Z)) + "\n\n"
-        result += "B:\n%s" % (str(self.B)) + "\n\n"
+        result += "S(s, a, s'):\n%s" % (str(np.array([self.S[i] \
+                    for i in range(self.n * self.m * self.ns)]).reshape((self.n, self.m, self.ns)))) + "\n\n"
+
+        result += "T(s, a, s'):\n%s" % (str(np.array([self.T[i] \
+                    for i in range(self.n * self.m * self.ns)]).reshape((self.n, self.m, self.ns)))) + "\n\n"
+
+        result += "O(a, s', o):\n%s" % (str(np.array([self.O[i] \
+                    for i in range(self.m * self.n * self.z)]).reshape((self.m, self.n, self.z)))) + "\n\n"
+
+        result += "R(s, a):\n%s" % (str(np.array([self.R[i] \
+                    for i in range(self.n * self.m)]).reshape((self.n, self.m)))) + "\n\n"
+
+        result += "Z(i, s):\n%s" % (str(np.array([self.Z[i] \
+                    for i in range(self.r * self.rz)]).reshape((self.r, self.rz)))) + "\n\n"
+
+        result += "B(i, s):\n%s" % (str(np.array([self.B[i] \
+                    for i in range(self.r * self.rz)]).reshape((self.r, self.rz)))) + "\n\n"
 
         return result
 

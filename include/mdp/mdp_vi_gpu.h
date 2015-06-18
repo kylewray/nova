@@ -48,7 +48,7 @@ extern "C" int mdp_vi_complete_gpu(MDP *mdp, unsigned int numThreads, float *V, 
  *  @param  V       The final value function, mapping states (n array) to floats.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int mdp_vi_initialize_gpu(MDP *mdp, float *V);
+extern "C" int mdp_vi_initialize_gpu(MDP *mdp, float *V);
 
 /**
  *  Step 2/3: Execute VI for the MDP model specified.
@@ -58,23 +58,22 @@ int mdp_vi_initialize_gpu(MDP *mdp, float *V);
  *  @param  pi          The resultant policy; one action for each state (n-array). This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int mdp_vi_execute_gpu(MDP *mdp, unsigned int numThreads, float *V, unsigned int *pi);
+extern "C" int mdp_vi_execute_gpu(MDP *mdp, unsigned int numThreads, float *V, unsigned int *pi);
 
 /**
  *  Step 3/3: The uninitialization step of VI. This sets up the V and pi variables.
  *  @param  mdp     The MDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int mdp_vi_uninitialize_gpu(MDP *mdp);
+extern "C" int mdp_vi_uninitialize_gpu(MDP *mdp);
 
 /**
  *  The update step of VI. This applies the VI procedure once.
  *  @param  mdp             The MDP object.
- *  @param  currentHorizon  How many applications of this method have been applied so far.
  *  @param  numThreads      The number of CUDA threads per block. Use multiples of 32.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int mdp_vi_update_gpu(MDP *mdp, unsigned int currentHorizon, unsigned int numThreads);
+extern "C" int mdp_vi_update_gpu(MDP *mdp, unsigned int numThreads);
 
 /**
  *  The get resultant policy step of VI. This retrieves the values of states (V) and
@@ -84,7 +83,7 @@ int mdp_vi_update_gpu(MDP *mdp, unsigned int currentHorizon, unsigned int numThr
  *  @param  pi      The resultant policy; one action for each state (n-array). This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int mdp_vi_get_policy_gpu(MDP *mdp, float *V, unsigned int *pi);
+extern "C" int mdp_vi_get_policy_gpu(MDP *mdp, float *V, unsigned int *pi);
 
 
 #endif // MDP_VI_GPU_H

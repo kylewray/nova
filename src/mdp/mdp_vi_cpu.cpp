@@ -77,37 +77,129 @@ void mdp_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, flo
 
 int mdp_vi_complete_cpu(MDP *mdp, float *V, unsigned int *pi)
 {
-    float *VPrime;
+    // Note: This 'wrapper' function is provided in order to maintain 
+    // the same structure as the GPU version. In the GPU version,
+    // 'complete' performs the initilization and uninitialization of
+    // the MDP object on the device as well. Here, we do not need that.
+    return mdp_vi_execute_cpu(mdp, V, pi);
+}
+
+
+int mdp_vi_initialize_cpu(MDP *mdp, float *V)
+{
+    // Reset the current horizon.
+    mdp->currentHorizon = 0;
+
+    // Create the variables.
+    mdp->V = new float[mdp->n];
+    mdp->VPrime = new float[mdp->n];
+    mdp->pi = new unsigned int[mdp->n];
+
+    // Copy the data from the V provided, and set default values for pi.
+    memcpy(mdp->V, V, mdp->n * sizeof(float));
+    memcpy(mdp->VPrime, V, mdp->n * sizeof(float));
+    for (unsigned int i = 0; i < mdp->n; i++) {
+        mdp->pi[i] = 0;
+    }
+
+    return NOVA_SUCCESS;
+}
+
+
+int mdp_vi_execute_cpu(MDP *mdp, float *V, unsigned int *pi)
+{
+    int result;
 
     // First, ensure data is valid.
     if (mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
             mdp->gamma < 0.0f || mdp->gamma >= 1.0f || mdp->horizon < 1 ||
             V == nullptr || pi == nullptr) {
+        fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    VPrime = new float[mdp->n];
+    result = mdp_vi_initialize_cpu(mdp, V);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s", "Failed to initialize the CPU variables.");
+        return result;
+    }
 
-    // We iterate over all time steps up to the horizon.
-    for (int i = 0; i < mdp->horizon; i++) {
-        printf("Iteration %d / %d -- CPU Version\n", i, mdp->horizon);
-
-        // We oscillate between V and VPrime depending on the step.
-        if (i % 2 == 0) {
-            mdp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, V, VPrime, pi);
-        } else {
-            mdp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, VPrime, V, pi);
+    // We iterate over all time steps up to the horizon. Initialize set the currentHorizon to 0,
+    // and the update increments it.
+    while (mdp->currentHorizon < mdp->horizon) {
+        result = mdp_vi_update_cpu(mdp);
+        if (result != NOVA_SUCCESS) {
+            fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s", "Failed to perform Bellman update on the CPU.");
+            return result;
         }
     }
 
-    // If the horizon was odd, then we must copy the value back to V from VPrime.
-    // Otherwise, it was already stored in V.
-    if (mdp->horizon % 2 == 1) {
-        memcpy(V, VPrime, mdp->n * sizeof(float));
+    result = mdp_vi_get_policy_cpu(mdp, V, pi);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s", "Failed to get the policy.");
+        return result;
     }
 
-    delete [] VPrime;
+    result = mdp_vi_uninitialize_cpu(mdp);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s", "Failed to uninitialize the CPU variables.");
+        return result;
+    }
+
+    return NOVA_SUCCESS;
+}
+
+
+int mdp_vi_uninitialize_cpu(MDP *mdp)
+{
+    // Reset the current horizon.
+    mdp->currentHorizon = 0;
+
+    // Free the memory for V, VPrime, and pi.
+    if (mdp->V != nullptr) {
+        delete [] mdp->V;
+    }
+    mdp->V = nullptr;
+
+    if (mdp->VPrime != nullptr) {
+        delete [] mdp->VPrime;
+    }
+    mdp->VPrime = nullptr;
+
+    if (mdp->pi != nullptr) {
+        delete [] mdp->pi;
+    }
+    mdp->pi = nullptr;
+
+    return NOVA_SUCCESS;
+}
+
+
+int mdp_vi_update_cpu(MDP *mdp)
+{
+    // We oscillate between V and VPrime depending on the step.
+    if (mdp->currentHorizon % 2 == 0) {
+        mdp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, mdp->V, mdp->VPrime, mdp->pi);
+    } else {
+        mdp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, mdp->VPrime, mdp->V, mdp->pi);
+    }
+
+    mdp->currentHorizon++;
+
+    return NOVA_SUCCESS;
+}
+
+
+int mdp_vi_get_policy_cpu(MDP *mdp, float *V, unsigned int *pi)
+{
+    // Copy the final result, both V and pi. This assumes memory has been allocated.
+    if (mdp->horizon % 2 == 0) {
+        memcpy(V, mdp->V, mdp->n * sizeof(float));
+    } else {
+        memcpy(V, mdp->VPrime, mdp->n * sizeof(float));
+    }
+    memcpy(pi, mdp->pi, mdp->n * sizeof(float));
 
     return NOVA_SUCCESS;
 }
