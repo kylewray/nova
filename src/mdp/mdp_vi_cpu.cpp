@@ -193,8 +193,9 @@ int mdp_vi_update_cpu(MDP *mdp)
 
 int mdp_vi_get_policy_cpu(MDP *mdp, float *V, unsigned int *pi)
 {
-    // Copy the final result, both V and pi. This assumes memory has been allocated.
-    if (mdp->horizon % 2 == 0) {
+    // Copy the final (or intermediate) result, both V and pi. This assumes memory has been allocated
+    // for the variables provided.
+    if (mdp->currentHorizon % 2 == 0) {
         memcpy(V, mdp->V, mdp->n * sizeof(float));
     } else {
         memcpy(V, mdp->VPrime, mdp->n * sizeof(float));

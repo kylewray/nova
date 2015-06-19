@@ -515,9 +515,9 @@ int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int numThreads)
 
 int pomdp_pbvi_get_policy_gpu(POMDP *pomdp, float *Gamma, unsigned int *pi)
 {
-    // Copy the final result of Gamma and pi to the variables. This assumes
-    // that the memory has been allocated.
-    if (pomdp->horizon % 2 == 1) {
+    // Copy the final result of Gamma and pi to the variables provided, from device to host.
+    // This assumes that the memory has been allocated for the variables provided.
+    if (pomdp->currentHorizon % 2 == 0) {
         if (cudaMemcpy(Gamma, pomdp->d_Gamma, pomdp->r * pomdp->n * sizeof(float),
                         cudaMemcpyDeviceToHost) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s\n",

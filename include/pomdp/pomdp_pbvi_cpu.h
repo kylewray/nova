@@ -26,6 +26,62 @@
 #define POMDP_PBVI_CPU_H
 
 
+#include "pomdp.h"
+
+
+/**
+ *  Execute the entire PBVI process for the infinite horizon POMDP model specified using the GPU.
+ *  @param  pomdp   The POMDP object.
+ *  @param  Gamma   The resultant policy; set of alpha vectors (r-n array).
+                    This will be modified.
+ *  @param  pi      The resultant policy; one action for each alpha-vector (r-array).
+ *                  This will be modified.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int pomdp_pbvi_complete_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi);
+
+/**
+ *  Step 1/3: The initialization step of PBVI. This sets up the Gamma, pi, and alphaBA variables.
+ *  @param  pomdp   The POMDP object.
+ *  @param  Gamma   The resultant policy; set of alpha vectors (r-n array). This will be modified.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int pomdp_pbvi_initialize_cpu(POMDP *pomdp, float *Gamma);
+
+/**
+ *  Step 2/3: Execute PBVI for the infinite horizon POMDP model specified.
+ *  @param  pomdp   The POMDP object.
+ *  @param  Gamma   The resultant policy; set of alpha vectors (r-n array). This will be modified.
+ *  @param  pi      The resultant policy; one action for each alpha-vector (r-array). This will be modified.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int pomdp_pbvi_execute_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi);
+
+/**
+ *  Step 3/3: The uninitialization step of PBVI. This sets up the Gamma, pi, and alphaBA variables.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int pomdp_pbvi_uninitialize_cpu(POMDP *pomdp);
+
+/**
+ *  The update step of PBVI. This applies the PBVI procedure once.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int pomdp_pbvi_update_cpu(POMDP *pomdp);
+
+/**
+ *  The get resultant policy step of PBVI. This retrieves the alpha-vectors (Gamma) and
+ *  corresponding actions (pi).
+ *  @param  pomdp   The POMDP object.
+ *  @param  Gamma   The resultant policy; set of alpha vectors (r-n array). This will be modified.
+ *  @param  pi      The resultant policy; one action for each alpha-vector (r-array).
+                    This will be modified.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int pomdp_pbvi_get_policy_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi);
+
 
 #endif // POMDP_PBVI_CPU_H
 

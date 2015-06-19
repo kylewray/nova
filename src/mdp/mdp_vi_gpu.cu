@@ -298,9 +298,9 @@ int mdp_vi_update_gpu(MDP *mdp, unsigned int numThreads)
 
 int mdp_vi_get_policy_gpu(MDP *mdp, float *V, unsigned int *pi)
 {
-    // Copy the final result, both V and pi, from device to host. This assumes
-    // that the memory has been allocated.
-    if (mdp->horizon % 2 == 0) {
+    // Copy the final (or intermediate) result, both V and pi, from device to host. This assumes
+    // that the memory has been allocated for the variables provided.
+    if (mdp->currentHorizon % 2 == 0) {
         if (cudaMemcpy(V, mdp->d_V, mdp->n * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
             fprintf(stderr, "Error[mdp_vi_get_policy_gpu]: %s\n",
                     "Failed to copy memory from device to host for the value function.");
