@@ -47,7 +47,7 @@ extern "C" int pomdp_pbvi_complete_gpu(POMDP *pomdp, unsigned int numThreads, fl
  *  @param  Gamma   The resultant policy; set of alpha vectors (r-n array). This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_pbvi_initialize_gpu(POMDP *pomdp, float *Gamma);
+extern "C" int pomdp_pbvi_initialize_gpu(POMDP *pomdp, float *Gamma);
 
 /**
  *  Step 2/3: Execute PBVI for the infinite horizon POMDP model specified.
@@ -57,14 +57,14 @@ int pomdp_pbvi_initialize_gpu(POMDP *pomdp, float *Gamma);
  *  @param  pi          The resultant policy; one action for each alpha-vector (r-array). This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_pbvi_execute_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma, unsigned int *pi);
+extern "C" int pomdp_pbvi_execute_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma, unsigned int *pi);
 
 /**
  *  Step 3/3: The uninitialization step of PBVI. This sets up the Gamma, pi, and alphaBA variables.
  *  @param  pomdp   The POMDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_pbvi_uninitialize_gpu(POMDP *pomdp);
+extern "C" int pomdp_pbvi_uninitialize_gpu(POMDP *pomdp);
 
 /**
  *  The update step of PBVI. This applies the PBVI procedure once.
@@ -72,7 +72,7 @@ int pomdp_pbvi_uninitialize_gpu(POMDP *pomdp);
  *  @param  numThreads      The number of CUDA threads per block. Use multiples of 32.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int numThreads);
+extern "C" int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int numThreads);
 
 /**
  *  The get resultant policy step of PBVI. This retrieves the alpha-vectors (Gamma) and
@@ -83,7 +83,7 @@ int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int numThreads);
                     This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_pbvi_get_policy_gpu(POMDP *pomdp, float *Gamma, unsigned int *pi);
+extern "C" int pomdp_pbvi_get_policy_gpu(POMDP *pomdp, float *Gamma, unsigned int *pi);
 
 
 #endif // POMDP_PBVI_GPU_H

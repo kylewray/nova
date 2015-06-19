@@ -34,84 +34,84 @@
  *  @param  pomdp   The POMDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_initialize_successors_gpu(POMDP *pomdp);
+extern "C" int pomdp_initialize_successors_gpu(POMDP *pomdp);
 
 /**
  *  Uninitialize CUDA by transferring all of the constant POMDP model information to the device.
  *  @param  pomdp   The POMDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_uninitialize_successors_gpu(POMDP *pomdp);
+extern "C" int pomdp_uninitialize_successors_gpu(POMDP *pomdp);
 
 /**
  *  Initialize CUDA state transitions object.
  *  @param  pomdp   The POMDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_initialize_state_transitions_gpu(POMDP *pomdp);
+extern "C" int pomdp_initialize_state_transitions_gpu(POMDP *pomdp);
 
 /**
  *  Uninitialize CUDA state transitions object.
  *  @param  pomdp   The POMDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_uninitialize_state_transitions_gpu(POMDP *pomdp);
+extern "C" int pomdp_uninitialize_state_transitions_gpu(POMDP *pomdp);
 
 /**
  *  Initialize CUDA observation transitions object.
  *  @param  pomdp   The POMDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_initialize_observation_transitions_gpu(POMDP *pomdp);
+extern "C" int pomdp_initialize_observation_transitions_gpu(POMDP *pomdp);
 
 /**
  *  Uninitialize CUDA observation transitions object.
  *  @param  pomdp   The POMDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_uninitialize_observation_transitions_gpu(POMDP *pomdp);
+extern "C" int pomdp_uninitialize_observation_transitions_gpu(POMDP *pomdp);
 
 /**
  *  Initialize CUDA rewards object.
  *  @param  pomdp   The POMDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_initialize_rewards_gpu(POMDP *pomdp);
+extern "C" int pomdp_initialize_rewards_gpu(POMDP *pomdp);
 
 /**
  *  Uninitialize CUDA rewards object.
  *  @param  pomdp   The POMDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_uninitialize_rewards_gpu(POMDP *pomdp);
+extern "C" int pomdp_uninitialize_rewards_gpu(POMDP *pomdp);
 
 /**
  *  Initialize CUDA non-zero belief states object.
  *  @param  pomdp   The POMDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_initialize_nonzero_beliefs_gpu(POMDP *pomdp);
+extern "C" int pomdp_initialize_nonzero_beliefs_gpu(POMDP *pomdp);
 
 /**
  *  Uninitialize CUDA non-zero belief states object.
  *  @param  pomdp   The POMDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_uninitialize_nonzero_beliefs_gpu(POMDP *pomdp);
+extern "C" int pomdp_uninitialize_nonzero_beliefs_gpu(POMDP *pomdp);
 
 /**
  *  Initialize CUDA belief points object.
  *  @param  pomdp   The POMDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_initialize_belief_points_gpu(POMDP *pomdp);
+extern "C" int pomdp_initialize_belief_points_gpu(POMDP *pomdp);
 
 /**
  *  Uninitialize CUDA belief points object.
  *  @param  pomdp   The POMDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_uninitialize_belief_points_gpu(POMDP *pomdp);
+extern "C" int pomdp_uninitialize_belief_points_gpu(POMDP *pomdp);
 
 
 #endif // NOVA_POMDP_MODEL_GPU_H
