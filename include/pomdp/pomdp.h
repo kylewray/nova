@@ -54,6 +54,7 @@
  *                          states with a non-zero belief value (terminating any loops).
  *  @param  B               A mapping of belief-non-zero-state pairs (r-rz array) consisting of r
  *                          sets of rz-vector belief distributions.
+ *  @param  currentHorizon  The current horizon updated after each iteration.
  *  @param  Gamma           The resultant policy's alpha-vectors (r-n array). CPU version only.
  *  @param  GammaPrime      The resultant policy's alpha-vectors (r-n array). CPU version only.
  *  @param  pi              The resultant policy's actions (r array). CPU version only.
@@ -90,6 +91,8 @@ typedef struct NovaPOMDP {
     float *B;
 
     // Computation Variables (Utilized by Processes Only)
+    unsigned int currentHorizon;
+
     float *Gamma;
     float *GammaPrime;
     unsigned int *pi;

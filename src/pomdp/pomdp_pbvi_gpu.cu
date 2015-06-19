@@ -273,6 +273,9 @@ int pomdp_pbvi_complete_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma,
 
 int pomdp_pbvi_initialize_gpu(POMDP *pomdp, float *Gamma)
 {
+    // Reset the current horizon.
+    pomdp->currentHorizon = 0;
+
     // Create the device-side Gamma.
     if (cudaMalloc(&pomdp->d_Gamma, pomdp->r * pomdp->n * sizeof(float)) != cudaSuccess) {
         fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s\n",
@@ -345,9 +348,10 @@ int pomdp_pbvi_execute_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma, 
         return result;
     }
 
-    // For each of the updates, run PBVI.
-    for (int t = 0; t < pomdp->horizon; t++) {
-        result = pomdp_pbvi_update_gpu(pomdp, t, numThreads);
+    // For each of the updates, run PBVI. Note that the currentHorizon is initialized to zero
+    // above, and is updated in the update function below.
+    while (pomdp->currentHorizon < pomdp->horizon) {
+        result = pomdp_pbvi_update_gpu(pomdp, numThreads);
         if (result != NOVA_SUCCESS) {
             return result;
         }
@@ -372,6 +376,9 @@ int pomdp_pbvi_uninitialize_gpu(POMDP *pomdp)
     int result;
 
     result = NOVA_SUCCESS;
+
+    // Reset the current horizon.
+    pomdp->currentHorizon = 0;
 
     if (pomdp->d_Gamma != nullptr) {
         if (cudaFree(pomdp->d_Gamma) != cudaSuccess) {
@@ -422,7 +429,7 @@ int pomdp_pbvi_uninitialize_gpu(POMDP *pomdp)
 }
 
 
-int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int currentHorizon, unsigned int numThreads)
+int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int numThreads)
 {
     // The number of blocks in the main CUDA kernel call.
     int numBlocks;
@@ -470,7 +477,7 @@ int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int currentHorizon, unsigned in
 
     // Execute a kernel for the first three stages of for-loops: B, A, Z, as a 3d-block,
     // and the 4th stage for-loop over Gamma as the threads.
-    if (currentHorizon % 2 == 0) {
+    if (pomdp->currentHorizon % 2 == 0) {
         pomdp_pbvi_update_step_gpu<<< numBlocks, numThreads >>>(
                 pomdp->n, pomdp->ns, pomdp->m, pomdp->z, pomdp->r, pomdp->rz, pomdp->gamma,
                 pomdp->d_S, pomdp->d_T, pomdp->d_O, pomdp->d_R, pomdp->d_Z, pomdp->d_B,
@@ -499,6 +506,8 @@ int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int currentHorizon, unsigned in
                         "Failed to synchronize the device after 'pomdp_pbvi_update_step_gpu' kernel.");
         return NOVA_ERROR_DEVICE_SYNCHRONIZE;
     }
+
+    pomdp->currentHorizon++;
 
     return NOVA_SUCCESS;
 }

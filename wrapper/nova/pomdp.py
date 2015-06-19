@@ -56,6 +56,7 @@ class NovaPOMDP(ct.Structure):
                 ("R", ct.POINTER(ct.c_float)),
                 ("Z", ct.POINTER(ct.c_int)),
                 ("B", ct.POINTER(ct.c_float)),
+                ("currentHorizon", ct.c_uint),
                 ("Gamma", ct.POINTER(ct.c_float)),
                 ("GammaPrime", ct.POINTER(ct.c_float)),
                 ("pi", ct.POINTER(ct.c_uint)),
@@ -124,6 +125,7 @@ def pomdp_pbvi_complete_gpu(n, ns, m, z, r, rz, gamma, horizon,
                                 array_type_nmns_int(*S), array_type_nmns_float(*T),
                                 array_type_mnz_float(*O), array_type_nm_float(*R),
                                 array_type_rrz_int(*Z), array_type_rrz_float(*B),
+                                int(0),
                                 ct.POINTER(ct.c_float)(), ct.POINTER(ct.c_float)(),
                                 ct.POINTER(ct.c_int)(), ct.POINTER(ct.c_int)(),
                                 ct.POINTER(ct.c_int)(), ct.POINTER(ct.c_float)(),
@@ -155,6 +157,7 @@ class POMDP(NovaPOMDP):
         """ The constructor for the POMDP class. """
 
         # Assign a nullptr for the device-side pointers. These will be set if the GPU is utilized.
+        self.currentHorizon = int(0)
         self.Gamma = ct.POINTER(ct.c_float)()
         self.GammaPrime = ct.POINTER(ct.c_float)()
         self.pi = ct.POINTER(ct.c_uint)()

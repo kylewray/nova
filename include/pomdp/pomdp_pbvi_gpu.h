@@ -69,11 +69,10 @@ int pomdp_pbvi_uninitialize_gpu(POMDP *pomdp);
 /**
  *  The update step of PBVI. This applies the PBVI procedure once.
  *  @param  pomdp           The POMDP object.
- *  @param  currentHorizon  How many applications of this method have been applied so far.
  *  @param  numThreads      The number of CUDA threads per block. Use multiples of 32.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int currentHorizon, unsigned int numThreads);
+int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int numThreads);
 
 /**
  *  The get resultant policy step of PBVI. This retrieves the alpha-vectors (Gamma) and

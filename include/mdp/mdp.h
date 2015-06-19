@@ -28,26 +28,27 @@
 
 /*
  *  A structure for an MDP object within nova.
- *  @param  n           The number of states.
- *  @param  ns          The maximum number of successor states.
- *  @param  m           The number of actions.
- *  @param  gamma       The discount factor in [0.0, 1.0).
- *  @param  horizon     The number of iterations to execute (i.e., horizon).
- *  @param  S           A mapping of state-action-successor triples (n-m-ns array) to a
- *                      state index. Reading the array 0 to ns-1, a value of -1 means
- *                      there are no more successors (terminating any loops).
- *  @param  T           A mapping of state-action-successor triples (n-m-ns array) to a
- *                      transition probability.
- *  @param  R           A mapping of state-action pairs (n-m array) to a reward.
- *  @param  V           The value of the states (n-array).
- *  @param  VPrime      The value of the states (n-array) copy.
- *  @param  pi          The action to take at each state (n-array).
- *  @param  d_S         Device-side pointer of S.
- *  @param  d_T         Device-side pointer of T.
- *  @param  d_R         Device-side pointer of R.
- *  @param  d_V         Device-side pointer of V.
- *  @param  d_VPrime    Device-side pointer of VPrime.
- *  @param  d_pi        Device-side pointer of pi.
+ *  @param  n               The number of states.
+ *  @param  ns              The maximum number of successor states.
+ *  @param  m               The number of actions.
+ *  @param  gamma           The discount factor in [0.0, 1.0).
+ *  @param  horizon         The number of iterations to execute (i.e., horizon).
+ *  @param  S               A mapping of state-action-successor triples (n-m-ns array) to a
+ *                          state index. Reading the array 0 to ns-1, a value of -1 means
+ *                          there are no more successors (terminating any loops).
+ *  @param  T               A mapping of state-action-successor triples (n-m-ns array) to a
+ *                          transition probability.
+ *  @param  R               A mapping of state-action pairs (n-m array) to a reward.
+ *  @param  currentHorizon  The current horizon updated after each iteration.
+ *  @param  V               The value of the states (n-array).
+ *  @param  VPrime          The value of the states (n-array) copy.
+ *  @param  pi              The action to take at each state (n-array).
+ *  @param  d_S             Device-side pointer of S.
+ *  @param  d_T             Device-side pointer of T.
+ *  @param  d_R             Device-side pointer of R.
+ *  @param  d_V             Device-side pointer of V.
+ *  @param  d_VPrime        Device-side pointer of VPrime.
+ *  @param  d_pi            Device-side pointer of pi.
  */
 typedef struct NovaMDP {
     // Core Variables (User-Defined)
