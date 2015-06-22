@@ -60,7 +60,6 @@ class NovaPOMDP(ct.Structure):
                 ("Gamma", ct.POINTER(ct.c_float)),
                 ("GammaPrime", ct.POINTER(ct.c_float)),
                 ("pi", ct.POINTER(ct.c_uint)),
-                ("piPrime", ct.POINTER(ct.c_uint)),
                 ("d_S", ct.POINTER(ct.c_int)),
                 ("d_T", ct.POINTER(ct.c_float)),
                 ("d_O", ct.POINTER(ct.c_float)),
@@ -70,17 +69,89 @@ class NovaPOMDP(ct.Structure):
                 ("d_Gamma", ct.POINTER(ct.c_float)),
                 ("d_GammaPrime", ct.POINTER(ct.c_float)),
                 ("d_pi", ct.POINTER(ct.c_uint)),
-                ("d_piPrime", ct.POINTER(ct.c_uint)),
                 ("d_alphaBA", ct.POINTER(ct.c_float)),
                 ]
 
 
-_nova.pomdp_pbvi_complete_gpu.argtypes = (ct.POINTER(NovaPOMDP), ct.c_uint)
+_nova.pomdp_pbvi_complete_cpu.argtypes = (ct.POINTER(NovaPOMDP),
+                                        ct.POINTER(ct.c_float), # Gamma
+                                        ct.POINTER(ct.c_uint))  # pi
+
+_nova.pomdp_pbvi_complete_gpu.argtypes = (ct.POINTER(NovaPOMDP),
+                                        ct.c_uint,              # numThreadss
+                                        ct.POINTER(ct.c_float), # Gamma
+                                        ct.POINTER(ct.c_uint))  # pi
+
+
+def pomdp_pbvi_complete_cpu(n, ns, m, z, r, rz, gamma, horizon,
+        S, T, O, R, Z, B, numThreads, Gamma, pi):
+    """ The wrapper Python function for executing point-based value iteration for a POMDP using the CPU.
+
+        Parameters:
+            n                   --  The number of states.
+            ns                  --  The maximum number of successor states.
+            m                   --  The number of actions.
+            z                   --  The number of observations.
+            r                   --  The number of belief points.
+            rz                  --  The maximum number of non-zero belief values over all beliefs.
+            gamma               --  The discount factor.
+            horizon             --  The number of iterations.
+            S                   --  The state-action pairs as a flattened 2-dimensional array.
+            T                   --  The state transitions as a flattened 3-dimensional array.
+            O                   --  The observation transitions as a flattened 3-dimensional array.
+            R                   --  The reward function as a flattened 2-dimensional array.
+            Z                   --  The belief-state pairs as a flattened 2-dimensional array.
+            B                   --  The belief points as a flattened 2-dimensional array.
+            Gamma               --  The resultant alpha-vectors. Modified.
+            pi                  --  The resultant actions for each alpha-vector. Modified.
+
+        Returns:
+            Zero on success, and a non-zero nova error code otherwise.
+    """
+
+    global _nova
+
+    array_type_nmns_int = ct.c_int * (int(n) * int(m) * int(ns))
+    array_type_nmns_float = ct.c_float * (int(n) * int(m) * int(ns))
+    array_type_mnz_float = ct.c_float * (int(m) * int(n) * int(z))
+    array_type_nm_float = ct.c_float * (int(n) * int(m))
+    array_type_rrz_int = ct.c_int * (int(r) * int(rz))
+    array_type_rrz_float = ct.c_float * (int(r) * int(rz))
+
+    array_type_rn_float = ct.c_float * (int(r) * int(n))
+    array_type_r_uint = ct.c_uint * int(r)
+
+    GammaResult = array_type_rn_float(*Gamma)
+    piResult = array_type_r_uint(*pi)
+
+    result = _nova.pomdp_pbvi_complete_cpu(NovaPOMDP(int(n), int(ns), int(m), int(z),
+                                int(r), int(rz), float(gamma), int(horizon),
+                                array_type_nmns_int(*S), array_type_nmns_float(*T),
+                                array_type_mnz_float(*O), array_type_nm_float(*R),
+                                array_type_rrz_int(*Z), array_type_rrz_float(*B),
+                                int(0),
+                                ct.POINTER(ct.c_float)(), ct.POINTER(ct.c_float)(),
+                                ct.POINTER(ct.c_uint)(),
+                                ct.POINTER(ct.c_int)(), ct.POINTER(ct.c_float)(),
+                                ct.POINTER(ct.c_float)(), ct.POINTER(ct.c_float)(),
+                                ct.POINTER(ct.c_int)(), ct.POINTER(ct.c_float)(),
+                                ct.POINTER(ct.c_float)(), ct.POINTER(ct.c_float)(),
+                                ct.POINTER(ct.c_uint)(),
+                                ct.POINTER(ct.c_float)()),
+                            GammaResult, piResult)
+
+    if result == 0:
+        for i in range(r * n):
+            Gamma[i] = GammaResult[i]
+        for i in range(r):
+            pi[i] = piResult[i]
+
+    return result
 
 
 def pomdp_pbvi_complete_gpu(n, ns, m, z, r, rz, gamma, horizon,
         S, T, O, R, Z, B, numThreads, Gamma, pi):
-    """ The wrapper Python function for executing point-based value iteration for a POMDP.
+    """ The wrapper Python function for executing point-based value iteration for a POMDP using the GPU.
 
         Parameters:
             n                   --  The number of states.
@@ -127,12 +198,12 @@ def pomdp_pbvi_complete_gpu(n, ns, m, z, r, rz, gamma, horizon,
                                 array_type_rrz_int(*Z), array_type_rrz_float(*B),
                                 int(0),
                                 ct.POINTER(ct.c_float)(), ct.POINTER(ct.c_float)(),
-                                ct.POINTER(ct.c_int)(), ct.POINTER(ct.c_int)(),
+                                ct.POINTER(ct.c_uint)(),
                                 ct.POINTER(ct.c_int)(), ct.POINTER(ct.c_float)(),
                                 ct.POINTER(ct.c_float)(), ct.POINTER(ct.c_float)(),
                                 ct.POINTER(ct.c_int)(), ct.POINTER(ct.c_float)(),
                                 ct.POINTER(ct.c_float)(), ct.POINTER(ct.c_float)(),
-                                ct.POINTER(ct.c_int)(), ct.POINTER(ct.c_int)(),
+                                ct.POINTER(ct.c_uint)(),
                                 ct.POINTER(ct.c_float)()),
                             int(numThreads), GammaResult, piResult)
 
@@ -161,7 +232,6 @@ class POMDP(NovaPOMDP):
         self.Gamma = ct.POINTER(ct.c_float)()
         self.GammaPrime = ct.POINTER(ct.c_float)()
         self.pi = ct.POINTER(ct.c_uint)()
-        self.piPrime = ct.POINTER(ct.c_uint)()
         self.d_S = ct.POINTER(ct.c_int)()
         self.d_T = ct.POINTER(ct.c_float)()
         self.d_O = ct.POINTER(ct.c_float)()
@@ -171,7 +241,6 @@ class POMDP(NovaPOMDP):
         self.d_Gamma = ct.POINTER(ct.c_float)()
         self.d_GammaPrime = ct.POINTER(ct.c_float)()
         self.d_pi = ct.POINTER(ct.c_uint)()
-        self.d_piPrime = ct.POINTER(ct.c_uint)()
         self.d_alphaBA = ct.POINTER(ct.c_float)()
 
         # Additional informative variables.
@@ -286,8 +355,8 @@ class POMDP(NovaPOMDP):
         piResult = array_type_r_uint(*pi)
 
         result = _nova.pomdp_pbvi_complete_gpu(self, int(numThreads), GammaResult, piResult)
-        #if result != 0:
-        #    result = _nova.pomdp_pbvi_complete_cpu(self, int(numThreads), GammaResult, piResult)
+        if result != 0:
+            result = _nova.pomdp_pbvi_complete_cpu(self, GammaResult, piResult)
 
         if result == 0:
             Gamma = np.array([GammaResult[i] for i in range(self.r * self.n)])

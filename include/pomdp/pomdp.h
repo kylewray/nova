@@ -58,7 +58,6 @@
  *  @param  Gamma           The resultant policy's alpha-vectors (r-n array). CPU version only.
  *  @param  GammaPrime      The resultant policy's alpha-vectors (r-n array). CPU version only.
  *  @param  pi              The resultant policy's actions (r array). CPU version only.
- *  @param  piPrime         The resultant policy's actions (r array). CPU version only.
  *  @param  d_S             Device-side pointer of S. GPU version only.
  *  @param  d_T             Device-side pointer of T. GPU version only.
  *  @param  d_O             Device-side pointer of O. GPU version only.
@@ -68,7 +67,6 @@
  *  @param  d_Gamma         Device-side pointer of Gamma. GPU version only.
  *  @param  d_GammaPrime    Device-side pointer of Gamma. GPU version only.
  *  @param  d_pi            Device-side pointer of pi. GPU version only.
- *  @param  d_piPrime       Device-side pointer of pi. GPU version only.
  *  @param  d_alphaBA       Device-side pointer; intermediate alpha-vectors. GPU version only.
  */
 typedef struct NovaPOMDP {
@@ -96,7 +94,6 @@ typedef struct NovaPOMDP {
     float *Gamma;
     float *GammaPrime;
     unsigned int *pi;
-    unsigned int *piPrime;
 
     int *d_S;
     float *d_T;
@@ -108,7 +105,6 @@ typedef struct NovaPOMDP {
     float *d_Gamma;
     float *d_GammaPrime;
     unsigned int *d_pi;
-    unsigned int *d_piPrime;
     float *d_alphaBA;
 } POMDP;
 
