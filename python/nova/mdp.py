@@ -28,8 +28,6 @@ import numpy as np
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import nova_mdp as nm
-import mdp_vi_cpu as mvc
-import mdp_vi_gpu as mvg
 
 
 class MDP(nm.NovaMDP):
@@ -62,7 +60,46 @@ class MDP(nm.NovaMDP):
         self.s0 = None
         self.goals = None
 
-    def load(self, filename, scalarize=lambda x: x[0]):
+    def load(self, filename, filetype='mdp', scalarize=lambda x: x[0]):
+        """ Load a raw Multi-Objective POMDP file given the filename and optionally the file type.
+
+            Parameters:
+                filename    --  The name and path of the file to load.
+                filetype    --  Either 'mdp' or 'raw'. Default is 'mdp'.
+                scalarize   --  Optionally define a scalarization function. Only used for 'raw' files.
+                                Default returns the first reward.
+        """
+
+        if filetype == 'mdp':
+            self._load_mdp(filename)
+        elif filetype == 'raw':
+            self._load_raw(filename, scalarize)
+        else:
+            print("Invalid file type '%s'." % (filetype))
+            raise Exception()
+
+    def _load_mdp(self, filename):
+        """ Load a Cassandra-format MDP file given the filename and optionally a scalarization function.
+
+            Parameters:
+                filename    --  The name and path of the file to load.
+                scalarize   --  Optionally define a scalarization function. Default returns the first reward.
+        """
+
+        # Attempt to parse all the data into their respective variables.
+        try:
+            with open(filename, 'r') as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    #row = str(row)
+                    print(row)
+
+        except Exception:
+            print("Failed to load file '%s'." % (filename))
+            raise Exception()
+
+
+    def _load_raw(self, filename, scalarize=lambda x: x[0]):
         """ Load a raw Multi-Objective MDP file given the filename and optionally a scalarization function.
 
             Parameters:

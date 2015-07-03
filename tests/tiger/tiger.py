@@ -30,9 +30,9 @@ from nova.mdp import *
 from nova.pomdp import *
 
 
-tigerFile = os.path.join(thisFilePath, "tiger.pomdp")
+tigerFile = os.path.join(thisFilePath, "tiger_pomdp.raw")
 tiger = POMDP()
-tiger.load(tigerFile)
+tiger.load(tigerFile, filetype='raw')
 print(tiger)
 
 Gamma, piResult = tiger.solve()

@@ -30,9 +30,9 @@ from nova.mdp import *
 from nova.pomdp import *
 
 
-gridWorldFile = os.path.join(thisFilePath, "grid_world.mdp")
+gridWorldFile = os.path.join(thisFilePath, "grid_world_mdp.raw")
 gridWorld = MDP()
-gridWorld.load(gridWorldFile)
+gridWorld.load(gridWorldFile, filetype='raw')
 print(gridWorld)
 
 V, pi = gridWorld.solve()
@@ -40,9 +40,9 @@ print(V)
 print(pi)
 
 
-gridWorldFile = os.path.join(thisFilePath, "grid_world.pomdp")
+gridWorldFile = os.path.join(thisFilePath, "grid_world_pomdp.raw")
 gridWorld = POMDP()
-gridWorld.load(gridWorldFile)
+gridWorld.load(gridWorldFile, filetype='raw')
 print(gridWorld)
 
 Gamma, pi = gridWorld.solve()

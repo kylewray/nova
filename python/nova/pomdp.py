@@ -60,7 +60,45 @@ class POMDP(npm.NovaPOMDP):
         # Additional informative variables.
         self.Rmin = None
 
-    def load(self, filename, scalarize=lambda x: x[0]):
+    def load(self, filename, filetype='pomdp', scalarize=lambda x: x[0]):
+        """ Load a raw Multi-Objective POMDP file given the filename and optionally the file type.
+
+            Parameters:
+                filename    --  The name and path of the file to load.
+                filetype    --  Either 'pomdp' or 'raw'. Default is 'pomdp'.
+                scalarize   --  Optionally define a scalarization function. Only used for 'raw' files.
+                                Default returns the first reward.
+        """
+
+        if filetype == 'pomdp':
+            self._load_pomdp(filename)
+        elif filetype == 'raw':
+            self._load_raw(filename, scalarize)
+        else:
+            print("Invalid file type '%s'." % (filetype))
+            raise Exception()
+
+    def _load_pomdp(self, filename):
+        """ Load a Cassandra-format POMDP file given the filename and optionally a scalarization function.
+
+            Parameters:
+                filename    --  The name and path of the file to load.
+                scalarize   --  Optionally define a scalarization function. Default returns the first reward.
+        """
+
+        # Attempt to parse all the data into their respective variables.
+        try:
+            with open(filename, 'r') as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    #row = str(row)
+                    print(row)
+
+        except Exception:
+            print("Failed to load file '%s'." % (filename))
+            raise Exception()
+
+    def _load_raw(self, filename, scalarize=lambda x: x[0]):
         """ Load a raw Multi-Objective POMDP file given the filename and optionally a scalarization function.
 
             Parameters:
