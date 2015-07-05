@@ -30,29 +30,33 @@ from nova.mdp import *
 from nova.pomdp import *
 
 
-tigerFile = os.path.join(thisFilePath, "tiger_pomdp.raw")
-tiger = POMDP()
-tiger.load(tigerFile, filetype='raw')
-print(tiger)
+files = [#{'filename': "tiger_pomdp.raw", 'filetype': "raw"},
+         {'filename': "tiger_95.pomdp", 'filetype': "pomdp"}]
 
-Gamma, piResult = tiger.solve()
-print(Gamma)
-print(piResult)
+for f in files:
+    tigerFile = os.path.join(thisFilePath, f['filename'])
+    tiger = POMDP()
+    tiger.load(tigerFile, filetype=f['filetype'])
+    print(tiger)
+
+    Gamma, piResult = tiger.solve()
+    print(Gamma)
+    print(piResult)
 
 
-# Note: pylab overwrites 'pi'...
-from pylab import *
+    # Note: pylab overwrites 'pi'...
+    from pylab import *
 
-hold(True)
-title("Policy Alpha-Vectors for Tiger Problem")
-xlabel("Belief of State s2: b(s2)")
-ylabel("Value of Belief: V(b(s2))")
-for i in range(tiger.r):
-    if piResult[i] == 0:
-        plot([0.0, 1.0], [Gamma[i, 0], Gamma[i, 1]], linewidth=10, color='red')
-    elif piResult[i] == 1:
-        plot([0.0, 1.0], [Gamma[i, 0], Gamma[i, 1]], linewidth=10, color='green')
-    elif piResult[i] == 2:
-        plot([0.0, 1.0], [Gamma[i, 0], Gamma[i, 1]], linewidth=10, color='blue')
-show()
+    hold(True)
+    title("Policy Alpha-Vectors for Tiger Problem")
+    xlabel("Belief of State s2: b(s2)")
+    ylabel("Value of Belief: V(b(s2))")
+    for i in range(tiger.r):
+        if piResult[i] == 0:
+            plot([0.0, 1.0], [Gamma[i, 0], Gamma[i, 1]], linewidth=10, color='red')
+        elif piResult[i] == 1:
+            plot([0.0, 1.0], [Gamma[i, 0], Gamma[i, 1]], linewidth=10, color='green')
+        elif piResult[i] == 2:
+            plot([0.0, 1.0], [Gamma[i, 0], Gamma[i, 1]], linewidth=10, color='blue')
+    show()
 
