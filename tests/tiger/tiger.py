@@ -31,12 +31,16 @@ from nova.pomdp import *
 
 
 files = [#{'filename': "tiger_pomdp.raw", 'filetype': "raw"},
-         {'filename': "tiger_95.pomdp", 'filetype': "pomdp"}]
+         {'filename': "tiger_95.pomdp", 'filetype': "pomdp"}
+         ]
 
 for f in files:
     tigerFile = os.path.join(thisFilePath, f['filename'])
     tiger = POMDP()
     tiger.load(tigerFile, filetype=f['filetype'])
+    print(tiger)
+
+    tiger.expand(method='random', numDesiredBeliefPoints=250)
     print(tiger)
 
     Gamma, piResult = tiger.solve()

@@ -83,7 +83,20 @@ class POMDP(npm.NovaPOMDP):
 
             Parameters:
                 filename    --  The name and path of the file to load.
-                scalarize   --  Optionally define a scalarization function. Default returns the first reward.
+        """
+
+        data = self._load_pomdp_parse(filename)
+        pomdp = self._load_pomdp_extract(data)
+        self._load_pomdp_create(pomdp)
+
+    def _load_pomdp_parse(self, filename):
+        """ Step 1/1: Load the raw data from a file into an easier to use list.
+
+            Parameters:
+                filename    --  The name and path of the file to load.
+
+            Returns:
+                The list of data points, each a list of relevant information.
         """
 
         # Load the file into an easier format for parsing later.
@@ -122,7 +135,17 @@ class POMDP(npm.NovaPOMDP):
             data += [currentDataPoint]
 
         # There is an extra one at the start.
-        data = data[1:]
+        return data[1:]
+
+    def _load_pomdp_extract(self, data):
+        """ Step 2/3: Given the parsed raw data, create a mapping from variables to data.
+
+            Parameters:
+                data    --  A list of data points, each a list of related variable information.
+
+            Returns:
+                A dictionary containing variable-data mappings for the POMDP.
+        """
 
         # Attempt to parse all the data into their respective variables.
         pomdp = {'values': "reward"}
@@ -186,7 +209,14 @@ class POMDP(npm.NovaPOMDP):
             print("Failed to load file '%s'." % (filename))
             raise Exception()
 
-        data = None
+        return pomdp
+
+    def _load_pomdp_create(self, pomdp):
+        """ Step 3/3: Given the pomdp variable-parameter mapping, load and create the POMDP.
+
+            Parameters:
+                pomdp   --  The dictionary mapping keyword variables to parameter data.
+        """
 
         # For each variable (e.g., "states", "T", etc.), create it as the final C object.
         try:
@@ -420,13 +450,16 @@ class POMDP(npm.NovaPOMDP):
                 # average and that 'value' may be defined else where and this could override
                 # information.
                 for a in actions:
-                    for s in range(self.n):
+                    for s in states:
                         R[s, a] = np.array([value]).astype(np.float).mean()
 
+            self.Rmin = R.min()
             self.R = array_type_nm_float(*R.flatten())
         except KeyError:
             pass
 
+        # TODO: Compute the optimal horizon.
+        self.horizon = 10
 
     def _load_raw(self, filename, scalarize=lambda x: x[0]):
         """ Load a raw Multi-Objective POMDP file given the filename and optionally a scalarization function.
@@ -507,11 +540,53 @@ class POMDP(npm.NovaPOMDP):
             print("Failed to load file '%s'." % (filename))
             raise Exception()
 
-    def solve(self, numThreads=1024):
+    def expand(self, method='random', numDesiredBeliefPoints=1000):
+        """ Expand the belief points by either PBVI methods or Perseus' random method.
+
+            Parameters:
+                method                  --  The method to use for expanding belief points. Default is 'random'.
+                                            Methods:
+                                                'random'    Random trajectories through the belief space.
+                                                'ger'       A Greedy Error Reduction (GER) exploration.
+                numDesiredBeliefPoints  --  Optionally define the number of belief points. Used by the
+                                            'random' method. Default is 1000.
+        """
+
+        array_type_uint = ct.c_uint * (1)
+        array_type_rrz_float = ct.c_float * (numDesiredBeliefPoints * self.n)
+
+        maxNonZeroValues = array_type_uint(*np.array([0]))
+        Bnew = array_type_rrz_float(*np.zeros(numDesiredBeliefPoints * self.n))
+
+        if method == "random":
+            npm._nova.pomdp_pbvi_expand_random_cpu(self, numDesiredBeliefPoints, maxNonZeroValues, Bnew)
+        #elif method == "ger":
+        #    npm._nova.pomdp_pbvi_expand_ger_cpu(self)
+
+        # Reconstruct the compressed Z and B.
+        self.r = int(numDesiredBeliefPoints)
+        self.rz = int(maxNonZeroValues[0])
+
+        array_type_rrz_int = ct.c_int * (self.r * self.rz)
+        array_type_rrz_float = ct.c_float * (self.r * self.rz)
+
+        self.Z = array_type_rrz_int(*np.zeros(self.r * self.rz).astype(int))
+        self.B = array_type_rrz_float(*np.zeros(self.r * self.rz).astype(float))
+
+        for i in range(self.r):
+            j = 0
+            for s in range(self.n):
+                if Bnew[i * self.n + s] > 0.0:
+                    self.Z[i * self.rz + j] = s
+                    self.B[i * self.rz + j] = Bnew[i * self.n + s]
+                    j += 1
+
+    def solve(self, numThreads=1024, method='pbvi'):
         """ Solve the POMDP using the nova Python wrapper.
 
             Parameters:
                 numThreads  --  The number of CUDA threads to execute (multiple of 32). Default is 1024.
+                method      --  The method to use, either 'pbvi' or 'perseus'.
 
             Returns:
                 Gamma   --  The alpha-vectors, one for each belief point, mapping states to values.

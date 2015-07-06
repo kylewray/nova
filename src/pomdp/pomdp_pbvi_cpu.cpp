@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 #include <cstring>
+#include <cstdlib>
 
 
 // This is determined by hardware, so what is below is a 'safe' guess. If this is off, the
@@ -293,6 +294,186 @@ int pomdp_pbvi_get_policy_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi)
         memcpy(Gamma, pomdp->GammaPrime, pomdp->r * pomdp->n * sizeof(float));
     }
     memcpy(pi, pomdp->pi, pomdp->r * sizeof(unsigned int));
+
+    return NOVA_SUCCESS;
+}
+
+int pomdp_pbvi_expand_belief_update_cpu(POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float *bp)
+{
+    for (unsigned int sp = 0; sp < pomdp->n; sp++) {
+        bp[sp] = 0.0f;
+    }
+
+    for (unsigned int s = 0; s < pomdp->n; s++) {
+        for (unsigned int i = 0; i < pomdp->ns; i++) {
+            int sp = pomdp->S[s * pomdp->m * pomdp->ns + a * pomdp->ns + i];
+            if (sp < 0) {
+                break;
+            }
+
+            bp[sp] += pomdp->T[s * pomdp->m * pomdp->ns + a * pomdp->ns + i] * b[s];
+        }
+    }
+
+    float normalizingConstant = 0.0f;
+
+    for (unsigned int sp = 0; sp < pomdp->n; sp++) {
+        bp[sp] *= pomdp->O[a * pomdp->n * pomdp->z + sp * pomdp->z + o];
+
+        normalizingConstant += bp[sp];
+    }
+
+    for (unsigned int sp = 0; sp < pomdp->n; sp++) {
+        bp[sp] /= normalizingConstant;
+    }
+
+    return NOVA_SUCCESS;
+}
+
+int pomdp_pbvi_expand_random_cpu(POMDP *pomdp, unsigned int numDesiredBeliefPoints, unsigned int *maxNonZeroValues, float *Bnew)
+{
+    printf("DEBUG DEBUG DEBUG -- 1\n");
+
+    // Setup the initial belief point.
+    float *b0 = new float[pomdp->n];
+    for (unsigned int s = 0; s < pomdp->n; s++) {
+        b0[s] = 0.0f;
+    }
+    for (unsigned int i = 0; i < pomdp->rz; i++) {
+        int s = pomdp->Z[0 * pomdp->rz + i];
+        if (s < 0) {
+            break;
+        }
+        b0[s] = pomdp->B[0 * pomdp->rz + i];
+    }
+
+    printf("DEBUG DEBUG DEBUG -- 2\n");
+
+    // For each belief point we want to expand. Each step will generate a new trajectory
+    // and add the resulting belief point to B.
+    for (unsigned int i = 0; i < numDesiredBeliefPoints; i++) {
+        printf("DEBUG DEBUG DEBUG -- 3 -- %i / %i\n", i, numDesiredBeliefPoints);
+
+        // Randomly pick a horizon for this trajectory.
+        unsigned int h = (unsigned int)((float)rand() / (float)RAND_MAX * (float)(pomdp->horizon + 1));
+
+        // Setup the belief used in exploration.
+        float *b = new float[pomdp->n];
+        memcpy(b, b0, pomdp->n * sizeof(float));
+
+        printf("b%i = %.3f %.3f\n", 0, b[0], b[1]);
+        printf("Horizon %i\n", h);
+
+        unsigned int s = (unsigned int)((float)rand() / (float)RAND_MAX * (float)pomdp->n);
+
+        // Follow a random trajectory with length equal to this horizon.
+        for (unsigned int t = 0; t < h; t++) {
+            // Randomly pick an action.
+            unsigned int a = (unsigned int)((float)rand() / (float)RAND_MAX * (float)pomdp->m);
+
+            // Randomly transition the state space to a new state following T.
+            float currentNumber = 0.0f;
+            float targetNumber = (float)rand() / (float)RAND_MAX;
+
+            for (unsigned int j = 0; j < pomdp->ns; j++) {
+                unsigned int sp = pomdp->S[s * pomdp->m * pomdp->n + a * pomdp->n + j];
+                if (sp < 0) {
+                    break;
+                }
+
+                currentNumber += pomdp->T[s * pomdp->m * pomdp->n + a * pomdp->n + j];
+                if (currentNumber >= targetNumber) {
+                    s = sp;
+                    break;
+                }
+            }
+
+            currentNumber = 0.0f;
+            targetNumber = (float)rand() / (float)RAND_MAX;
+
+            unsigned int o = 0;
+            for (unsigned int op = 0; op < pomdp->z; op++) {
+                currentNumber += pomdp->O[a * pomdp->n * pomdp->z + s * pomdp->z + op];
+                if (currentNumber >= targetNumber) {
+                    o = op;
+                    break;
+                }
+            }
+
+            printf("State %i   Action %i   Observation %i\n", s, a, o);
+
+            // Follow the belief update equation to compute b' for all state primes s'.
+            float *bp = new float[pomdp->n];
+            pomdp_pbvi_expand_belief_update_cpu(pomdp, b, a, o, bp);
+            memcpy(b, bp, pomdp->n * sizeof(float));
+            printf("b%i = %.3f %.3f\n", t + 1, b[0], b[1]);
+            delete [] bp;
+        }
+
+        // Determine how many non-zero values exist and update rz.
+        unsigned int numNonZeroValues = 0;
+        for (unsigned int s = 0; s < pomdp->n; s++) {
+            printf("%.3f\n", b[s]);
+            if (b[s] > 0.0f) {
+                numNonZeroValues++;
+            }
+        }
+        if (numNonZeroValues > *maxNonZeroValues) {
+            *maxNonZeroValues = numNonZeroValues;
+        }
+
+        // Assign the computed belief for this trajectory and free its memory.
+        memcpy(&Bnew[i * pomdp->n], b, pomdp->n * sizeof(float));
+        delete [] b;
+    }
+
+    printf("DEBUG DEBUG DEBUG -- 4\n");
+
+    /*
+    // After the entire process, re-create the belief and non-zero belief state variables within the POMDP.
+    delete [] pomdp->Z;
+    delete [] pomdp->B;
+
+    pomdp->r = numDesiredBeliefPoints;
+    pomdp->rz = maxNonZeroValues;
+
+    pomdp->Z = new int[pomdp->r * pomdp->rz];
+    pomdp->B = new float[pomdp->r * pomdp->rz];
+
+    printf("DEBUG DEBUG DEBUG -- 5\n");
+
+    for (unsigned int i = 0; i < pomdp->r; i++) {
+        unsigned int j = 0;
+
+        for (unsigned int s = 0; s < pomdp->n; s++) {
+            if (B[i * pomdp->n + s] > 0.0f) {
+                pomdp->Z[i * pomdp->rz + j] = s;
+                pomdp->B[i * pomdp->rz + j] = B[i * pomdp->n + s];
+                j++;
+            }
+        }
+    }
+
+    printf("DEBUG DEBUG DEBUG -- 6\n");
+
+    delete [] B;
+    */
+    delete [] b0;
+
+    printf("DEBUG DEBUG DEBUG -- 7\n");
+
+    return NOVA_SUCCESS;
+}
+
+int pomdp_pbvi_expand_ger_epsilon_cpu(POMDP *pomdp, float &epsilon)
+{
+    epsilon = 0.0f;
+
+    return NOVA_SUCCESS;
+}
+
+int pomdp_pbvi_expand_ger_cpu(POMDP *pomdp)
+{
 
     return NOVA_SUCCESS;
 }

@@ -82,3 +82,8 @@ _nova.pomdp_pbvi_complete_gpu.argtypes = (ct.POINTER(NovaPOMDP),
                                         ct.POINTER(ct.c_float), # Gamma
                                         ct.POINTER(ct.c_uint))  # pi
 
+_nova.pomdp_pbvi_expand_random_cpu.argtypes = (ct.POINTER(NovaPOMDP),
+                                                ct.c_uint,              # numDesiredBeliefPoints
+                                                ct.POINTER(ct.c_uint),  # maxNonZeroValues
+                                                ct.POINTER(ct.c_float)) # Bnew
+
