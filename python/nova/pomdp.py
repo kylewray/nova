@@ -330,17 +330,9 @@ class POMDP(npm.NovaPOMDP):
             pass
 
         try:
-            self.ns = self.n
+            S = [[list() for a in range(self.m)] for s in range(self.n)]
+            T = [[list() for a in range(self.m)] for s in range(self.n)]
 
-            array_type_nmns_int = ct.c_int * (self.n * self.m * self.ns)
-            array_type_nmns_float = ct.c_float * (self.n * self.m * self.ns)
-
-            self.S = array_type_nmns_int(*np.array([[[int(sp) \
-                                for sp in range(self.ns)] \
-                            for a in range(self.m)] \
-                        for s in range(self.n)]).flatten())
-
-            T = np.zeros((self.n, self.m, self.ns))
             for key, value in pomdp['T'].items():
                 actions = list(range(self.m))
                 if key[0] != '*':
@@ -348,17 +340,19 @@ class POMDP(npm.NovaPOMDP):
 
                 if len(key) == 1:
                     if value[0] == "uniform":
-                        value = [[1.0 / self.ns for sp in range(self.ns)] for s in range(self.n)]
+                        value = [[1.0 / self.n for sp in range(self.n)] for s in range(self.n)]
                     elif value[0] == "identity":
-                        value = [[float(s == sp) for sp in range(self.ns)] for s in range(self.n)]
+                        value = [[float(s == sp) for sp in range(self.n)] for s in range(self.n)]
 
                     for a in actions:
                         for s in range(self.n):
-                            for sp in range(self.ns):
-                                T[s, a, sp] = float(value[s][sp])
+                            for sp in range(self.n):
+                                if float(value[s][sp]) > 0.0:
+                                    S[s][a] += [int(sp)]
+                                    T[s][a] += [float(value[s][sp])]
                 elif len(key) == 2:
                     if value[0] == "uniform":
-                        value = [1.0 / self.ns for sp in range(self.ns)]
+                        value = [1.0 / self.n for sp in range(self.n)]
 
                     states = list(range(self.n))
                     if key[1] != '*':
@@ -367,7 +361,9 @@ class POMDP(npm.NovaPOMDP):
                     for a in actions:
                         for s in states:
                             for sp in range(self.n):
-                                T[s, a, sp] = float(value[sp])
+                                if float(value[sp]) > 0.0:
+                                    S[s][a] += [int(sp)]
+                                    T[s][a] += [float(value[sp])]
                 elif len(key) == 3:
                     states = list(range(self.n))
                     if key[1] != '*':
@@ -380,9 +376,27 @@ class POMDP(npm.NovaPOMDP):
                     for a in actions:
                         for s in states:
                             for sp in statePrimes:
-                                T[s, a, sp] = float(value)
+                                if float(value) > 0.0:
+                                    S[s][a] += [int(sp)]
+                                    T[s][a] += [float(value)]
 
-            self.T = array_type_nmns_float(*T.flatten())
+            self.ns = 1
+            for s in range(self.n):
+                for a in range(self.m):
+                    self.ns = max(self.ns, len(T[s][a]))
+
+            # Fill in the remaining elements with -1 and 0.0 accordingly.
+            for s in range(self.n):
+                for a in range(self.m):
+                    for i in range(self.ns - len(S[s][a])):
+                        S[s][a] += [int(-1)]
+                        T[s][a] += [int(0.0)]
+
+            array_type_nmns_int = ct.c_int * (self.n * self.m * self.ns)
+            array_type_nmns_float = ct.c_float * (self.n * self.m * self.ns)
+
+            self.S = array_type_nmns_int(*np.array(S).flatten())
+            self.T = array_type_nmns_float(*np.array(T).flatten())
         except KeyError:
             pass
 

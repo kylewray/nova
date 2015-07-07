@@ -43,10 +43,9 @@ for f in files:
     filename = os.path.join(thisFilePath, f['filename'])
     pomdp = POMDP()
     pomdp.load(filename, filetype=f['filetype'])
-    print(pomdp)
 
     pomdp.expand(method='random', numDesiredBeliefPoints=100)
-    #print(pomdp)
+    print(pomdp)
 
     Gamma, piResult = pomdp.solve()
     print(Gamma)
