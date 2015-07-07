@@ -59,6 +59,8 @@ class POMDP(npm.NovaPOMDP):
 
         # Additional informative variables.
         self.Rmin = None
+        self.Rmax = None
+        self.epsilon = 0.01
 
     def load(self, filename, filetype='pomdp', scalarize=lambda x: x[0]):
         """ Load a raw Multi-Objective POMDP file given the filename and optionally the file type.
@@ -86,7 +88,7 @@ class POMDP(npm.NovaPOMDP):
         """
 
         data = self._load_pomdp_parse(filename)
-        pomdp = self._load_pomdp_extract(data)
+        pomdp = self._load_pomdp_extract(filename, data)
         self._load_pomdp_create(pomdp)
 
     def _load_pomdp_parse(self, filename):
@@ -107,7 +109,7 @@ class POMDP(npm.NovaPOMDP):
             # until another line starting with "<keyword>:" is found.
             currentDataPoint = list()
 
-            reader = csv.reader(f)
+            reader = csv.reader(f, delimiter='\n')
             for line in reader:
                 # There is no delimiter so each line is either zero or one element.
                 if len(line) == 0:
@@ -137,10 +139,11 @@ class POMDP(npm.NovaPOMDP):
         # There is an extra one at the start.
         return data[1:]
 
-    def _load_pomdp_extract(self, data):
+    def _load_pomdp_extract(self, filename, data):
         """ Step 2/3: Given the parsed raw data, create a mapping from variables to data.
 
             Parameters:
+                filename    --  The name and path of the file to load.
                 data    --  A list of data points, each a list of related variable information.
 
             Returns:
@@ -161,9 +164,9 @@ class POMDP(npm.NovaPOMDP):
                 # Split each of these elements by spaces, and trim white space. This is our data! We are done!
                 if len(parameters) == 0:
                     if len(d) == 2:
-                        pomdp[variable] = [x.strip() for x in d[1].split(" ") if len(x.strip()) > 0]
+                        pomdp[variable] = [x.strip() for x in d[1].split() if len(x.strip()) > 0]
                     else:
-                        pomdp[variable] = [[x.strip() for x in di.split(" ") if len(x.strip()) > 0] \
+                        pomdp[variable] = [[x.strip() for x in di.split() if len(x.strip()) > 0] \
                                                                 for di in d[1:]]
                     continue
 
@@ -173,7 +176,7 @@ class POMDP(npm.NovaPOMDP):
                 # proceeding elements in d[1:], but we have an extra tuple of tokens which specify this data.
 
                 # Take the last parameter and check if it is a single token or a list of tokens.
-                tokenOrList = [x.strip() for x in parameters[-1].split(" ") if len(x.strip()) > 0]
+                tokenOrList = [x.strip() for x in parameters[-1].split() if len(x.strip()) > 0]
 
                 if len(d) == 1 and len(parameters) == 1:
                     pomdp[variable] = tokenOrList
@@ -190,20 +193,20 @@ class POMDP(npm.NovaPOMDP):
                 if len(d) == 2:
                     try:
                         pomdp[variable][tuple(parameters)] = \
-                                [x.strip() for x in d[1].split(" ") if len(x.strip()) > 0]
+                                [x.strip() for x in d[1].split() if len(x.strip()) > 0]
                     except KeyError:
                         pomdp[variable] = dict()
                         pomdp[variable][tuple(parameters)] = \
-                                [x.strip() for x in d[1].split(" ") if len(x.strip()) > 0]
+                                [x.strip() for x in d[1].split() if len(x.strip()) > 0]
 
                 if len(d) > 2:
                     try:
                         pomdp[variable][tuple(parameters)] = \
-                                [[x.strip() for x in di.split(" ") if len(x.strip()) > 0] for di in d[1:]]
+                                [[x.strip() for x in di.split() if len(x.strip()) > 0] for di in d[1:]]
                     except KeyError:
                         pomdp[variable] = dict()
                         pomdp[variable][tuple(parameters)] = \
-                                [[x.strip() for x in di.split(" ") if len(x.strip()) > 0] for di in d[1:]]
+                                [[x.strip() for x in di.split() if len(x.strip()) > 0] for di in d[1:]]
 
         except Exception:
             print("Failed to load file '%s'." % (filename))
@@ -327,7 +330,6 @@ class POMDP(npm.NovaPOMDP):
             pass
 
         try:
-            # TODO: Compute this for real later.
             self.ns = self.n
 
             array_type_nmns_int = ct.c_int * (self.n * self.m * self.ns)
@@ -453,13 +455,17 @@ class POMDP(npm.NovaPOMDP):
                     for s in states:
                         R[s, a] = np.array([value]).astype(np.float).mean()
 
+            # Store the minimum R for use in algorithms.
+            self.Rmax = R.max()
             self.Rmin = R.min()
+
+            # Compute the optimal horizon so that we are within epsilon of the optimal values V.
+            self.horizon = int(np.log(self.epsilon / (self.Rmax - self.Rmin)) / np.log(self.gamma)) + 1
+
             self.R = array_type_nm_float(*R.flatten())
+
         except KeyError:
             pass
-
-        # TODO: Compute the optimal horizon.
-        self.horizon = 10
 
     def _load_raw(self, filename, scalarize=lambda x: x[0]):
         """ Load a raw Multi-Objective POMDP file given the filename and optionally a scalarization function.
@@ -524,6 +530,7 @@ class POMDP(npm.NovaPOMDP):
                             for s in range(self.n)] \
                         for i in range(self.k)])).flatten())
 
+            self.Rmax = max([self.R[i] for i in range(self.n * self.m)])
             self.Rmin = min([self.R[i] for i in range(self.n * self.m)])
 
             rowOffset = 1 + self.n * self.m + self.n * self.m + self.m * self.z + self.k * self.m
@@ -581,18 +588,23 @@ class POMDP(npm.NovaPOMDP):
                     self.B[i * self.rz + j] = Bnew[i * self.n + s]
                     j += 1
 
-    def solve(self, numThreads=1024, method='pbvi'):
+    def solve(self, numThreads=1024, method='pbvi', epsilon=None):
         """ Solve the POMDP using the nova Python wrapper.
 
             Parameters:
                 numThreads  --  The number of CUDA threads to execute (multiple of 32). Default is 1024.
-                method      --  The method to use, either 'pbvi' or 'perseus'.
+                method      --  The method to use, either 'pbvi' or 'perseus'. Default is 'pbvi'.
+                epsilon     --  The error of the value function, changing the horizon. Default is 'None'.
 
             Returns:
                 Gamma   --  The alpha-vectors, one for each belief point, mapping states to values.
                 pi      --  The policy, mapping alpha-vectors (belief points) to actions.
         """
 
+        # If epsilon is specified, then re-assign the horizon.
+        if epsilon is not None and epsilon > 0.0:
+            self.horizon = np.log(epsilon / (self.Rmax - self.Rmin)) / np.log(self.gamma)
+            
         # Create Gamma and pi, assigning them their respective initial values.
         Gamma = np.array([[0.0 for s in range(self.n)] for b in range(self.r)])
         if self.gamma < 1.0:
@@ -609,6 +621,7 @@ class POMDP(npm.NovaPOMDP):
         GammaResult = array_type_rn_float(*Gamma)
         piResult = array_type_r_uint(*pi)
 
+        # Solve the POMDP!
         result = npm._nova.pomdp_pbvi_complete_gpu(self, int(numThreads), GammaResult, piResult)
         if result != 0:
             result = npm._nova.pomdp_pbvi_complete_cpu(self, GammaResult, piResult)
@@ -639,7 +652,8 @@ class POMDP(npm.NovaPOMDP):
         result += "rz:      " + str(self.rz) + "\n"
         result += "k:       " + str(self.k) + "\n"
         result += "horizon: " + str(self.horizon) + "\n"
-        result += "gamma:   " + str(self.gamma) + "\n\n"
+        result += "gamma:   " + str(self.gamma) + "\n"
+        result += "epsilon: " + str(self.epsilon) + "\n\n"
 
         result += "S(s, a, s'):\n%s" % (str(np.array([self.S[i] \
                     for i in range(self.n * self.m * self.ns)]).reshape((self.n, self.m, self.ns)))) + "\n\n"
