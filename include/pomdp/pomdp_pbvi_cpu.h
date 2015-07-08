@@ -82,25 +82,6 @@ extern "C" int pomdp_pbvi_update_cpu(POMDP *pomdp);
  */
 extern "C" int pomdp_pbvi_get_policy_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi);
 
-/**
- *  Expand the set of beliefs following random trajectories (e.g., like Perseus). This assumes that
- *  the variable B contains only one element: The initial belief b0. From this, B is expanded to the
- *  size specified; all are reachable belief points from random horizons.
- *  @param  pomdp                   The POMDP object.
- *  @param  numDesiredBeliefPoints  The number of belief points desired after randomly adding beliefs.
- *  @param  maxNonZeroValues        The maximum number of non-zero values over all new belief points.
- *  @param  Bnew                    The new (raw) resultant belief set (numDesiredBeliefPoints-n array).
- *  @return Returns zero upon success, non-zero otherwise.
- */
-extern "C" int pomdp_pbvi_expand_random_cpu(POMDP *pomdp, unsigned int numDesiredBeliefPoints, unsigned int *maxNonZeroValues, float *Bnew);
-
-/**
- *  Expand the set of beliefs following random trajectories.
- *  @param  pomdp   The POMDP object.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-extern "C" int pomdp_pbvi_expand_ger_cpu(POMDP *pomdp);
-
 
 #endif // POMDP_PBVI_CPU_H
 

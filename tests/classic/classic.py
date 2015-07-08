@@ -44,10 +44,13 @@ for f in files:
     pomdp = POMDP()
     pomdp.load(filename, filetype=f['filetype'])
 
-    pomdp.expand(method='random', numDesiredBeliefPoints=100)
-    print(pomdp)
+    pomdp.expand(method='random', numDesiredBeliefPoints=1024)
+    
+    #Gamma, piResult, timing = pomdp.solve(process='cpu')
+    Gamma, piResult, timing = pomdp.solve(process='gpu')
 
-    Gamma, piResult = pomdp.solve()
-    print(Gamma)
-    print(piResult)
+    #print(pomdp)
+    #print(Gamma)
+    #print(piResult)
+    print(timing)
 

@@ -25,6 +25,7 @@ import os
 import sys
 import csv
 import numpy as np
+import time
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import nova_pomdp as npm
@@ -580,9 +581,9 @@ class POMDP(npm.NovaPOMDP):
         Bnew = array_type_rrz_float(*np.zeros(numDesiredBeliefPoints * self.n))
 
         if method == "random":
-            npm._nova.pomdp_pbvi_expand_random_cpu(self, numDesiredBeliefPoints, maxNonZeroValues, Bnew)
+            npm._nova.pomdp_expand_random_cpu(self, numDesiredBeliefPoints, maxNonZeroValues, Bnew)
         #elif method == "ger":
-        #    npm._nova.pomdp_pbvi_expand_ger_cpu(self)
+        #    npm._nova.pomdp_expand_ger_cpu(self)
 
         # Reconstruct the compressed Z and B.
         self.r = int(numDesiredBeliefPoints)
@@ -602,17 +603,19 @@ class POMDP(npm.NovaPOMDP):
                     self.B[i * self.rz + j] = Bnew[i * self.n + s]
                     j += 1
 
-    def solve(self, numThreads=1024, method='pbvi', epsilon=None):
+    def solve(self, algorithm='pbvi', process='gpu', numThreads=1024, epsilon=None):
         """ Solve the POMDP using the nova Python wrapper.
 
             Parameters:
+                algorithm   --  The method to use, either 'pbvi' or 'perseus'. Default is 'pbvi'.
+                process     --  Use the 'cpu' or 'gpu'. If 'gpu' fails, it tries 'cpu'. Default is 'gpu'.
                 numThreads  --  The number of CUDA threads to execute (multiple of 32). Default is 1024.
-                method      --  The method to use, either 'pbvi' or 'perseus'. Default is 'pbvi'.
-                epsilon     --  The error of the value function, changing the horizon. Default is 'None'.
+                epsilon     --  The error of the value function, changing the horizon. Optional. Default is 'None'.
 
             Returns:
                 Gamma   --  The alpha-vectors, one for each belief point, mapping states to values.
                 pi      --  The policy, mapping alpha-vectors (belief points) to actions.
+                timing  --  A pair (wall-time, cpu-time) for solver execution time, not including (un)initialization.
         """
 
         # If epsilon is specified, then re-assign the horizon.
@@ -632,24 +635,78 @@ class POMDP(npm.NovaPOMDP):
         array_type_r_uint = ct.c_uint * self.r
 
         # Create C arrays for the result.
-        GammaResult = array_type_rn_float(*Gamma)
-        piResult = array_type_r_uint(*pi)
+        Gamma = array_type_rn_float(*Gamma)
+        pi = array_type_r_uint(*pi)
 
-        # Solve the POMDP!
-        result = npm._nova.pomdp_pbvi_complete_gpu(self, int(numThreads), GammaResult, piResult)
-        if result != 0:
-            result = npm._nova.pomdp_pbvi_complete_cpu(self, GammaResult, piResult)
+        timing = None
 
-        if result == 0:
-            Gamma = np.array([GammaResult[i] for i in range(self.r * self.n)])
-            pi = np.array([piResult[i] for i in range(self.r)])
-        else:
-            print("Failed to solve POMDP using the 'nova' library.")
-            raise Exception()
+        # If the process is 'gpu', then attempt to solve it. If an error arises, then
+        # assign process to 'cpu' and attempt to solve it using that.
+        if process == 'gpu':
+            result = npm._nova.pomdp_initialize_successors_gpu(self)
+            result += npm._nova.pomdp_initialize_state_transitions_gpu(self)
+            result += npm._nova.pomdp_initialize_observation_transitions_gpu(self)
+            result += npm._nova.pomdp_initialize_rewards_gpu(self)
+            result += npm._nova.pomdp_initialize_nonzero_beliefs_gpu(self)
+            result += npm._nova.pomdp_initialize_belief_points_gpu(self)
+            if result != 0:
+                print("Failed to initialize the POMDP variables for the 'nova' library's GPU POMDP solver.")
+                process = 'cpu'
 
+            result = npm._nova.pomdp_pbvi_initialize_gpu(self, Gamma)
+            if result != 0:
+                print("Failed to initialize the 'nova' library's GPU POMDP solver.")
+                process = 'cpu'
+
+            timing = (time.time(), time.clock())
+            result = npm._nova.pomdp_pbvi_execute_gpu(self, int(numThreads), Gamma, pi)
+            timing = (time.time() - timing[0], time.clock() - timing[1])
+
+            if result != 0:
+                print("Failed to execute the 'nova' library's GPU POMDP solver.")
+                process = 'cpu'
+
+            result = npm._nova.pomdp_pbvi_uninitialize_gpu(self)
+            if result != 0:
+                # Note: Failing at uninitialization should not cause the CPU version to be executed.
+                print("Failed to uninitialize the 'nova' library's GPU POMDP solver.")
+
+            result = npm._nova.pomdp_uninitialize_successors_gpu(self)
+            result += npm._nova.pomdp_uninitialize_state_transitions_gpu(self)
+            result += npm._nova.pomdp_uninitialize_observation_transitions_gpu(self)
+            result += npm._nova.pomdp_uninitialize_rewards_gpu(self)
+            result += npm._nova.pomdp_uninitialize_nonzero_beliefs_gpu(self)
+            result += npm._nova.pomdp_uninitialize_belief_points_gpu(self)
+            if result != 0:
+                # Note: Failing at uninitialization should not cause the CPU version to be executed.
+                print("Failed to uninitialize the POMDP variables for the 'nova' library's GPU POMDP solver.")
+
+        # If the process is 'cpu', then attempt to solve it.
+        if process == 'cpu':
+            result = npm._nova.pomdp_pbvi_initialize_cpu(self, Gamma)
+            if result != 0:
+                print("Failed to initialize the 'nova' library's CPU POMDP solver.")
+                raise Exception()
+
+            timing = (time.time(), time.clock())
+            result = npm._nova.pomdp_pbvi_execute_cpu(self, Gamma, pi)
+            timing = (time.time() - timing[0], time.clock() - timing[1])
+
+            if result != 0:
+                print("Failed to execute the 'nova' library's CPU POMDP solver.")
+                raise Exception()
+
+            result = npm._nova.pomdp_pbvi_uninitialize_cpu(self)
+            if result != 0:
+                # Note: Failing at uninitialization should not cause the result to be discarded.
+                print("Failed to uninitialize the 'nova' library's CPU POMDP solver.")
+
+        Gamma = np.array([Gamma[i] for i in range(self.r * self.n)])
         Gamma = Gamma.reshape((self.r, self.n))
 
-        return Gamma, pi
+        pi = np.array([pi[i] for i in range(self.r)])
+
+        return Gamma, pi, timing
 
     def __str__(self):
         """ Return the string of the MOPOMDP values akin to the raw file format.
