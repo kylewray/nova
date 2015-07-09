@@ -30,9 +30,10 @@ from nova.mdp import *
 from nova.pomdp import *
 
 
-files = [#{'filename': "tiger_pomdp.raw", 'filetype': "raw"},
-         {'filename': "tiger_95.pomdp", 'filetype': "pomdp"}
-         ]
+files = [
+        {'filename': "tiger_pomdp.raw", 'filetype': "raw"},
+        {'filename': "tiger_95.pomdp", 'filetype': "pomdp"}
+        ]
 
 for f in files:
     tigerFile = os.path.join(thisFilePath, f['filename'])
@@ -43,7 +44,7 @@ for f in files:
     tiger.expand(method='random', numDesiredBeliefPoints=250)
     print(tiger)
 
-    Gamma, piResult = tiger.solve()
+    Gamma, piResult, timing = tiger.solve()
     print(Gamma)
     print(piResult)
 

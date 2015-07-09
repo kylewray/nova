@@ -45,7 +45,7 @@ gridWorld = POMDP()
 gridWorld.load(gridWorldFile, filetype='raw')
 print(gridWorld)
 
-Gamma, pi = gridWorld.solve()
+Gamma, pi, timing = gridWorld.solve()
 print(Gamma)
 print(pi)
 

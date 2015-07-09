@@ -31,6 +31,9 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import nova_pomdp as npm
 
 
+csv.field_size_limit(sys.maxsize)
+
+
 class POMDP(npm.NovaPOMDP):
     """ A Partially Observable Markov Decision Process (POMDP) object that can load, solve, and save.
 

@@ -29,28 +29,42 @@ sys.path.append(os.path.join(thisFilePath, "..", "..", "python"))
 from nova.pomdp import *
 
 
-files = [{'name': "Grid (4x3)", 'filename': "4x3_95.pomdp", 'filetype': "pomdp"},
-         {'name': "Tiger", 'filename': "tiger_95.pomdp", 'filetype': "pomdp"},
-         {'name': "Tiger Grid", 'filename': "tiger_grid.pomdp", 'filetype': "pomdp"},
-         {'name': "Tag", 'filename': "tag.pomdp", 'filetype': "pomdp"},
-         #{'name': "AUV Navigation", 'filename': "auvNavigation.pomdp", 'filetype': "pomdp"},
-         #{'name': "Rock Sample (7x8)", 'filename': "rockSample_7_8.pomdp", 'filetype': "pomdp"},
-         ]
+files = [
+        {'name': "Tiger", 'filename': "tiger_95.pomdp", 'filetype': "pomdp"},
+        #{'name': "Grid (4x3)", 'filename': "4x3_95.pomdp", 'filetype': "pomdp"},
+        #{'name': "Tiger Grid", 'filename': "tiger_grid.pomdp", 'filetype': "pomdp"},
+        #{'name': "Tag", 'filename': "tag.pomdp", 'filetype': "pomdp"},
+        #{'name': "AUV Navigation", 'filename': "auvNavigation.pomdp", 'filetype': "pomdp"},
+        #{'name': "Rock Sample (7x8)", 'filename': "rockSample_7_8.pomdp", 'filetype': "pomdp"},
+        ]
+
+numBeliefSteps = 4
+numTrials = 10
+
+timings = {'cpu': [list() for j in range(numBeliefSteps)],
+            'gpu': [list() for j in range(numBeliefSteps)]}
 
 for f in files:
     print(f['name'])
 
     filename = os.path.join(thisFilePath, f['filename'])
-    pomdp = POMDP()
-    pomdp.load(filename, filetype=f['filetype'])
 
-    pomdp.expand(method='random', numDesiredBeliefPoints=1024)
-    
-    #Gamma, piResult, timing = pomdp.solve(process='cpu')
-    Gamma, piResult, timing = pomdp.solve(process='gpu')
+    for i in range(numTrials):
+        print("Trial %i of %i" % (i + 1, numTrials))
+
+        for j in range(numBeliefSteps):
+            print("Belief Step %i of %i" % (32 * (j + 1), (32 * (numBeliefSteps + 1))))
+
+            for p in ['cpu', 'gpu']:
+                pomdp = POMDP()
+                pomdp.load(filename, filetype=f['filetype'])
+                pomdp.expand(method='random', numDesiredBeliefPoints=(32 * (j + 1)))
+
+                Gamma, piResult, timing = pomdp.solve(process=p)
+                timings[p][j] += [timing]
 
     #print(pomdp)
     #print(Gamma)
     #print(piResult)
-    print(timing)
+    #print(timing)
 
