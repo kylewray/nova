@@ -32,21 +32,21 @@ from pylab import *
 
 
 numTrials = 1
-numBeliefSteps = 4
+numBeliefSteps = 3
 
 
 files = [
-        {'name': "tiger", 'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'beliefStepSize': 8},
-        {'name': "grid-4x3", 'filename': "4x3_95.pomdp", 'filetype': "pomdp", 'beliefStepSize': 16},
-        {'name': "tiger-grid", 'filename': "tiger_grid.pomdp", 'filetype': "pomdp", 'beliefStepSize': 32},
-        {'name': "hallway2", 'filename': "hallway2.pomdp", 'filetype': "pomdp", 'beliefStepSize': 32},
-        #{'name': "tag", 'filename': "tag.pomdp", 'filetype': "pomdp", 'beliefStepSize': 64},
-        #{'name': "auv-navigation", 'filename': "auvNavigation.pomdp", 'filetype': "pomdp", 'beliefStepSize': 128},
-        #{'name': "rock-sample (7x8)", 'filename': "rockSample_7_8.pomdp", 'filetype': "pomdp", 'beliefStepSize': 256},
-        {'name': "drive_san_francisco", 'filename': "drive_san_francisco.pomdp", 'filetype': "pomdp", 'beliefStepSize': 32},
-        {'name': "drive_seattle", 'filename': "drive_seattle.pomdp", 'filetype': "pomdp", 'beliefStepSize': 64},
-        {'name': "drive_new_york_city", 'filename': "drive_new_york_city.pomdp", 'filetype': "pomdp", 'beliefStepSize': 64},
-        {'name': "drive_boston", 'filename': "drive_boston.pomdp", 'filetype': "pomdp", 'beliefStepSize': 128},
+        #{'name': "tiger", 'filename': "domains/tiger_95.pomdp", 'filetype': "pomdp", 'beliefStepSize': 8},
+        #{'name': "grid-4x3", 'filename': "domains/4x3_95.pomdp", 'filetype': "pomdp", 'beliefStepSize': 16},
+        #{'name': "tiger-grid", 'filename': "domains/tiger_grid.pomdp", 'filetype': "pomdp", 'beliefStepSize': 32},
+        #{'name': "hallway2", 'filename': "domains/hallway2.pomdp", 'filetype': "pomdp", 'beliefStepSize': 64},
+        #{'name': "tag", 'filename': "domains/tag.pomdp", 'filetype': "pomdp", 'beliefStepSize': 512},
+        #{'name': "auv-navigation", 'filename': "domains/auvNavigation.pomdp", 'filetype': "pomdp", 'beliefStepSize': 1024},
+        #{'name': "rock-sample (7x8)", 'filename': "domains/rockSample_7_8.pomdp", 'filetype': "pomdp", 'beliefStepSize': 1024},
+        {'name': "drive_san_francisco", 'filename': "domains/drive_san_francisco.pomdp", 'filetype': "pomdp", 'beliefStepSize': 128},
+        {'name': "drive_seattle", 'filename': "domains/drive_seattle.pomdp", 'filetype': "pomdp", 'beliefStepSize': 256},
+        {'name': "drive_new_york_city", 'filename': "domains/drive_new_york_city.pomdp", 'filetype': "pomdp", 'beliefStepSize': 512},
+        {'name': "drive_boston", 'filename': "domains/drive_boston.pomdp", 'filetype': "pomdp", 'beliefStepSize': 512},
         ]
 
 timings = {f['name']: {'cpu': [0.0 for j in range(numBeliefSteps)],
