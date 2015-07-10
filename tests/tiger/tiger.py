@@ -41,8 +41,9 @@ for f in files:
     tiger.load(tigerFile, filetype=f['filetype'])
     print(tiger)
 
-    tiger.expand(method='random', numDesiredBeliefPoints=250)
-    print(tiger)
+    if f['filetype'] == 'pomdp':
+        tiger.expand(method='random', numDesiredBeliefPoints=250)
+        print(tiger)
 
     Gamma, piResult, timing = tiger.solve()
     print(Gamma)

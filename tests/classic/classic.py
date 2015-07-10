@@ -28,43 +28,91 @@ thisFilePath = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(thisFilePath, "..", "..", "python"))
 from nova.pomdp import *
 
+from pylab import *
+
+
+numTrials = 1
+numBeliefSteps = 4
+
 
 files = [
-        {'name': "Tiger", 'filename': "tiger_95.pomdp", 'filetype': "pomdp"},
-        #{'name': "Grid (4x3)", 'filename': "4x3_95.pomdp", 'filetype': "pomdp"},
-        #{'name': "Tiger Grid", 'filename': "tiger_grid.pomdp", 'filetype': "pomdp"},
-        #{'name': "Tag", 'filename': "tag.pomdp", 'filetype': "pomdp"},
-        #{'name': "AUV Navigation", 'filename': "auvNavigation.pomdp", 'filetype': "pomdp"},
-        #{'name': "Rock Sample (7x8)", 'filename': "rockSample_7_8.pomdp", 'filetype': "pomdp"},
+        {'name': "tiger", 'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'beliefStepSize': 8},
+        {'name': "grid-4x3", 'filename': "4x3_95.pomdp", 'filetype': "pomdp", 'beliefStepSize': 16},
+        {'name': "tiger-grid", 'filename': "tiger_grid.pomdp", 'filetype': "pomdp", 'beliefStepSize': 32},
+        {'name': "hallway2", 'filename': "hallway2.pomdp", 'filetype': "pomdp", 'beliefStepSize': 32},
+        #{'name': "tag", 'filename': "tag.pomdp", 'filetype': "pomdp", 'beliefStepSize': 64},
+        #{'name': "auv-navigation", 'filename': "auvNavigation.pomdp", 'filetype': "pomdp", 'beliefStepSize': 128},
+        #{'name': "rock-sample (7x8)", 'filename': "rockSample_7_8.pomdp", 'filetype': "pomdp", 'beliefStepSize': 256},
+        {'name': "drive_san_francisco", 'filename': "drive_san_francisco.pomdp", 'filetype': "pomdp", 'beliefStepSize': 32},
+        {'name': "drive_seattle", 'filename': "drive_seattle.pomdp", 'filetype': "pomdp", 'beliefStepSize': 64},
+        {'name': "drive_new_york_city", 'filename': "drive_new_york_city.pomdp", 'filetype': "pomdp", 'beliefStepSize': 64},
+        {'name': "drive_boston", 'filename': "drive_boston.pomdp", 'filetype': "pomdp", 'beliefStepSize': 128},
         ]
 
-numBeliefSteps = 4
-numTrials = 10
-
-timings = {'cpu': [list() for j in range(numBeliefSteps)],
-            'gpu': [list() for j in range(numBeliefSteps)]}
+timings = {f['name']: {'cpu': [0.0 for j in range(numBeliefSteps)],
+                       'gpu': [0.0 for j in range(numBeliefSteps)]} for f in files}
 
 for f in files:
     print(f['name'])
 
     filename = os.path.join(thisFilePath, f['filename'])
 
-    for i in range(numTrials):
-        print("Trial %i of %i" % (i + 1, numTrials))
+    for p in ['gpu', 'cpu']:
+        print(" - %s " % (p), end='')
 
-        for j in range(numBeliefSteps):
-            print("Belief Step %i of %i" % (32 * (j + 1), (32 * (numBeliefSteps + 1))))
+        with open(os.path.join(thisFilePath, "results", "_".join([f['name'], p])) + ".csv", "w") as out:
+            out.write("|B|,")
+            for i in range(numTrials):
+                out.write("%i," % (i + 1))
+            out.write("\n")
 
-            for p in ['cpu', 'gpu']:
-                pomdp = POMDP()
-                pomdp.load(filename, filetype=f['filetype'])
-                pomdp.expand(method='random', numDesiredBeliefPoints=(32 * (j + 1)))
+            for j in range(numBeliefSteps):
+                #print("Belief Step %i (max %i):" % (f['beliefStepSize'] * (j + 1), (f['beliefStepSize'] * numBeliefSteps)))
+                out.write("%i," % (f['beliefStepSize'] * (j + 1)))
 
-                Gamma, piResult, timing = pomdp.solve(process=p)
-                timings[p][j] += [timing]
+                for i in range(numTrials):
+                    #print("Trial %i of %i" % (i + 1, numTrials))
+                    print(".", end='')
+                    sys.stdout.flush()
 
-    #print(pomdp)
-    #print(Gamma)
-    #print(piResult)
-    #print(timing)
+                    pomdp = POMDP()
+                    pomdp.load(filename, filetype=f['filetype'])
+                    pomdp.expand(method='random', numDesiredBeliefPoints=(f['beliefStepSize'] * (j + 1)))
+
+                    Gamma, piResult, timing = pomdp.solve(process=p)
+
+                    #print(pomdp)
+                    #print(Gamma)
+                    #print(piResult)
+
+                    # Note: use the time.time() function, which measures wall-clock time.
+                    timings[f['name']][p][j] = (float(j) * timings[f['name']][p][j] + timing[0]) / float(j + 1)
+
+                    out.write("%.3f," % (timing[0]))
+
+                out.write("\n")
+
+        print()
+
+
+
+# Plot the results.
+#x = [f['beliefStepSize'] * (j + 1) for j in range(numBeliefSteps)]
+#
+#title("CPU/GPU Execution Time vs. Number of Belief Points")
+#xlabel("Number of Belief Points")
+#ylabel("Execution Time (seconds)")
+#
+#xlim([f['beliefStepSize'], numBeliefSteps * f['beliefStepSize']])
+#xticks(x)
+#
+#hold(True)
+#
+#for f in files:
+#    plot(x, timings[f['name']]['cpu'], label=('%s (CPU)' % f['name']))
+#    plot(x, timings[f['name']]['gpu'], label=('%s (GPU)' % f['name']))
+#
+#legend()
+#
+#show()
 
