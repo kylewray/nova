@@ -46,8 +46,8 @@ files = [
         {'name': "tiger-grid", 'filename': "domains/tiger_grid.pomdp", 'filetype': "pomdp", 'beliefStepSize': 128},
         {'name': "hallway2", 'filename': "domains/hallway2.pomdp", 'filetype': "pomdp", 'beliefStepSize': 256},
         {'name': "tag", 'filename': "domains/tag.pomdp", 'filetype': "pomdp", 'beliefStepSize': 2048},
-        {'name': "auv-navigation", 'filename': "domains/auvNavigation.pomdp", 'filetype': "pomdp", 'beliefStepSize': 4096},
         {'name': "rock-sample (7x8)", 'filename': "domains/rockSample_7_8.pomdp", 'filetype': "pomdp", 'beliefStepSize': 4096},
+        {'name': "auv-navigation", 'filename': "domains/auvNavigation.pomdp", 'filetype': "pomdp", 'beliefStepSize': 4096},
         ]
 
 timings = {f['name']: {'cpu': [0.0 for j in range(numBeliefSteps)],
