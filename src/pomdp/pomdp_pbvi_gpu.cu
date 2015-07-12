@@ -103,9 +103,10 @@ __global__ void pomdp_pbvi_compute_alphaBA_gpu(unsigned int n, unsigned int ns, 
                             O[action * n * z + sp * z + observation] *
                             Gamma[alphaIndex * n + sp];
             }
-            value *= gamma;
 
             __syncthreads();
+
+            value *= gamma;
 
             alphaDotBeta += value * B[beliefIndex * rz + i];
         }
@@ -206,9 +207,10 @@ __global__ void pomdp_pbvi_update_step_gpu(unsigned int n, unsigned int ns, unsi
         //__syncthreads();
     }
 
-    for (unsigned int s = 0; s < n; s++) {
-        GammaPrime[beliefIndex * n + s] = alphaBA[beliefIndex * m * n + piPrime[beliefIndex] * n + s];
-    }
+    memcpy(&GammaPrime[beliefIndex * n], &alphaBA[beliefIndex * m * n + piPrime[beliefIndex] * n], n * sizeof(float));
+    //for (unsigned int s = 0; s < n; s++) {
+    //    GammaPrime[beliefIndex * n + s] = alphaBA[beliefIndex * m * n + piPrime[beliefIndex] * n + s];
+    //}
 }
 
 
