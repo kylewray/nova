@@ -394,7 +394,7 @@ class POMDP(npm.NovaPOMDP):
                 for a in range(self.m):
                     for i in range(self.ns - len(S[s][a])):
                         S[s][a] += [int(-1)]
-                        T[s][a] += [int(0.0)]
+                        T[s][a] += [float(0.0)]
 
             array_type_nmns_int = ct.c_int * (self.n * self.m * self.ns)
             array_type_nmns_float = ct.c_float * (self.n * self.m * self.ns)
