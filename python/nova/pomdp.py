@@ -148,7 +148,7 @@ class POMDP(npm.NovaPOMDP):
 
             Parameters:
                 filename    --  The name and path of the file to load.
-                data    --  A list of data points, each a list of related variable information.
+                data        --  A list of data points, each a list of related variable information.
 
             Returns:
                 A dictionary containing variable-data mappings for the POMDP.
@@ -405,8 +405,6 @@ class POMDP(npm.NovaPOMDP):
             pass
 
         try:
-            array_type_mnz_float = ct.c_float * (self.m * self.n * self.z)
-
             O = np.zeros((self.m, self.n, self.z))
             for key, value in pomdp['O'].items():
                 actions = list(range(self.m))
@@ -447,14 +445,14 @@ class POMDP(npm.NovaPOMDP):
                             for o in observations:
                                 O[a, sp, o] = float(value)
 
+            array_type_mnz_float = ct.c_float * (self.m * self.n * self.z)
+
             self.O = array_type_mnz_float(*O.flatten())
         except KeyError:
             pass
 
         try:
             self.k = 1
-
-            array_type_nm_float = ct.c_float * (self.n * self.m)
 
             R = np.zeros((self.n, self.m))
             for key, value in pomdp['R'].items():
@@ -479,6 +477,8 @@ class POMDP(npm.NovaPOMDP):
 
             # Compute the optimal horizon so that we are within epsilon of the optimal values V.
             self.horizon = int(np.log(self.epsilon / (self.Rmax - self.Rmin)) / np.log(self.gamma)) + 1
+
+            array_type_nm_float = ct.c_float * (self.n * self.m)
 
             self.R = array_type_nm_float(*R.flatten())
 
@@ -595,7 +595,7 @@ class POMDP(npm.NovaPOMDP):
         array_type_rrz_int = ct.c_int * (self.r * self.rz)
         array_type_rrz_float = ct.c_float * (self.r * self.rz)
 
-        self.Z = array_type_rrz_int(*np.zeros(self.r * self.rz).astype(int))
+        self.Z = array_type_rrz_int(*-np.ones(self.r * self.rz).astype(int))
         self.B = array_type_rrz_float(*np.zeros(self.r * self.rz).astype(float))
 
         for i in range(self.r):

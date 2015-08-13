@@ -106,7 +106,10 @@ int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numDesiredBeliefPoints, u
     }
 
     float *b = new float[pomdp->n];
-    unsigned int i = 0;
+    unsigned int i = 1;
+
+    // The first one is always the initial seed belief.
+    memcpy(&Bnew[0 * pomdp->n], b0, pomdp->n * sizeof(float));
 
     // For each belief point we want to expand. Each step will generate a new trajectory
     // and add the resulting belief point to B.
