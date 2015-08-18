@@ -22,6 +22,7 @@
 
 import os
 import sys
+import pylab
 
 thisFilePath = os.path.dirname(os.path.realpath(__file__))
 
@@ -31,8 +32,10 @@ from nova.pomdp import *
 
 
 files = [
-        {'filename': "tiger_pomdp.raw", 'filetype': "raw"},
-        {'filename': "tiger_95.pomdp", 'filetype': "pomdp"}
+        {'filename': "tiger_pomdp.raw", 'filetype': "raw", 'expand': None},
+        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'expand': "random"},
+        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'expand': "distinct_beliefs"},
+        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'expand': "pema"},
         ]
 
 for f in files:
@@ -41,28 +44,28 @@ for f in files:
     tiger.load(tigerFile, filetype=f['filetype'])
     print(tiger)
 
-    if f['filetype'] == 'pomdp':
-        tiger.expand(method='random', numDesiredBeliefPoints=250)
+    if f['expand'] == "random":
+        tiger.expand(method=f['expand'], numDesiredBeliefPoints=250)
+        print(tiger)
+    elif f['expand'] is not None:
+        for i in range(5):
+            tiger.expand(method=f['expand'])
         print(tiger)
 
     Gamma, piResult, timing = tiger.solve()
     print(Gamma)
     print(piResult)
 
-
-    # Note: pylab overwrites 'pi'...
-    from pylab import *
-
-    hold(True)
-    title("Policy Alpha-Vectors for Tiger Problem")
-    xlabel("Belief of State s2: b(s2)")
-    ylabel("Value of Belief: V(b(s2))")
+    pylab.hold(True)
+    pylab.title("Alpha-Vectors for Tiger Problem (Expand: %s)" % (f['expand']))
+    pylab.xlabel("Belief of State s2: b(s2)")
+    pylab.ylabel("Value of Belief: V(b(s2))")
     for i in range(tiger.r):
         if piResult[i] == 0:
-            plot([0.0, 1.0], [Gamma[i, 0], Gamma[i, 1]], linewidth=10, color='red')
+            pylab.plot([0.0, 1.0], [Gamma[i, 0], Gamma[i, 1]], linewidth=10, color='red')
         elif piResult[i] == 1:
-            plot([0.0, 1.0], [Gamma[i, 0], Gamma[i, 1]], linewidth=10, color='green')
+            pylab.plot([0.0, 1.0], [Gamma[i, 0], Gamma[i, 1]], linewidth=10, color='green')
         elif piResult[i] == 2:
-            plot([0.0, 1.0], [Gamma[i, 0], Gamma[i, 1]], linewidth=10, color='blue')
-    show()
+            pylab.plot([0.0, 1.0], [Gamma[i, 0], Gamma[i, 1]], linewidth=10, color='blue')
+    pylab.show()
 

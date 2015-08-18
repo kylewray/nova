@@ -29,6 +29,31 @@
 #include <cstring>
 #include <cstdlib>
 #include <time.h>
+#include <cmath>
+
+
+// This is determined by hardware, so what is below is a 'safe' guess. If this is off, the
+// program might return 'nan' or 'inf'. These come from IEEE floating-point standards.
+#define FLT_MAX 1e+35
+#define FLT_MIN -1e+35
+#define FLT_ERR_TOL 1e-9
+
+
+int pomdp_expand_construct_belief_cpu(POMDP *pomdp, unsigned int i, float *b)
+{
+    for (unsigned int s = 0; s < pomdp->n; s++) {
+        b[s] = 0.0f;
+    }
+    for (unsigned int j = 0; j < pomdp->rz; j++) {
+        unsigned int s = pomdp->Z[i * pomdp->rz + j];
+        if (s < 0) {
+            break;
+        }
+        b[s] = pomdp->B[i * pomdp->rz + j];
+    }
+
+    return NOVA_SUCCESS;
+}
 
 
 int pomdp_expand_belief_update_cpu(POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float *bp)
@@ -64,7 +89,7 @@ int pomdp_expand_belief_update_cpu(POMDP *pomdp, const float *b, unsigned int a,
 }
 
 
-int pomdp_expand_probability_observation(POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float &prObs)
+int pomdp_expand_probability_observation_cpu(POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float &prObs)
 {
     prObs = 0.0f;
 
@@ -88,22 +113,31 @@ int pomdp_expand_probability_observation(POMDP *pomdp, const float *b, unsigned 
 }
 
 
+int pomdp_expand_update_max_non_zero_values(POMDP *pomdp, const float *b, unsigned int *maxNonZeroValues)
+{
+    unsigned int numNonZeroValues = 0;
+    for (unsigned int s = 0; s < pomdp->n; s++) {
+        if (b[s] > 0.0f) {
+            numNonZeroValues++;
+        }
+    }
+    if (numNonZeroValues > *maxNonZeroValues) {
+        *maxNonZeroValues = numNonZeroValues;
+    }
+
+    return NOVA_SUCCESS;
+}
+
+
 int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numDesiredBeliefPoints, unsigned int *maxNonZeroValues, float *Bnew)
 {
     srand(time(nullptr));
 
+    *maxNonZeroValues = 0;
+
     // Setup the initial belief point.
     float *b0 = new float[pomdp->n];
-    for (unsigned int s = 0; s < pomdp->n; s++) {
-        b0[s] = 0.0f;
-    }
-    for (unsigned int i = 0; i < pomdp->rz; i++) {
-        int s = pomdp->Z[0 * pomdp->rz + i];
-        if (s < 0) {
-            break;
-        }
-        b0[s] = pomdp->B[0 * pomdp->rz + i];
-    }
+    pomdp_expand_construct_belief_cpu(pomdp, 0, b0);
 
     float *b = new float[pomdp->n];
     unsigned int i = 1;
@@ -133,7 +167,7 @@ int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numDesiredBeliefPoints, u
             unsigned int o = 0;
             for (unsigned int op = 0; op < pomdp->z; op++) {
                 float prObs = 0.0f;
-                pomdp_expand_probability_observation(pomdp, b, a, op, prObs);
+                pomdp_expand_probability_observation_cpu(pomdp, b, a, op, prObs);
                 currentNumber += prObs;
 
                 if (currentNumber >= targetNumber) {
@@ -149,15 +183,7 @@ int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numDesiredBeliefPoints, u
             delete [] bp;
 
             // Determine how many non-zero values exist and update rz.
-            unsigned int numNonZeroValues = 0;
-            for (unsigned int s = 0; s < pomdp->n; s++) {
-                if (b[s] > 0.0f) {
-                    numNonZeroValues++;
-                }
-            }
-            if (numNonZeroValues > *maxNonZeroValues) {
-                *maxNonZeroValues = numNonZeroValues;
-            }
+            pomdp_expand_update_max_non_zero_values(pomdp, b, maxNonZeroValues);
 
             // Assign the computed belief for this trajectory.
             memcpy(&Bnew[i * pomdp->n], b, pomdp->n * sizeof(float));
@@ -177,16 +203,158 @@ int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numDesiredBeliefPoints, u
 }
 
 
-int pomdp_expand_ger_epsilon_cpu(POMDP *pomdp, float &epsilon)
+int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp, unsigned int *maxNonZeroValues, float *Bnew)
 {
-    epsilon = 0.0f;
+    *maxNonZeroValues = 0;
+
+    for (unsigned int i = 0; i < pomdp->r; i++) {
+        // Construct a belief to use in computing b'.
+        float *b = new float[pomdp->n];
+        pomdp_expand_construct_belief_cpu(pomdp, i, b);
+
+        float *bpStar = new float[pomdp->n];
+        float bpStarValue = FLT_MIN;
+
+        // For this belief point, find the action-observation pair that is most distinct
+        // from the current set of beliefs B. This will be added to Bnew.
+        for (unsigned int a = 0; a < pomdp->m; a++) {
+            for (unsigned int o = 0; o < pomdp->z; o++) {
+                // Compute b'.
+                float *bp = new float[pomdp->n];
+                pomdp_expand_belief_update_cpu(pomdp, b, a, o, bp);
+
+                // Compute min|b - b'| for all beliefs b in B.
+                float jStarValue = FLT_MAX;
+
+                for (unsigned int j = 0; j < pomdp->r; j++) {
+                    float *btmp = new float[pomdp->n];
+                    pomdp_expand_construct_belief_cpu(pomdp, j, btmp);
+
+                    float value = 0.0f;
+                    for (unsigned int s = 0; s < pomdp->n; s++) {
+                        value += std::fabs(btmp[s] - bp[s]);
+                    }
+
+                    if (value < jStarValue) {
+                        jStarValue = value;
+                    }
+
+                    delete [] btmp;
+                }
+
+                // Now, determine if this was the largest b' we found so far. If so, remember it.
+                if (jStarValue > bpStarValue) {
+                    memcpy(bpStar, bp, pomdp->n * sizeof(float));
+                    bpStarValue = jStarValue;
+                }
+
+                delete [] bp;
+            }
+        }
+
+        // Determine how many non-zero values exist and update rz.
+        pomdp_expand_update_max_non_zero_values(pomdp, bpStar, maxNonZeroValues);
+
+        // For this belief b, add a new belief bp* = max_{a, o} min_{b'' in B} |b'(b, a, o) - b''|_1.
+        memcpy(&Bnew[i * pomdp->n], bpStar, pomdp->n * sizeof(float));
+
+        delete [] b;
+        delete [] bpStar;
+    }
 
     return NOVA_SUCCESS;
 }
 
 
-int pomdp_expand_ger_cpu(POMDP *pomdp)
+int pomdp_expand_pema_cpu(POMDP *pomdp, float Rmin, float Rmax, float *Gamma, unsigned int *maxNonZeroValues, float *Bnew)
 {
+    *maxNonZeroValues = 0;
+
+    for (unsigned int i = 0; i < pomdp->r; i++) {
+        unsigned int aStar = 0;
+        float aStarValue = FLT_MIN;
+
+        // Construct a belief to use in computing b'.
+        float *b = new float[pomdp->n];
+        pomdp_expand_construct_belief_cpu(pomdp, i, b);
+
+        // During computing the max action, we will store the observation which introduced
+        // the maximal error, i.e., one with highest value of epsilon(b'(b, a, o)).
+        unsigned int *oStar = new unsigned int[pomdp->m];
+        float *oStarEpsilonBeliefPrime = new float[pomdp->m];
+        for (unsigned int a = 0; a < pomdp->m; a++) {
+            oStar[a] = 0;
+            oStarEpsilonBeliefPrime[a] = FLT_MIN;
+        }
+
+        // At this belief b, select the action which maximizes the sum over observations
+        // of the probability of this observation times the expected worst-case error
+        // at the *next* belief b' following a and o.
+        for (unsigned int a = 0; a < pomdp->m; a++) {
+            float aValue = 0.0f;
+
+            for (unsigned int o = 0; o < pomdp->z; o++) {
+                // Compute Pr(o|b,a).
+                float probObsGivenBeliefAction = 0.0f;
+
+                for (unsigned int j = 0; j < pomdp->rz; j++) {
+                    int s = pomdp->Z[i * pomdp->rz + j];
+                    if (s < 0) {
+                        break;
+                    }
+
+                    for (unsigned int sp = 0; sp < pomdp->n; sp++) {
+                        probObsGivenBeliefAction += pomdp->O[a * pomdp->n * pomdp->z + sp * pomdp->z + o] * pomdp->B[i * pomdp->rz + j];
+                    }
+                }
+
+                // With the current action and observation compute b'(b, a, o).
+                float *bp = new float[pomdp->n];
+                pomdp_expand_belief_update_cpu(pomdp, b, a, o, bp);
+
+                // Compute epsilon(b'(b, a, o)).
+                float epsilonBeliefPrime = 0.0f;
+                for (unsigned int s = 0; s < pomdp->n; s++) {
+                    if (bp[s] >= b[s]) {
+                        epsilonBeliefPrime += (Rmax / (1.0f - pomdp->gamma) - Gamma[i * pomdp->n + s]) * (bp[s] - b[s]);
+                    } else {
+                        epsilonBeliefPrime += (Rmin / (1.0f - pomdp->gamma) - Gamma[i * pomdp->n + s]) * (bp[s] - b[s]);
+                    }
+                }
+
+                // For this action, update the maximal oStar[a].
+                if (epsilonBeliefPrime > oStarEpsilonBeliefPrime[a]) {
+                    oStarEpsilonBeliefPrime[a] = epsilonBeliefPrime;
+                    oStar[a] = o;
+                }
+
+                // Add the result to find the maximal action.
+                aValue += probObsGivenBeliefAction * epsilonBeliefPrime;
+
+                delete [] bp;
+            }
+
+            if (aValue > aStarValue) {
+                aStar = a;
+                aStarValue = aValue;
+            }
+        }
+
+        // With the best action, compute b'(b, aStar, oStar[aStar]).
+        float *bp = new float[pomdp->n];
+        pomdp_expand_belief_update_cpu(pomdp, b, aStar, oStar[aStar], bp);
+
+        // Determine how many non-zero values exist and update rz.
+        pomdp_expand_update_max_non_zero_values(pomdp, bp, maxNonZeroValues);
+
+        // Add this belief to Bnew.
+        memcpy(&Bnew[i * pomdp->n], bp, pomdp->n * sizeof(float));
+
+        delete [] b;
+        delete [] bp;
+        delete [] oStar;
+        delete [] oStarEpsilonBeliefPrime;
+    }
 
     return NOVA_SUCCESS;
 }

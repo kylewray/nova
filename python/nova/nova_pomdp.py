@@ -91,10 +91,18 @@ _nova.pomdp_pbvi_get_policy_cpu.argtypes = (ct.POINTER(NovaPOMDP),
 
 # Functions from 'pomdp_expand_cpu.h'.
 _nova.pomdp_expand_random_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                                ct.c_uint,              # numDesiredBeliefPoints
-                                                ct.POINTER(ct.c_uint),  # maxNonZeroValues
-                                                ct.POINTER(ct.c_float)) # Bnew
-#_nova.pomdp_expand_ger_cpu(ct.POINTER(NovaPOMDP))
+                                            ct.c_uint,              # numDesiredBeliefPoints
+                                            ct.POINTER(ct.c_uint),  # maxNonZeroValues
+                                            ct.POINTER(ct.c_float)) # Bnew
+_nova.pomdp_expand_distinct_beliefs_cpu.argtypes = (ct.POINTER(NovaPOMDP),
+                                                    ct.POINTER(ct.c_uint),  # maxNonZeroValues
+                                                    ct.POINTER(ct.c_float)) # Bnew
+_nova.pomdp_expand_pema_cpu.argtypes = (ct.POINTER(NovaPOMDP),
+                                        ct.c_float,             # Rmin
+                                        ct.c_float,             # Rmax
+                                        ct.POINTER(ct.c_float), # Gamma
+                                        ct.POINTER(ct.c_uint),  # maxNonZeroValues
+                                        ct.POINTER(ct.c_float)) # Bnew
 
 
 # Functions from 'pomdp_pbvi_gpu.h'.

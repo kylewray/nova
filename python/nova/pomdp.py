@@ -565,46 +565,75 @@ class POMDP(npm.NovaPOMDP):
             print("Failed to load file '%s'." % (filename))
             raise Exception()
 
-    def expand(self, method='random', numDesiredBeliefPoints=1000):
-        """ Expand the belief points by either PBVI methods or Perseus' random method.
+    def expand(self, method='random', numDesiredBeliefPoints=1000, Gamma=None):
+        """ Expand the belief points by, for example, PBVI's original method, PEMA, or Perseus' random method.
 
             Parameters:
                 method                  --  The method to use for expanding belief points. Default is 'random'.
                                             Methods:
-                                                'random'    Random trajectories through the belief space.
-                                                'ger'       A Greedy Error Reduction (GER) exploration.
+                                                'random'            Random trajectories through the belief space.
+                                                'distinct_beliefs'  Distinct belief point selection.
+                                                'pema'              Point-based Error Minimization Algorithm (PEMA).
                 numDesiredBeliefPoints  --  Optionally define the number of belief points. Used by the
                                             'random' method. Default is 1000.
+                Gamma                   --  Optionally define the alpha-vectors of the soultion (r-n array). Used by the
+                                            'pema' method. Default is None, which will automatically solve the POMDP.
         """
 
+        if method not in ["random", "distinct_beliefs", "pema"]:
+            print("Failed to expand. Method '%s' is not defined." % (method))
+            raise Exception()
+
+        # Non-random methods double the number of belief points.
+        if method != "random":
+            numDesiredBeliefPoints = self.r
+
         array_type_uint = ct.c_uint * (1)
-        array_type_rrz_float = ct.c_float * (numDesiredBeliefPoints * self.n)
+        array_type_ndbpn_float = ct.c_float * (numDesiredBeliefPoints * self.n)
 
         maxNonZeroValues = array_type_uint(*np.array([0]))
-        Bnew = array_type_rrz_float(*np.zeros(numDesiredBeliefPoints * self.n))
+        Bnew = array_type_ndbpn_float(*np.zeros(numDesiredBeliefPoints * self.n))
 
         if method == "random":
             npm._nova.pomdp_expand_random_cpu(self, numDesiredBeliefPoints, maxNonZeroValues, Bnew)
-        #elif method == "ger":
-        #    npm._nova.pomdp_expand_ger_cpu(self)
+        elif method == "distinct_beliefs":
+            npm._nova.pomdp_expand_distinct_beliefs_cpu(self, maxNonZeroValues, Bnew)
+        elif method == "pema":
+            if Gamma is None:
+                Gamma, pi, timings = self.solve()
+
+            array_type_rn_float = ct.c_float * (self.r * self.n)
+            Gamma = array_type_rn_float(*Gamma.flatten())
+
+            npm._nova.pomdp_expand_pema_cpu(self, self.Rmin, self.Rmax, Gamma, maxNonZeroValues, Bnew)
 
         # Reconstruct the compressed Z and B.
-        self.r = int(numDesiredBeliefPoints)
-        self.rz = int(maxNonZeroValues[0])
+        rPrime = int(self.r + numDesiredBeliefPoints)
+        rzPrime = max(self.rz, int(maxNonZeroValues[0]))
 
-        array_type_rrz_int = ct.c_int * (self.r * self.rz)
-        array_type_rrz_float = ct.c_float * (self.r * self.rz)
+        array_type_rrz_int = ct.c_int * (rPrime * rzPrime)
+        array_type_rrz_float = ct.c_float * (rPrime * rzPrime)
 
-        self.Z = array_type_rrz_int(*-np.ones(self.r * self.rz).astype(int))
-        self.B = array_type_rrz_float(*np.zeros(self.r * self.rz).astype(float))
+        ZPrime = array_type_rrz_int(*-np.ones(rPrime * rzPrime).astype(int))
+        BPrime = array_type_rrz_float(*np.zeros(rPrime * rzPrime).astype(float))
 
         for i in range(self.r):
+            for j in range(self.rz):
+                ZPrime[i * rzPrime + j] = self.Z[i * self.rz + j]
+                BPrime[i * rzPrime + j] = self.B[i * self.rz + j]
+
+        for i in range(numDesiredBeliefPoints):
             j = 0
             for s in range(self.n):
                 if Bnew[i * self.n + s] > 0.0:
-                    self.Z[i * self.rz + j] = s
-                    self.B[i * self.rz + j] = Bnew[i * self.n + s]
+                    ZPrime[(self.r + i) * rzPrime + j] = s
+                    BPrime[(self.r + i) * rzPrime + j] = Bnew[i * self.n + s]
                     j += 1
+
+        self.r = rPrime
+        self.rz = rzPrime
+        self.Z = ZPrime
+        self.B = BPrime
 
     def solve(self, algorithm='pbvi', process='gpu', numThreads=1024, epsilon=None):
         """ Solve the POMDP using the nova Python wrapper.
