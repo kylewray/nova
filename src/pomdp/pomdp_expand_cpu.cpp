@@ -270,21 +270,22 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, float Rmin, float Rmax, float *Gamma, un
 {
     *maxNonZeroValues = 0;
 
+    float bStarEpsilonErrorBound = FLT_MIN;
+
     for (unsigned int i = 0; i < pomdp->r; i++) {
         unsigned int aStar = 0;
         float aStarValue = FLT_MIN;
 
-        // Construct a belief to use in computing b'.
         float *b = new float[pomdp->n];
         pomdp_expand_construct_belief_cpu(pomdp, i, b);
 
         // During computing the max action, we will store the observation which introduced
         // the maximal error, i.e., one with highest value of epsilon(b'(b, a, o)).
         unsigned int *oStar = new unsigned int[pomdp->m];
-        float *oStarEpsilonBeliefPrime = new float[pomdp->m];
+        float *oStarValue = new float[pomdp->m];
         for (unsigned int a = 0; a < pomdp->m; a++) {
             oStar[a] = 0;
-            oStarEpsilonBeliefPrime[a] = FLT_MIN;
+            oStarValue[a] = FLT_MIN;
         }
 
         // At this belief b, select the action which maximizes the sum over observations
@@ -303,8 +304,15 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, float Rmin, float Rmax, float *Gamma, un
                         break;
                     }
 
-                    for (unsigned int sp = 0; sp < pomdp->n; sp++) {
-                        probObsGivenBeliefAction += pomdp->O[a * pomdp->n * pomdp->z + sp * pomdp->z + o] * pomdp->B[i * pomdp->rz + j];
+                    for (unsigned int k = 0; k < pomdp->ns; k++) {
+                        int sp = pomdp->S[s * pomdp->m * pomdp->ns + a * pomdp->ns + k];
+                        if (sp < 0) {
+                            break;
+                        }
+
+                        probObsGivenBeliefAction += pomdp->T[s * pomdp->m * pomdp->ns + a * pomdp->ns + k] *
+                                                    pomdp->O[a * pomdp->n * pomdp->z + sp * pomdp->z + o] *
+                                                    pomdp->B[i * pomdp->rz + j];
                     }
                 }
 
@@ -312,26 +320,50 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, float Rmin, float Rmax, float *Gamma, un
                 float *bp = new float[pomdp->n];
                 pomdp_expand_belief_update_cpu(pomdp, b, a, o, bp);
 
-                // Compute epsilon(b'(b, a, o)).
+                // Compute the closest (1-norm) belief from b'.
+                unsigned int bClosestIndex = 0;
+                float *bClosest = new float[pomdp->n];
+                float bClosestStarDistance = FLT_MAX;
+
+                for (unsigned int j = 0; j < pomdp->r; j++) {
+                    float *bCheck = new float[pomdp->n];
+                    pomdp_expand_construct_belief_cpu(pomdp, j, bCheck);
+
+                    float bCheckDistance = 0.0f;
+                    for (unsigned int s = 0; s < pomdp->n; s++) {
+                        bCheckDistance += std::fabs(bp[s] - bCheck[s]);
+                    }
+
+                    if (bCheckDistance < bClosestStarDistance) {
+                        bClosestIndex = j;
+                        memcpy(bClosest, bCheck, pomdp->n * sizeof(float));
+                        bClosestStarDistance = bCheckDistance;
+                    }
+
+                    delete [] bCheck;
+                }
+
+                // Compute epsilon(b'(bClosest, a, o)).
                 float epsilonBeliefPrime = 0.0f;
                 for (unsigned int s = 0; s < pomdp->n; s++) {
                     if (bp[s] >= b[s]) {
-                        epsilonBeliefPrime += (Rmax / (1.0f - pomdp->gamma) - Gamma[i * pomdp->n + s]) * (bp[s] - b[s]);
+                        epsilonBeliefPrime += (Rmax / (1.0f - pomdp->gamma) - Gamma[bClosestIndex * pomdp->n + s]) * (bp[s] - bClosest[s]);
                     } else {
-                        epsilonBeliefPrime += (Rmin / (1.0f - pomdp->gamma) - Gamma[i * pomdp->n + s]) * (bp[s] - b[s]);
+                        epsilonBeliefPrime += (Rmin / (1.0f - pomdp->gamma) - Gamma[bClosestIndex * pomdp->n + s]) * (bp[s] - bClosest[s]);
                     }
                 }
 
                 // For this action, update the maximal oStar[a].
-                if (epsilonBeliefPrime > oStarEpsilonBeliefPrime[a]) {
-                    oStarEpsilonBeliefPrime[a] = epsilonBeliefPrime;
+                if (probObsGivenBeliefAction * epsilonBeliefPrime > oStarValue[a]) {
                     oStar[a] = o;
+                    oStarValue[a] = probObsGivenBeliefAction * epsilonBeliefPrime;
                 }
 
                 // Add the result to find the maximal action.
                 aValue += probObsGivenBeliefAction * epsilonBeliefPrime;
 
                 delete [] bp;
+                delete [] bClosest;
             }
 
             if (aValue > aStarValue) {
@@ -340,21 +372,21 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, float Rmin, float Rmax, float *Gamma, un
             }
         }
 
-        // With the best action, compute b'(b, aStar, oStar[aStar]).
-        float *bp = new float[pomdp->n];
-        pomdp_expand_belief_update_cpu(pomdp, b, aStar, oStar[aStar], bp);
+        // We are looking for the largest value possible.
+        if (aStarValue > bStarEpsilonErrorBound) {
+            // With the best action, compute b'(b, aStar, oStar[aStar]) from the initial b (from i).
+            pomdp_expand_belief_update_cpu(pomdp, b, aStar, oStar[aStar], &Bnew[0 * pomdp->n]);
 
-        // Determine how many non-zero values exist and update rz.
-        pomdp_expand_update_max_non_zero_values(pomdp, bp, maxNonZeroValues);
-
-        // Add this belief to Bnew.
-        memcpy(&Bnew[i * pomdp->n], bp, pomdp->n * sizeof(float));
+            bStarEpsilonErrorBound = aStarValue;
+        }
 
         delete [] b;
-        delete [] bp;
         delete [] oStar;
-        delete [] oStarEpsilonBeliefPrime;
+        delete [] oStarValue;
     }
+
+    // Determine how many non-zero values exist and update rz at the very end.
+    pomdp_expand_update_max_non_zero_values(pomdp, &Bnew[0 * pomdp->n], maxNonZeroValues);
 
     return NOVA_SUCCESS;
 }

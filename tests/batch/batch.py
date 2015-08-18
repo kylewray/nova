@@ -71,7 +71,7 @@ for f in files:
 
                 pomdp = POMDP()
                 pomdp.load(filename, filetype=f['filetype'])
-                pomdp.expand(method='random', numDesiredBeliefPoints=(f['beliefStepSize'] * (j + 1)))
+                pomdp.expand(method='random', numBeliefsToAdd=(f['beliefStepSize'] * (j + 1)))
 
                 pomdp.h = int(horizon)
 

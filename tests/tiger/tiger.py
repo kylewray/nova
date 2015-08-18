@@ -32,9 +32,9 @@ from nova.pomdp import *
 
 
 files = [
-        {'filename': "tiger_pomdp.raw", 'filetype': "raw", 'expand': None},
-        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'expand': "random"},
-        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'expand': "distinct_beliefs"},
+        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'expand': None},
+        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'expand': "random"},
+        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'expand': "distinct_beliefs"},
         {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'expand': "pema"},
         ]
 
@@ -45,12 +45,19 @@ for f in files:
     print(tiger)
 
     if f['expand'] == "random":
-        tiger.expand(method=f['expand'], numDesiredBeliefPoints=250)
+        # Note: 1 + 250 = 251 belief points.
+        tiger.expand(method=f['expand'], numBeliefsToAdd=250)
         print(tiger)
-    elif f['expand'] is not None:
+    elif f['expand'] == "distinct_beliefs":
+        # Note: 2^5 = 32 belief points.
         for i in range(5):
             tiger.expand(method=f['expand'])
         print(tiger)
+    elif f['expand'] == "pema":
+        # Note: 1 + 10 = 11 belief points.
+        for i in range(3):
+            tiger.expand(method=f['expand'])
+            print(tiger)
 
     Gamma, piResult, timing = tiger.solve()
     print(Gamma)

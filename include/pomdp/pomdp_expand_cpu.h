@@ -32,7 +32,8 @@
 /**
  *  Expand the set of beliefs following random trajectories (e.g., Perseus' expansion). This assumes that
  *  the variable B contains only one element: The initial belief b0. From this, B is expanded to the
- *  size specified; all are reachable belief points from random horizons.
+ *  size specified; all are reachable belief points from random horizons. This assigns numDesiredBeliefPoints
+ *  new elements to Bnew.
  *  @param  pomdp                   The POMDP object.
  *  @param  numDesiredBeliefPoints  The number of belief points desired after randomly adding beliefs.
  *  @param  maxNonZeroValues        The maximum number of non-zero values over all new belief points.
@@ -44,7 +45,7 @@ extern "C" int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numDesiredBeli
 
 /**
  *  Expand the set of beliefs by selecting the most distinct successor belief possible for each belief
- *  in the current set B (e.g., PBVI's original expansion).
+ *  in the current set B (e.g., PBVI's original expansion). This assigns pomdp->r new elements to Bnew.
  *  @param  pomdp               The POMDP object.
  *  @param  maxNonZeroValues    The maximum number of non-zero values over all new belief points.
  *  @param  Bnew                The new (raw) resultant belief points (r-n array).
@@ -54,7 +55,7 @@ extern "C" int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp, unsigned int *max
 
 /**
  *  Expand the set of beliefs following the Point-based Error Minimization Algorithm (PEMA)
- *  variation of PBVI.
+ *  variation of PBVI. This assigns one new element to Bnew.
  *  @param  pomdp               The POMDP object.
  *  @param  Rmin                The minimum reward.
  *  @param  Rmax                The maximum reward.
