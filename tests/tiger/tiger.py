@@ -49,13 +49,13 @@ for f in files:
         tiger.expand(method=f['expand'], numBeliefsToAdd=250)
         print(tiger)
     elif f['expand'] == "distinct_beliefs":
-        # Note: 2^5 = 32 belief points.
-        for i in range(5):
+        # Note: 2^3 = 8 belief points.
+        for i in range(3):
             tiger.expand(method=f['expand'])
         print(tiger)
     elif f['expand'] == "pema":
-        # Note: 1 + 10 = 11 belief points.
-        for i in range(3):
+        # Note: 1 + 4 = 5 belief points.
+        for i in range(4):
             tiger.expand(method=f['expand'])
             print(tiger)
 

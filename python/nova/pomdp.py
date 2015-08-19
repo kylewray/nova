@@ -584,9 +584,11 @@ class POMDP(npm.NovaPOMDP):
             print("Failed to expand. Method '%s' is not defined." % (method))
             raise Exception()
 
-        # Non-random methods double the number of belief points.
-        if method != "random":
+        # Non-random methods add different quantities of belief points.
+        if method == "distinct_beliefs":
             numBeliefsToAdd = self.r
+        elif method == "pema":
+            numBeliefsToAdd = 1
 
         array_type_uint = ct.c_uint * (1)
         array_type_ndbpn_float = ct.c_float * (numBeliefsToAdd * self.n)

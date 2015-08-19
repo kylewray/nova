@@ -45,7 +45,7 @@ int pomdp_expand_construct_belief_cpu(POMDP *pomdp, unsigned int i, float *b)
         b[s] = 0.0f;
     }
     for (unsigned int j = 0; j < pomdp->rz; j++) {
-        unsigned int s = pomdp->Z[i * pomdp->rz + j];
+        int s = pomdp->Z[i * pomdp->rz + j];
         if (s < 0) {
             break;
         }
@@ -77,8 +77,14 @@ int pomdp_expand_belief_update_cpu(POMDP *pomdp, const float *b, unsigned int a,
 
     for (unsigned int sp = 0; sp < pomdp->n; sp++) {
         bp[sp] *= pomdp->O[a * pomdp->n * pomdp->z + sp * pomdp->z + o];
-
         normalizingConstant += bp[sp];
+    }
+
+    // If the normalizing constant is exceedingly small, within error tolerances, then this is
+    // very likely to be an invalid belief. In practice, this arises when there is a probabilistically
+    // impossible observation, given the POMDP.
+    if (std::fabs(normalizingConstant) < FLT_ERR_TOL) {
+        return NOVA_WARNING_INVALID_BELIEF;
     }
 
     for (unsigned int sp = 0; sp < pomdp->n; sp++) {
@@ -221,7 +227,15 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp, unsigned int *maxNonZeroValu
             for (unsigned int o = 0; o < pomdp->z; o++) {
                 // Compute b'.
                 float *bp = new float[pomdp->n];
-                pomdp_expand_belief_update_cpu(pomdp, b, a, o, bp);
+                unsigned int result = pomdp_expand_belief_update_cpu(pomdp, b, a, o, bp);
+
+                // Since we are iterating over observations, we may examine an observation
+                // which is impossible given the current belief. This is based on the POMDP.
+                // Thus, this is an invalid successor belief state, so continue.
+                if (result == NOVA_WARNING_INVALID_BELIEF) {
+                    delete [] bp;
+                    continue;
+                }
 
                 // Compute min|b - b'| for all beliefs b in B.
                 float jStarValue = FLT_MAX;
@@ -230,13 +244,13 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp, unsigned int *maxNonZeroValu
                     float *btmp = new float[pomdp->n];
                     pomdp_expand_construct_belief_cpu(pomdp, j, btmp);
 
-                    float value = 0.0f;
+                    float jValue = 0.0f;
                     for (unsigned int s = 0; s < pomdp->n; s++) {
-                        value += std::fabs(btmp[s] - bp[s]);
+                        jValue += std::fabs(btmp[s] - bp[s]);
                     }
 
-                    if (value < jStarValue) {
-                        jStarValue = value;
+                    if (jValue < jStarValue) {
+                        jStarValue = jValue;
                     }
 
                     delete [] btmp;
@@ -318,7 +332,15 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, float Rmin, float Rmax, float *Gamma, un
 
                 // With the current action and observation compute b'(b, a, o).
                 float *bp = new float[pomdp->n];
-                pomdp_expand_belief_update_cpu(pomdp, b, a, o, bp);
+                unsigned int result = pomdp_expand_belief_update_cpu(pomdp, b, a, o, bp);
+
+                // Since we are iterating over observations, we may examine an observation
+                // which is impossible given the current belief. This is based on the POMDP.
+                // Thus, this is an invalid successor belief state, so continue.
+                if (result == NOVA_WARNING_INVALID_BELIEF) {
+                    delete [] bp;
+                    continue;
+                }
 
                 // Compute the closest (1-norm) belief from b'.
                 unsigned int bClosestIndex = 0;
