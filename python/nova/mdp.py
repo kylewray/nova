@@ -55,10 +55,11 @@ class MDP(nm.NovaMDP):
 
         # Additional informative variables.
         self.Rmin = None
+        self.Rmax = None
 
         # Optional variables to be used for solving the SSP version.
         self.s0 = None
-        self.goals = None
+        self.goals = list()
 
     def load(self, filename, filetype='mdp', scalarize=lambda x: x[0]):
         """ Load a raw Multi-Objective POMDP file given the filename and optionally the file type.
@@ -98,7 +99,6 @@ class MDP(nm.NovaMDP):
             print("Failed to load file '%s'." % (filename))
             raise Exception()
 
-
     def _load_raw(self, filename, scalarize=lambda x: x[0]):
         """ Load a raw Multi-Objective MDP file given the filename and optionally a scalarization function.
 
@@ -123,6 +123,7 @@ class MDP(nm.NovaMDP):
 
             k = int(data[0][3])
             self.s0 = int(data[0][4])
+            self.goals = list()
 
             self.horizon = int(data[0][5])
             self.gamma = float(data[0][6])
@@ -152,6 +153,7 @@ class MDP(nm.NovaMDP):
                             for s in range(self.n)] \
                         for i in range(k)])).flatten())
 
+            self.Rmax = max([self.R[i] for i in range(self.n * self.m)])
             self.Rmin = min([self.R[i] for i in range(self.n * self.m)])
 
         except Exception:
@@ -209,6 +211,7 @@ class MDP(nm.NovaMDP):
         result += "m:       " + str(self.m) + "\n"
         result += "ns:      " + str(self.ns) + "\n"
         result += "s0:      " + str(self.s0) + "\n"
+        result += "goals:   " + str(self.goals) + "\n"
         result += "horizon: " + str(self.horizon) + "\n"
         result += "gamma:   " + str(self.gamma) + "\n\n"
 
