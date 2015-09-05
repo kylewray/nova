@@ -173,8 +173,8 @@ class MDP(nm.NovaMDP):
 
         # Create V and pi, assigning them their respective initial values.
         V = np.array([0.0 for s in range(self.n)])
-        if self.gamma < 1.0:
-            V = np.array([float(self.Rmin / (1.0 - self.gamma)) for s in range(self.n)])
+        #if self.gamma < 1.0:
+        #    V = np.array([float(self.Rmin / (1.0 - self.gamma)) for s in range(self.n)])
         pi = np.array([0 for s in range(self.n)])
 
         # Create functions to convert flattened NumPy arrays to C arrays.
