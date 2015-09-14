@@ -33,6 +33,10 @@
  *  @param  m               The number of actions.
  *  @param  gamma           The discount factor in [0.0, 1.0).
  *  @param  horizon         The number of iterations to execute (i.e., horizon).
+ *  @param  epsilon         The convergence criterion for SSP algorithms like LAO*.
+ *  @param  s0              The optional goal state for an SSP.
+ *  @param  ng              The optional number of goals.
+ *  @param  goals           The optional k-array of goal state indexes.
  *  @param  S               A mapping of state-action-successor triples (n-m-ns array) to a
  *                          state index. Reading the array 0 to ns-1, a value of -1 means
  *                          there are no more successors (terminating any loops).
@@ -43,12 +47,16 @@
  *  @param  V               The value of the states (n-array).
  *  @param  VPrime          The value of the states (n-array) copy.
  *  @param  pi              The action to take at each state (n-array).
+ *  @param  ne              The number of expanded states (for SSP solvers like LAO*).
+ *  @param  expanded        The state ordering (for SSP solvers like LAO*) of V, VPrime, and pi.
+ *  @param  d_goals         Device-side pointer of goals.
  *  @param  d_S             Device-side pointer of S.
  *  @param  d_T             Device-side pointer of T.
  *  @param  d_R             Device-side pointer of R.
  *  @param  d_V             Device-side pointer of V.
  *  @param  d_VPrime        Device-side pointer of VPrime.
  *  @param  d_pi            Device-side pointer of pi.
+ *  @param  d_expanded      Device-side pointer of ordering.
  */
 typedef struct NovaMDP {
     // Core Variables (User-Defined)
@@ -58,6 +66,10 @@ typedef struct NovaMDP {
 
     float gamma;
     unsigned int horizon;
+
+    unsigned int s0;
+    unsigned int ng;
+    unsigned int *goals;
 
     int *S;
     float *T;
@@ -70,6 +82,10 @@ typedef struct NovaMDP {
     float *VPrime;
     unsigned int *pi;
 
+    int *expanded;
+
+    unsigned int *d_goals;
+
     int *d_S;
     float *d_T;
     float *d_R;
@@ -77,6 +93,8 @@ typedef struct NovaMDP {
     float *d_V;
     float *d_VPrime;
     unsigned int *d_pi;
+
+    int *d_expanded;
 } MDP;
 
 

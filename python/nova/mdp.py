@@ -42,24 +42,26 @@ class MDP(nm.NovaMDP):
         """ The constructor for the MDP class. """
 
         # Assign a nullptr for the device-side pointers. These will be set if the GPU is utilized.
+        self.ng = int(0)
+        self.goals = ct.POINTER(ct.c_uint)()
         self.currentHorizon = int(0)
         self.V = ct.POINTER(ct.c_float)()
         self.VPrime = ct.POINTER(ct.c_float)()
         self.pi = ct.POINTER(ct.c_uint)()
+        self.ne = int(0)
+        self.expanded = ct.POINTER(ct.c_int)()
+        self.d_goals = ct.POINTER(ct.c_uint)()
         self.d_S = ct.POINTER(ct.c_int)()
         self.d_T = ct.POINTER(ct.c_float)()
         self.d_R = ct.POINTER(ct.c_float)()
         self.d_V = ct.POINTER(ct.c_float)()
         self.d_VPrime = ct.POINTER(ct.c_float)()
         self.d_pi = ct.POINTER(ct.c_uint)()
+        self.d_expanded = ct.POINTER(ct.c_int)()
 
         # Additional informative variables.
         self.Rmin = None
         self.Rmax = None
-
-        # Optional variables to be used for solving the SSP version.
-        self.s0 = None
-        self.goals = list()
 
     def load(self, filename, filetype='mdp', scalarize=lambda x: x[0]):
         """ Load a raw Multi-Objective POMDP file given the filename and optionally the file type.
@@ -123,10 +125,12 @@ class MDP(nm.NovaMDP):
 
             k = int(data[0][3])
             self.s0 = int(data[0][4])
-            self.goals = list()
+            self.ng = int(0)
+            self.goals = ct.POINTER(ct.c_uint)()
 
             self.horizon = int(data[0][5])
             self.gamma = float(data[0][6])
+            self.epsilon = float(0.01)
 
             # Functions to convert flattened NumPy arrays to C arrays.
             array_type_nmns_int = ct.c_int * (self.n * self.m * self.ns)
@@ -211,7 +215,7 @@ class MDP(nm.NovaMDP):
         result += "m:       " + str(self.m) + "\n"
         result += "ns:      " + str(self.ns) + "\n"
         result += "s0:      " + str(self.s0) + "\n"
-        result += "goals:   " + str(self.goals) + "\n"
+        result += "goals:   " + str([self.goals[i] for i in range(self.k)]) + "\n"
         result += "horizon: " + str(self.horizon) + "\n"
         result += "gamma:   " + str(self.gamma) + "\n\n"
 

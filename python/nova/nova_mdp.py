@@ -47,6 +47,10 @@ class NovaMDP(ct.Structure):
                 ("m", ct.c_uint),
                 ("gamma", ct.c_float),
                 ("horizon", ct.c_uint),
+                ("epsilon", ct.c_float),
+                ("s0", ct.c_uint),
+                ("ng", ct.c_uint),
+                ("goals", ct.POINTER(ct.c_uint)),
                 ("S", ct.POINTER(ct.c_int)),
                 ("T", ct.POINTER(ct.c_float)),
                 ("R", ct.POINTER(ct.c_float)),
@@ -54,12 +58,16 @@ class NovaMDP(ct.Structure):
                 ("V", ct.POINTER(ct.c_float)),
                 ("VPrime", ct.POINTER(ct.c_float)),
                 ("pi", ct.POINTER(ct.c_uint)),
+                ("ne", ct.c_uint),
+                ("expanded", ct.POINTER(ct.c_int)),
+                ("d_goals", ct.POINTER(ct.c_uint)),
                 ("d_S", ct.POINTER(ct.c_int)),
                 ("d_T", ct.POINTER(ct.c_float)),
                 ("d_R", ct.POINTER(ct.c_float)),
                 ("d_V", ct.POINTER(ct.c_float)),
                 ("d_VPrime", ct.POINTER(ct.c_float)),
                 ("d_pi", ct.POINTER(ct.c_uint)),
+                ("d_expanded", ct.POINTER(ct.c_int)),
                 ]
 
 

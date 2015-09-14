@@ -42,10 +42,10 @@ void mdp_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, flo
     float Qsa;
 
     // The index within S and T (i.e., in n*s*ns).
-    int index;
+    int sIndex;
 
     // The true successor state index (in 0 to n-1), resolved using S.
-    int spindex;
+    int spIndex;
 
     for (unsigned int s = 0; s < n; s++) {
         VPrime[s] = -FLT_MAX;
@@ -56,14 +56,14 @@ void mdp_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, flo
             Qsa = R[s * m + a];
 
             for (int sp = 0; sp < ns; sp++) {
-                index = s * m * ns + a * ns + sp;
+                sIndex = s * m * ns + a * ns + sp;
 
-                spindex = S[index];
-                if (spindex < 0) {
+                spIndex = S[sIndex];
+                if (spIndex < 0) {
                     break;
                 }
 
-                Qsa += gamma * T[index] * V[spindex];
+                Qsa += gamma * T[sIndex] * V[spIndex];
             }
 
             if (a == 0 || Qsa > VPrime[s]) {

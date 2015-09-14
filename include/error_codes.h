@@ -27,20 +27,20 @@
 
 
 // Successes
-#define NOVA_SUCCESS                        0
+#define NOVA_SUCCESS                                0
 
 // Critical errors due to POMDP model, the CPU, or the GPU.
-#define NOVA_ERROR_INVALID_DATA             1
-#define NOVA_ERROR_INVALID_CUDA_PARAM       2
-#define NOVA_ERROR_DEVICE_MALLOC            3
-#define NOVA_ERROR_MEMCPY_TO_DEVICE         4
-#define NOVA_ERROR_MEMCPY_TO_HOST           5
-#define NOVA_ERROR_DEVICE_FREE              6
-#define NOVA_ERROR_KERNEL_EXECUTION         7
-#define NOVA_ERROR_DEVICE_SYNCHRONIZE       8
+#define NOVA_ERROR_INVALID_DATA                     1
+#define NOVA_ERROR_INVALID_CUDA_PARAM               2
+#define NOVA_ERROR_DEVICE_MALLOC                    3
+#define NOVA_ERROR_MEMCPY_TO_DEVICE                 4
+#define NOVA_ERROR_MEMCPY_TO_HOST                   5
+#define NOVA_ERROR_DEVICE_FREE                      6
+#define NOVA_ERROR_KERNEL_EXECUTION                 7
+#define NOVA_ERROR_DEVICE_SYNCHRONIZE               8
 
 // Other warnings which are possible during run time.
-#define NOVA_WARNING_INVALID_BELIEF         9
+#define NOVA_WARNING_INVALID_BELIEF                 9
 
 
 #endif // NOVA_ERROR_CODES_H
