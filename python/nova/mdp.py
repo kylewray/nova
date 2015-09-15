@@ -125,14 +125,14 @@ class MDP(nm.NovaMDP):
 
             k = int(data[0][3])
             self.s0 = int(data[0][4])
-            self.ng = int(0)
-            self.goals = ct.POINTER(ct.c_uint)()
+            self.ng = int(data[0][5])
 
-            self.horizon = int(data[0][5])
-            self.gamma = float(data[0][6])
+            self.horizon = int(data[0][6])
+            self.gamma = float(data[0][7])
             self.epsilon = float(0.01)
 
             # Functions to convert flattened NumPy arrays to C arrays.
+            array_type_ng_uint = ct.c_uint * (self.ng)
             array_type_nmns_int = ct.c_int * (self.n * self.m * self.ns)
             array_type_nmns_float = ct.c_float * (self.n * self.m * self.ns)
             array_type_nm_float = ct.c_float * (self.n * self.m)
@@ -140,18 +140,21 @@ class MDP(nm.NovaMDP):
             # Load each of the larger data structures into memory and immediately
             # convert them to their C object type to save memory.
             rowOffset = 1
+            self.goals = array_type_ng_uint(*np.array([data[rowOffset][s] for s in range(self.ng)]).flatten())
+
+            rowOffset = 2
             self.S = array_type_nmns_int(*np.array([[[int(data[(self.n * a + s) + rowOffset][sp]) \
                                 for sp in range(self.ns)] \
                             for a in range(self.m)] \
                         for s in range(self.n)]).flatten())
 
-            rowOffset = 1 + self.n * self.m
+            rowOffset = 2 + self.n * self.m
             self.T = array_type_nmns_float(*np.array([[[float(data[(self.n * a + s) + rowOffset][sp]) \
                                 for sp in range(self.ns)] \
                             for a in range(self.m)] \
                         for s in range(self.n)]).flatten())
 
-            rowOffset = 1 + self.n * self.m + self.n * self.m
+            rowOffset = 2 + self.n * self.m + self.n * self.m
             self.R = array_type_nm_float(*scalarize(np.array([[[float(data[(self.m * i + a) + rowOffset][s])
                                 for a in range(self.m)] \
                             for s in range(self.n)] \
@@ -164,11 +167,18 @@ class MDP(nm.NovaMDP):
             print("Failed to load file '%s'." % (filename))
             raise Exception()
 
-    def solve(self, numThreads=1024):
+    def solve(self, algorithm='vi', process='gpu', numThreads=1024, epsilon=float(0.01), heuristic=None):
         """ Solve the MDP using the nova Python wrapper.
 
             Parameters:
+                algorithm   --  The algorithm to use, either 'vi' or 'lao*'. Default is 'vi'.
+                process     --  Use the 'cpu' or 'gpu'. If 'gpu' fails, it tries 'cpu'. Default is 'gpu'.
                 numThreads  --  The number of CUDA threads to execute (multiple of 32). Default is 1024.
+                epsilon     --  The optional error of the value function. Default is 0.01.
+                                If algorithm is 'vi', then it changes the horizon.
+                                If algorithm is 'lao*', then it also sets the epsilon for convergence tests.
+                heuristic   --  For 'lao*', this function or list maps state indexes to heuristic values.
+                                Optional. Default value is None.
 
             Returns:
                 V   --  The values of each state, mapping states to values.
@@ -179,6 +189,8 @@ class MDP(nm.NovaMDP):
         V = np.array([0.0 for s in range(self.n)])
         #if self.gamma < 1.0:
         #    V = np.array([float(self.Rmin / (1.0 - self.gamma)) for s in range(self.n)])
+        if heuristic is not None:
+            V = np.array([float(heuristic[s]) for s in range(self.n)])
         pi = np.array([0 for s in range(self.n)])
 
         # Create functions to convert flattened NumPy arrays to C arrays.
@@ -215,7 +227,7 @@ class MDP(nm.NovaMDP):
         result += "m:       " + str(self.m) + "\n"
         result += "ns:      " + str(self.ns) + "\n"
         result += "s0:      " + str(self.s0) + "\n"
-        result += "goals:   " + str([self.goals[i] for i in range(self.k)]) + "\n"
+        result += "goals:   " + str([self.goals[i] for i in range(self.ng)]) + "\n"
         result += "horizon: " + str(self.horizon) + "\n"
         result += "gamma:   " + str(self.gamma) + "\n\n"
 

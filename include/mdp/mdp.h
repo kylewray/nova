@@ -66,6 +66,7 @@ typedef struct NovaMDP {
 
     float gamma;
     unsigned int horizon;
+    float epsilon;
 
     unsigned int s0;
     unsigned int ng;
@@ -82,6 +83,7 @@ typedef struct NovaMDP {
     float *VPrime;
     unsigned int *pi;
 
+    unsigned int ne;
     int *expanded;
 
     unsigned int *d_goals;

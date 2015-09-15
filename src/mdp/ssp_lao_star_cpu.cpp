@@ -22,11 +22,13 @@
  */
 
 
-#include "mdp_vi_cpu.h"
+#include "ssp_lao_star_cpu.h"
 #include "error_codes.h"
 
 #include <stdio.h>
 #include <cstring>
+#include <cmath>
+#include <algorithm>
 
 
 // This is determined by hardware, so what is below is a 'safe' guess. If this is
@@ -118,7 +120,7 @@ int ssp_lao_star_expand_cpu(MDP *mdp, unsigned int *numNewlyExpandedStates)
 
     // Create a fringe state list (stack) variable, with just state s0.
     unsigned int nf = 1;
-    unsigned int fringe = new unsigned int[mdp->n];
+    unsigned int *fringe = new unsigned int[mdp->n];
     fringe[0] = mdp->s0;
 
     *numNewlyExpandedStates = 0;
@@ -156,7 +158,7 @@ int ssp_lao_star_expand_cpu(MDP *mdp, unsigned int *numNewlyExpandedStates)
 
         // Add all of its children to the fringe and the overall set of expanded states.
         for (unsigned int i = 0; i < mdp->ns; i++) {
-            unsigned int sp = mdp->S[s * m * ns + a * ns + i];
+            int sp = mdp->S[s * mdp->m * mdp->ns + mdp->pi[s] * mdp->ns + i];
             if (sp < 0) {
                 break;
             }
@@ -198,41 +200,39 @@ int ssp_lao_star_check_convergence_cpu(MDP *mdp, bool *converged, bool *nonExpan
 
         // We oscillate between V and VPrime depending on the step.
         if (mdp->currentHorizon % 2 == 0) {
-            ssp_lao_star_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma,
-                                            mdp->S, mdp->T, mdp->R, mdp->V,
-                                            mdp->ne, mdp->expanded,
-                                            s,
-                                            mdp->VPrime, mdp->pi);
+            ssp_lao_star_bellman_update_state_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma,
+                                                mdp->S, mdp->T, mdp->R, mdp->V,
+                                                mdp->ne, mdp->expanded,
+                                                s,
+                                                mdp->VPrime, mdp->pi);
         } else {
             ssp_lao_star_bellman_update_state_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma,
-                                            mdp->S, mdp->T, mdp->R, mdp->VPrime,
-                                            mdp->ne, mdp->expanded,
-                                            s,
-                                            mdp->V, mdp->pi);
+                                                mdp->S, mdp->T, mdp->R, mdp->VPrime,
+                                                mdp->ne, mdp->expanded,
+                                                s,
+                                                mdp->V, mdp->pi);
         }
 
         // If the action changed, then we must check if it has a successor that is not expanded yet.
         // If this is the case, then we return with a non-expanded tip state found.
-        if (a != pi[s]) {
+        if (a != mdp->pi[s]) {
             for (unsigned int j = 0; j < mdp->ns; j++) {
-                unsigned int sp = mdp->S[s * a * ns + pi[s] * ns + j];
+                unsigned int sp = mdp->S[s * a * mdp->ns + mdp->pi[s] * mdp->ns + j];
                 if (sp < 0) {
                     break;
                 }
 
                 if (mdp->V[sp] < 0.0f && mdp->VPrime[sp] < 0.0f) {
                     *nonExpandedTipStateFound = true;
-                    return;
+                    return NOVA_SUCCESS;
                 }
             }
         }
     }
 
     // Compute the Bellman residual and determine if it converged or not.
-    ssp_lao_star_bellman_residual_cpu(mdp->n, mdp->ne, mdp->expanded, mdp->epsilon, mdp->V, mdp->VPrime, converged);
-
-    // Determine if any actions would lead to successors that are not in the set of expanded states (not visited).
-    //ssp_lao_star_check_all_tip_states_visited(mdp->ns, mdp->S, mdp->ne, mdp->expanded, mdp->V, mdp->VPrime, nonExpandedTipStateFound);
+    ssp_lao_star_bellman_residual_cpu(mdp->ne, mdp->expanded, mdp->epsilon,
+                                    mdp->V, mdp->VPrime, converged);
 
     mdp->currentHorizon++;
 
@@ -250,7 +250,7 @@ int ssp_lao_star_complete_cpu(MDP *mdp, float *V, unsigned int *pi)
 }
 
 
-int ssp_lap_star_initialize_cpu(MDP *mdp, float *V)
+int ssp_lao_star_initialize_cpu(MDP *mdp, float *V)
 {
     // Reset the current horizon.
     mdp->currentHorizon = 0;
@@ -260,7 +260,7 @@ int ssp_lap_star_initialize_cpu(MDP *mdp, float *V)
     mdp->VPrime = new float[mdp->n];
     mdp->pi = new unsigned int[mdp->n];
 
-    mdp->ne = 0
+    mdp->ne = 0;
     mdp->expanded = new int[mdp->n];
 
     // Copy the data from the V provided, and set default values for pi.
@@ -292,7 +292,7 @@ int ssp_lao_star_execute_cpu(MDP *mdp, float *V, unsigned int *pi)
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    result = ssp_lao_star_initialize_cpu(mdp);
+    result = ssp_lao_star_initialize_cpu(mdp, V);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n", "Failed to initialize the CPU variables.");
         return result;

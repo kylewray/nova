@@ -37,17 +37,17 @@ numBeliefSteps = 3
 
 
 files = [
+        {'name': "tiger", 'filename': "domains/tiger_95.pomdp", 'filetype': "pomdp", 'beliefStepSize': 16},
+        {'name': "grid-4x3", 'filename': "domains/4x3_95.pomdp", 'filetype': "pomdp", 'beliefStepSize': 32},
+        {'name': "tiger-grid", 'filename': "domains/tiger_grid.pomdp", 'filetype': "pomdp", 'beliefStepSize': 128},
+        {'name': "hallway2", 'filename': "domains/hallway2.pomdp", 'filetype': "pomdp", 'beliefStepSize': 256},
+        {'name': "tag", 'filename': "domains/tag.pomdp", 'filetype': "pomdp", 'beliefStepSize': 256},
+        #{'name': "rock-sample (7x8)", 'filename': "domains/rockSample_7_8.pomdp", 'filetype': "pomdp", 'beliefStepSize': 256},
+        #{'name': "auv-navigation", 'filename': "domains/auvNavigation.pomdp", 'filetype': "pomdp", 'beliefStepSize': 256},
         #{'name': "drive_san_francisco", 'filename': "domains/drive_san_francisco.pomdp", 'filetype': "pomdp", 'beliefStepSize': 256},
         #{'name': "drive_seattle", 'filename': "domains/drive_seattle.pomdp", 'filetype': "pomdp", 'beliefStepSize': 512},
         #{'name': "drive_new_york_city", 'filename': "domains/drive_new_york_city.pomdp", 'filetype': "pomdp", 'beliefStepSize': 1024},
         #{'name': "drive_boston", 'filename': "domains/drive_boston.pomdp", 'filetype': "pomdp", 'beliefStepSize': 2048},
-        #{'name': "tiger", 'filename': "domains/tiger_95.pomdp", 'filetype': "pomdp", 'beliefStepSize': 16},
-        #{'name': "grid-4x3", 'filename': "domains/4x3_95.pomdp", 'filetype': "pomdp", 'beliefStepSize': 32},
-        #{'name': "tiger-grid", 'filename': "domains/tiger_grid.pomdp", 'filetype': "pomdp", 'beliefStepSize': 128},
-        #{'name': "hallway2", 'filename': "domains/hallway2.pomdp", 'filetype': "pomdp", 'beliefStepSize': 256},
-        #{'name': "tag", 'filename': "domains/tag.pomdp", 'filetype': "pomdp", 'beliefStepSize': 256},
-        {'name': "rock-sample (7x8)", 'filename': "domains/rockSample_7_8.pomdp", 'filetype': "pomdp", 'beliefStepSize': 256},
-        {'name': "auv-navigation", 'filename': "domains/auvNavigation.pomdp", 'filetype': "pomdp", 'beliefStepSize': 256},
         ]
 
 timings = {f['name']: {'cpu': [0.0 for j in range(numBeliefSteps)],

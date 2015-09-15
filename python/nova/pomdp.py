@@ -511,8 +511,11 @@ class POMDP(npm.NovaPOMDP):
             self.rz = int(data[0][5])
             self.k = int(data[0][6])
 
-            self.horizon = int(data[0][7])
-            self.gamma = float(data[0][8])
+            # Future Applications: You can use this to create an initial belief b0 for any simulations.
+            s0 = int(data[0][7])
+
+            self.horizon = int(data[0][8])
+            self.gamma = float(data[0][9])
 
             # Functions to convert flattened NumPy arrays to C arrays.
             array_type_nmns_int = ct.c_int * (self.n * self.m * self.ns)

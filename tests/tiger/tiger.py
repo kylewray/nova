@@ -32,9 +32,9 @@ from nova.pomdp import *
 
 
 files = [
-        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'expand': None},
-        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'expand': "random"},
-        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'expand': "distinct_beliefs"},
+        {'filename': "tiger_pomdp.raw", 'filetype': "raw", 'expand': None},
+        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'expand': "random"},
+        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'expand': "distinct_beliefs"},
         {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'expand': "pema"},
         ]
 

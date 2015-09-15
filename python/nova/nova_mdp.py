@@ -80,3 +80,7 @@ _nova.mdp_vi_complete_gpu.argtypes = (ct.POINTER(NovaMDP),
                                     ct.POINTER(ct.c_float), # V
                                     ct.POINTER(ct.c_uint))  # pi
 
+_nova.ssp_lao_star_complete_cpu.argtypes = (ct.POINTER(NovaMDP),
+                                    ct.POINTER(ct.c_float), # V
+                                    ct.POINTER(ct.c_uint))  # pi
+
