@@ -20,11 +20,14 @@
     CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-import ctypes as ct
 import os
 import sys
-import csv
+import time
+
+import ctypes as ct
 import numpy as np
+
+import csv
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import nova_mdp as nm
@@ -140,7 +143,7 @@ class MDP(nm.NovaMDP):
             # Load each of the larger data structures into memory and immediately
             # convert them to their C object type to save memory.
             rowOffset = 1
-            self.goals = array_type_ng_uint(*np.array([data[rowOffset][s] for s in range(self.ng)]).flatten())
+            self.goals = array_type_ng_uint(*np.array([int(data[rowOffset][s]) for s in range(self.ng)]).flatten())
 
             rowOffset = 2
             self.S = array_type_nmns_int(*np.array([[[int(data[(self.n * a + s) + rowOffset][sp]) \
@@ -181,8 +184,9 @@ class MDP(nm.NovaMDP):
                                 Optional. Default value is None.
 
             Returns:
-                V   --  The values of each state, mapping states to values.
-                pi  --  The policy, mapping states to actions.
+                V       --  The values of each state, mapping states to values.
+                pi      --  The policy, mapping states to actions.
+                timing  --  A pair (wall-time, cpu-time) for solver execution time, not including (un)initialization.
         """
 
         # Create V and pi, assigning them their respective initial values.
@@ -198,23 +202,50 @@ class MDP(nm.NovaMDP):
         array_type_n_uint = ct.c_uint * self.n
 
         # Create C arrays for the result.
-        VResult = array_type_n_float(*V)
-        piResult = array_type_n_uint(*pi)
+        V = array_type_n_float(*V)
+        pi = array_type_n_uint(*pi)
 
-        # Solve the MDP using the nova library and return the solution. If it
-        # fails to use the GPU version, then it tries the CPU version.
-        result = nm._nova.mdp_vi_complete_gpu(self, int(numThreads), VResult, piResult)
-        if result != 0:
-            result = nm._nova.mdp_vi_complete_cpu(self, VResult, piResult)
+        timing = None
+
+        # If the process is 'gpu', then attempt to solve it. If an error arises, then
+        # assign process to 'cpu' and attempt to solve it using that.
+        if process == 'gpu':
+            if algorithm == 'vi':
+                timing = (time.time(), time.clock())
+                result = nm._nova.mdp_vi_complete_gpu(self, int(numThreads), V, pi)
+                timing = (time.time() - timing[0], time.clock() - timing[1])
+            elif algorithm == 'lao*':
+                timing = (time.time(), time.clock())
+                result = nm._nova.ssp_lao_star_complete_gpu(self, int(numThreads), V, pi)
+                timing = (time.time() - timing[0], time.clock() - timing[1])
+
+            if result != 0:
+                print("Failed execute the 'nova' library's GPU MDP solver.")
+                process = 'cpu'
+
+        # If the process is 'cpu', then attempt to solve it.
+        if process == 'cpu':
+            if algorithm == 'vi':
+                timing = (time.time(), time.clock())
+                result = nm._nova.mdp_vi_complete_cpu(self, V, pi)
+                timing = (time.time() - timing[0], time.clock() - timing[1])
+            elif algorithm == 'lao*':
+                timing = (time.time(), time.clock())
+                result = nm._nova.ssp_lao_star_complete_cpu(self, V, pi)
+                timing = (time.time() - timing[0], time.clock() - timing[1])
+
+            if result != 0:
+                print("Failed execute the 'nova' library's CPU MDP solver.")
+                raise Exception()
 
         if result == 0:
-            V = np.array([VResult[i] for i in range(self.n)])
-            pi = np.array([piResult[i] for i in range(self.n)])
+            V = np.array([V[i] for i in range(self.n)])
+            pi = np.array([pi[i] for i in range(self.n)])
         else:
             print("Failed to solve MDP using the 'nova' library.")
             raise Exception()
 
-        return V, pi
+        return V, pi, timing
 
     def __str__(self):
         """ Return the string of the MDP values akin to the raw file format.

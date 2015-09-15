@@ -23,6 +23,8 @@
 import os
 import sys
 
+import itertools as it
+
 thisFilePath = os.path.dirname(os.path.realpath(__file__))
 
 sys.path.append(os.path.join(thisFilePath, "..", "..", "python"))
@@ -30,22 +32,47 @@ from nova.mdp import *
 from nova.pomdp import *
 
 
-gridWorldFile = os.path.join(thisFilePath, "grid_world_mdp.raw")
-gridWorld = MDP()
-gridWorld.load(gridWorldFile, filetype='raw')
-print(gridWorld)
+trials = [
+         #{'name': "VI CPU", 'filename': "grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 4, 'h': 3},
+         #{'name': "VI GPU", 'filename': "grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 4, 'h': 3},
+         #{'name': "LAO* CPU", 'filename': "grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 4, 'h': 3},
 
-V, pi = gridWorld.solve()
-print(V)
-print(pi)
+         #{'name': "VI CPU (Intense)", 'filename': "intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 50, 'h': 50},
+         #{'name': "VI GPU (Intense)", 'filename': "intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 50, 'h': 50},
+         #{'name': "LAO* CPU (Intense)", 'filename': "intense_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 50, 'h': 50},
+
+         {'name': "VI CPU (Massive)", 'filename': "massive_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 75, 'h': 75},
+         {'name': "VI GPU (Massive)", 'filename': "massive_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 75, 'h': 75},
+         {'name': "LAO* CPU (Massive)", 'filename': "massive_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 75, 'h': 75},
+
+         #{'name': "PBVI CPU", 'filename': "grid_world_pomdp.raw", 'filetype': "raw", 'algorithm': "pbvi", 'process': "cpu", 'w': 4, 'h': 3},
+         #{'name': "PBVI GPU", 'filename': "grid_world_pomdp.raw", 'filetype': "raw", 'algorithm': "pbvi", 'process': "gpu", 'w': 4, 'h': 3},
+         ]
 
 
-gridWorldFile = os.path.join(thisFilePath, "grid_world_pomdp.raw")
-gridWorld = POMDP()
-gridWorld.load(gridWorldFile, filetype='raw')
-print(gridWorld)
+for trial in trials:
+    print(trial['name'])
 
-Gamma, pi, timing = gridWorld.solve()
-print(Gamma)
-print(pi)
+    gridWorldFile = os.path.join(thisFilePath, trial['filename'])
+    gridWorld = MDP()
+    gridWorld.load(gridWorldFile, filetype=trial['filetype'])
+    #print(gridWorld)
+
+    # The heuristic (admissible) is the manhattan distance to the goal, which is always the upper right corner.
+    #h = np.array([abs(y) + abs(trial['w'] - 1 - x) for y, x in it.product(range(trial['h']), range(trial['w']))] + [0.0]).flatten()
+    h = np.array([0.0 for s in range(gridWorld.n)])
+
+    V, pi, timing = gridWorld.solve(algorithm=trial['algorithm'], process=trial['process'], epsilon=0.01, heuristic=h)
+    print(V)
+    print(pi.tolist())
+
+
+#gridWorldFile = os.path.join(thisFilePath, "grid_world_pomdp.raw")
+#gridWorld = POMDP()
+#gridWorld.load(gridWorldFile, filetype='raw')
+#print(gridWorld)
+
+#Gamma, pi, timing = gridWorld.solve()
+#print(Gamma)
+#print(pi)
 
