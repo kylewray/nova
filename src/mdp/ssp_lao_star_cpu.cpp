@@ -376,7 +376,7 @@ int ssp_lao_star_execute_cpu(MDP *mdp, float *V, unsigned int *pi)
         }
 
         // If we converged (or simply ran out of time) and all expanded tip states were valid, then we are done.
-        if (!nonExpandedTipStateFound) {
+        if ((converged && !nonExpandedTipStateFound) || mdp->currentHorizon < mdp->horizon) {
             running = false;
         }
     }

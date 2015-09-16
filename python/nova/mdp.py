@@ -181,7 +181,7 @@ class MDP(nm.NovaMDP):
                                 If algorithm is 'vi', then it changes the horizon.
                                 If algorithm is 'lao*', then it also sets the epsilon for convergence tests.
                 heuristic   --  For 'lao*', this function or list maps state indexes to heuristic values.
-                                Optional. Default value is None.
+                                Optional. Default value is None, yielding an n-array of zeros.
 
             Returns:
                 V       --  The values of each state, mapping states to values.
@@ -193,8 +193,6 @@ class MDP(nm.NovaMDP):
         V = np.array([0.0 for s in range(self.n)])
         #if self.gamma < 1.0:
         #    V = np.array([float(self.Rmin / (1.0 - self.gamma)) for s in range(self.n)])
-        if heuristic is not None:
-            V = np.array([float(heuristic[s]) for s in range(self.n)])
         pi = np.array([0 for s in range(self.n)])
 
         # Create functions to convert flattened NumPy arrays to C arrays.
@@ -204,6 +202,10 @@ class MDP(nm.NovaMDP):
         # Create C arrays for the result.
         V = array_type_n_float(*V)
         pi = array_type_n_uint(*pi)
+
+        # For informed search algorithms, define the heuristic, which is stored in V initially.
+        if algorithm == 'lao*' and heuristic is not None:
+            self.V = array_type_n_float(*np.array([float(heuristic[s]) for s in range(self.n)]))
 
         timing = None
 
