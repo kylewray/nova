@@ -60,7 +60,7 @@ __global__ void pomdp_pbvi_compute_alphaBA_gpu(unsigned int n, unsigned int ns, 
 {
     // Since float and unsigned int are 4 bytes each, and we need each array to be the size of
     // the number of threads, we will need to call this with:
-    // sizeof(float) * numThreads + sizeof(unsigned int * numThreads.
+    // sizeof(float) * numThreads + sizeof(unsigned int) * numThreads.
     // Note: blockDim.x == numThreads
     extern __shared__ float sdata[];
     float *maxAlphaDotBeta = (float *)sdata;

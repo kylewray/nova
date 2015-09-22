@@ -60,7 +60,7 @@ int pomdp_uninitialize_successors_gpu(POMDP *pomdp)
     if (pomdp->d_S != nullptr) {
         if (cudaFree(pomdp->d_S) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_uninitialize_successors_gpu]: %s\n",
-                    "Failed to allocate device-side memory for the successor states.");
+                    "Failed to free device-side memory for the successor states.");
             return NOVA_ERROR_DEVICE_FREE;
         }
     }
@@ -101,7 +101,7 @@ int pomdp_uninitialize_state_transitions_gpu(POMDP *pomdp)
     if (pomdp->d_T != nullptr) {
         if (cudaFree(pomdp->d_T) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_uninitialize_state_transitions_gpu]: %s\n",
-                    "Failed to allocate device-side memory for the state transitions.");
+                    "Failed to free device-side memory for the state transitions.");
             return NOVA_ERROR_DEVICE_FREE;
         }
     }
@@ -142,7 +142,7 @@ int pomdp_uninitialize_observation_transitions_gpu(POMDP *pomdp)
     if (pomdp->d_O != nullptr) {
         if (cudaFree(pomdp->d_O) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_uninitialize_observation_transitions_gpu]: %s\n",
-                    "Failed to allocate device-side memory for the observation transitions.");
+                    "Failed to free device-side memory for the observation transitions.");
             return NOVA_ERROR_DEVICE_FREE;
         }
     }
@@ -183,7 +183,7 @@ int pomdp_uninitialize_rewards_gpu(POMDP *pomdp)
     if (pomdp->d_R != nullptr) {
         if (cudaFree(pomdp->d_R) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_uninitialize_rewards_gpu]: %s\n",
-                    "Failed to allocate device-side memory for the rewards.");
+                    "Failed to free device-side memory for the rewards.");
             return NOVA_ERROR_DEVICE_FREE;
         }
     }
@@ -225,7 +225,7 @@ int pomdp_uninitialize_nonzero_beliefs_gpu(POMDP *pomdp)
     if (pomdp->d_Z != nullptr) {
         if (cudaFree(pomdp->d_Z) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_uninitialize_nonzero_beliefs_gpu]: %s\n",
-                    "Failed to allocate device-side memory for the non-zero belief states.");
+                    "Failed to free device-side memory for the non-zero belief states.");
             return NOVA_ERROR_DEVICE_FREE;
         }
     }
@@ -266,7 +266,7 @@ int pomdp_uninitialize_belief_points_gpu(POMDP *pomdp)
     if (pomdp->d_B != nullptr) {
         if (cudaFree(pomdp->d_B) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_uninitialize_belief_points_gpu]: %s\n",
-                    "Failed to allocate device-side memory for the belief points.");
+                    "Failed to free device-side memory for the belief points.");
             return NOVA_ERROR_DEVICE_FREE;
         }
     }

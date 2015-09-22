@@ -222,7 +222,7 @@ class MDP(nm.NovaMDP):
                 timing = (time.time() - timing[0], time.clock() - timing[1])
 
             if result != 0:
-                print("Failed execute the 'nova' library's GPU MDP solver.")
+                print("Failed to execute the 'nova' library's GPU MDP solver.")
                 process = 'cpu'
 
         # If the process is 'cpu', then attempt to solve it.
@@ -237,7 +237,7 @@ class MDP(nm.NovaMDP):
                 timing = (time.time() - timing[0], time.clock() - timing[1])
 
             if result != 0:
-                print("Failed execute the 'nova' library's CPU MDP solver.")
+                print("Failed to execute the 'nova' library's CPU MDP solver.")
                 raise Exception()
 
         if result == 0:

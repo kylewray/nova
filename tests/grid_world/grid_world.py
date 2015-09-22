@@ -60,8 +60,8 @@ for trial in trials:
     #print(gridWorld)
 
     # The heuristic (admissible) is the manhattan distance to the goal, which is always the upper right corner.
-    #h = np.array([abs(y) + abs(trial['w'] - 1 - x) for y, x in it.product(range(trial['h']), range(trial['w']))] + [0.0]).flatten()
-    h = np.array([0.0 for s in range(gridWorld.n)])
+    h = np.array([abs(y) + abs(trial['w'] - 1 - x) for y, x in it.product(range(trial['h']), range(trial['w']))] + [0.0]).flatten()
+    #h = np.array([0.0 for s in range(gridWorld.n)])
 
     V, pi, timing = gridWorld.solve(algorithm=trial['algorithm'], process=trial['process'], epsilon=0.01, heuristic=h)
     #print([[V[y * trial['w'] + x] for x in range(trial['w'])] for y in range(trial['h'])])

@@ -60,7 +60,7 @@ int mdp_uninitialize_successors_gpu(MDP *mdp)
     if (mdp->d_S != nullptr) {
         if (cudaFree(mdp->d_S) != cudaSuccess) {
             fprintf(stderr, "Error[mdp_uninitialize_successors_gpu]: %s\n",
-                    "Failed to allocate device-side memory for the successor states.");
+                    "Failed to free device-side memory for the successor states.");
             return NOVA_ERROR_DEVICE_FREE;
         }
     }
@@ -101,7 +101,7 @@ int mdp_uninitialize_state_transitions_gpu(MDP *mdp)
     if (mdp->d_T != nullptr) {
         if (cudaFree(mdp->d_T) != cudaSuccess) {
             fprintf(stderr, "Error[mdp_uninitialize_state_transitions_gpu]: %s\n",
-                    "Failed to allocate device-side memory for the state transitions.");
+                    "Failed to free device-side memory for the state transitions.");
             return NOVA_ERROR_DEVICE_FREE;
         }
     }
@@ -142,7 +142,7 @@ int mdp_uninitialize_rewards_gpu(MDP *mdp)
     if (mdp->d_R != nullptr) {
         if (cudaFree(mdp->d_R) != cudaSuccess) {
             fprintf(stderr, "Error[mdp_uninitialize_rewards_gpu]: %s\n",
-                    "Failed to allocate device-side memory for the rewards.");
+                    "Failed to free device-side memory for the rewards.");
             return NOVA_ERROR_DEVICE_FREE;
         }
     }
