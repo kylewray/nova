@@ -35,13 +35,15 @@ bool pomdp_sigma_pair_comparator_cpu(const SigmaPair &bl, const SigmaPair &br)
 }
 
 
-int pomdp_sigma_cpu(POMDP *pomdp, unsigned int rz, float *Bnew, int *Znew)
+int pomdp_sigma_cpu(POMDP *pomdp, unsigned int rz, float *Bnew, int *Znew, float *sigma)
 {
     // Ensure valid input.
     if (rz == 0 || Bnew == nullptr || Znew == nullptr) {
         fprintf(stderr, "Error[pomdp_sigma_cpu]: %s\n", "Invalid data.");
         return NOVA_ERROR_INVALID_DATA;
     }
+
+    *sigma = 1.0;
 
     // Note: We assume Bnew has been created to be an r-rz array (the *new* rz provided).
 
@@ -52,27 +54,56 @@ int pomdp_sigma_cpu(POMDP *pomdp, unsigned int rz, float *Bnew, int *Znew)
         // Construct the belief point and sort, remembering the original indexes.
         std::vector<SigmaPair> b;
         for (unsigned int k = 0; k < pomdp->rz; k++) {
-            b.push_back(SigmaPair(pomdp->B[i * pomdp->rz + k], k));
+            b.push_back(SigmaPair(pomdp->B[i * pomdp->rz + k], pomdp->Z[i * pomdp->rz + k]));
         }
 
         std::sort(b.begin(), b.end(), pomdp_sigma_pair_comparator_cpu);
 
+        /*
+        printf("b[i] = ");
+        for (unsigned int k = 0; k < pomdp->rz; k++) {
+            printf("%.3f, ", pomdp->B[i * pomdp->rz + k]);
+        }
+        printf("\n");
+
+        printf("sorted{B[i]} = ");
+        for (unsigned int k = 0; k < pomdp->rz; k++) {
+            printf("<%.3f, %i>, ", b[k].first, b[k].second);
+        }
+        printf("\n");
+        //*/
+
         // Compute the normalization constant (sigma_b).
-        float sigma = 0.0f;
+        float sigmab = 0.0f;
         for (unsigned int k = 0; k < rz; k++) {
-            sigma += b[k].first;
+            sigmab += b[k].first;
+        }
+
+        if (sigmab < *sigma) {
+            *sigma = sigmab;
         }
 
         // Take the top rz belief values to construct the new Bnew.
         for (unsigned int k = 0; k < rz; k++) {
             if (b[k].first > 0.0f) {
-                Bnew[i * rz + k] = b[k].first / sigma;
+                Bnew[i * rz + k] = b[k].first / sigmab;
                 Znew[i * rz + k] = b[k].second;
             } else {
                 Bnew[i * rz + k] = 0.0f;
                 Znew[i * rz + k] = -1;
             }
         }
+
+        /*
+        printf("hat{b}[i] = ");
+        for (unsigned int k = 0; k < rz; k++) {
+            printf("%.3f, ", b[k].first);
+        }
+        printf("\n");
+
+        printf("sigma = %.3f\n", sigmab);
+        printf("----------------------------\n");
+        //*/
     }
 
     return NOVA_SUCCESS;

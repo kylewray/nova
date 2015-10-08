@@ -31,41 +31,35 @@ from nova.pomdp import *
 from pylab import *
 
 
-horizon = 10
-numTrials = 1
-numBeliefSteps = 1
+horizon = 50
+numTrials = 10
 
 #processes = ['gpu', 'cpu']
 #processes = ['gpu']
 processes = ['cpu']
 
 files = [
-        {'name': "tiger", 'filename': "domains/tiger_95.pomdp", 'filetype': "pomdp", 'numExpandSteps': 4, 'sigma': False},
-        {'name': "tiger", 'filename': "domains/tiger_95.pomdp", 'filetype': "pomdp", 'numExpandSteps': 4, 'sigma': True},
-        {'name': "grid-4x3", 'filename': "domains/4x3_95.pomdp", 'filetype': "pomdp", 'numExpandSteps': 5, 'sigma': False},
-        {'name': "grid-4x3", 'filename': "domains/4x3_95.pomdp", 'filetype': "pomdp", 'numExpandSteps': 5, 'sigma': True},
-        {'name': "tiger-grid", 'filename': "domains/tiger_grid.pomdp", 'filetype': "pomdp", 'numExpandSteps': 7, 'sigma': False},
-        {'name': "tiger-grid", 'filename': "domains/tiger_grid.pomdp", 'filetype': "pomdp",'numExpandSteps': 7, 'sigma': True},
-        {'name': "hallway2", 'filename': "domains/hallway2.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': False},
-        {'name': "hallway2", 'filename': "domains/hallway2.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': True},
-        {'name': "tag", 'filename': "domains/tag.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': False},
+        #{'name': "tiger", 'filename': "domains/tiger_95.pomdp", 'filetype': "pomdp", 'numExpandSteps': 4, 'sigma': True},
+        #{'name': "shuttle", 'filename': "domains/shuttle_95.pomdp", 'filetype': "pomdp", 'numExpandSteps': 4, 'sigma': True},
+        #{'name': "paint", 'filename': "domains/paint_95.pomdp", 'filetype': "pomdp", 'numExpandSteps': 4, 'sigma': True},
+        #{'name': "grid-4x3", 'filename': "domains/4x3_95.pomdp", 'filetype': "pomdp", 'numExpandSteps': 5, 'sigma': True},
+        #{'name': "tiger-grid", 'filename': "domains/tiger_grid.pomdp", 'filetype': "pomdp",'numExpandSteps': 6, 'sigma': True},
+        #{'name': "aloha-10", 'filename': "domains/aloha_10.pomdp", 'filetype': "pomdp", 'numExpandSteps': 6, 'sigma': True},
+        #{'name': "hallway2", 'filename': "domains/hallway2.pomdp", 'filetype': "pomdp", 'numExpandSteps': 7, 'sigma': True},
+        #{'name': "aloha-30", 'filename': "domains/aloha_30.pomdp", 'filetype': "pomdp", 'numExpandSteps': 7, 'sigma': True},
         {'name': "tag", 'filename': "domains/tag.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': True},
-        {'name': "rock-sample (7x8)", 'filename': "domains/rockSample_7_8.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': False},
-        {'name': "rock-sample (7x8)", 'filename': "domains/rockSample_7_8.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': True},
-        {'name': "auv-navigation", 'filename': "domains/auvNavigation.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': False},
-        {'name': "auv-navigation", 'filename': "domains/auvNavigation.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': True},
-        #{'name': "drive_san_francisco", 'filename': "domains/drive_san_francisco.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': False},
+        {'name': "fourth", 'filename': "domains/fourth.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': True},
+        {'name': "rock-sample (7x8)", 'filename': "domains/rockSample_7_8.pomdp", 'filetype': "pomdp", 'numExpandSteps': 9, 'sigma': True},
+        #{'name': "auv-navigation", 'filename': "domains/auvNavigation.pomdp", 'filetype': "pomdp", 'numExpandSteps': 10, 'sigma': True},
+
         #{'name': "drive_san_francisco", 'filename': "domains/drive_san_francisco.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': True},
-        #{'name': "drive_seattle", 'filename': "domains/drive_seattle.pomdp", 'filetype': "pomdp", 'numExpandSteps': 9, 'sigma': False},
         #{'name': "drive_seattle", 'filename': "domains/drive_seattle.pomdp", 'filetype': "pomdp", 'numExpandSteps': 9, 'sigma': True},
-        #{'name': "drive_new_york_city", 'filename': "domains/drive_new_york_city.pomdp", 'filetype': "pomdp", 'numExpandSteps': 9, 'sigma': False},
         #{'name': "drive_new_york_city", 'filename': "domains/drive_new_york_city.pomdp", 'filetype': "pomdp", 'numExpandSteps': 9, 'sigma': True},
-        #{'name': "drive_boston", 'filename': "domains/drive_boston.pomdp", 'filetype': "pomdp", 'numExpandSteps': 10, 'sigma': False},
         #{'name': "drive_boston", 'filename': "domains/drive_boston.pomdp", 'filetype': "pomdp", 'numExpandSteps': 10, 'sigma': True},
         ]
 
-timings = {f['name']: {'cpu': [0.0 for j in range(numBeliefSteps)],
-                       'gpu': [0.0 for j in range(numBeliefSteps)]} for f in files}
+#rzValuesInRelationToNForSigmaApprox = [1.0, 2.0, 3.0] + [10.0, 30.0] # + [5.0 * (i + 1) for i in range(5)]
+rzValuesInRelationToNForSigmaApprox = [1.0, 3.0, 10.0, 30.0]
 
 
 for f in files:
@@ -85,68 +79,61 @@ for f in files:
             fileSuffix = "_".join([f['name'], p])
 
         with open(os.path.join(thisFilePath, "results", fileSuffix) + ".csv", "w") as out:
-            out.write("n,m,z,r,ns,rz,time,V(b0)\n")
+            out.write("n,m,z,r,ns,rz,time,V(b0),sigma\n")
 
-            for j in range(numBeliefSteps):
-                #print("Belief Step %i (max %i):" % (f['beliefStepSize'] * (j + 1), (f['beliefStepSize'] * numBeliefSteps)))
-                print(".", end='')
-                sys.stdout.flush()
+            valuesToIterateOver = [1.0]
+            if f['sigma']:
+                valuesToIterateOver = rzValuesInRelationToNForSigmaApprox
 
-                pomdp = POMDP()
-                pomdp.load(filename, filetype=f['filetype'])
+            for sigmarz in valuesToIterateOver:
+                for j in range(numTrials):
+                    print(".", end='')
+                    sys.stdout.flush()
 
-                # Store the intial belief from this file.
-                rzOriginal = pomdp.rz
-                b0 = [pomdp.B[0 * pomdp.rz + k] for k in range(pomdp.rz)]
-                z0 = [pomdp.Z[0 * pomdp.rz + k] for k in range(pomdp.rz)]
+                    pomdp = POMDP()
+                    pomdp.load(filename, filetype=f['filetype'])
 
-                # Do the expand step a number of times equal to the number of desired belief steps, and optionally
-                # do the sigma-approximation of belief.
-                for k in range(f['numExpandSteps']):
-                    pomdp.expand(method='distinct_beliefs') #, numBeliefsToAdd=(f['beliefStepSize'] * (j + 1)))
+                    # Store the intial belief from this file.
+                    rzOriginal = pomdp.rz
+                    b0 = [pomdp.B[0 * pomdp.rz + k] for k in range(pomdp.rz)]
+                    z0 = [pomdp.Z[0 * pomdp.rz + k] for k in range(pomdp.rz)]
 
-                if f['sigma']:
-                    #pomdp.sigma_approximate(rz=int(log(pomdp.n) + 1))
-                    pomdp.sigma_approximate(rz=int(pomdp.n / 10 + 1))
+                    # Do the expand step a number of times equal to the number of desired belief steps, and optionally
+                    # do the sigma-approximation of belief.
+                    for k in range(f['numExpandSteps']):
+                        pomdp.expand(method='distinct_beliefs') #, numBeliefsToAdd=(f['beliefStepSize'] * (j + 1)))
 
-                pomdp.h = int(horizon)
+                    # Then do more expansions using random exploration, just for fun.
+                    #pomdp.expand(method='random', numBeliefsToAdd=(pow(2, f['numExpandSteps'] + j)))
 
-                Gamma, piResult, timing = pomdp.solve(process=p)
+                    # Do the sigma-approximation, if desired.
+                    sigma = 1.0
+                    if f['sigma'] and sigmarz > 1.0:
+                        sigma = pomdp.sigma_approximate(rz=min(pomdp.rz, int(pomdp.rz / sigmarz + 1)))
 
-                # Compute the value of the initial belief, stored before doing the sigma approximation.
-                Vb0 = 0.0
-                for k in range(rzOriginal):
-                    s = z0[k]
-                    if s < 0:
-                        break
-                    Vb0 += b0[k] * Gamma[0, s]
+                    pomdp.h = int(horizon)
 
-                # Note: use the time.time() function, which measures wall-clock time.
-                timings[f['name']][p][j] = (float(j) * timings[f['name']][p][j] + timing[0]) / float(j + 1)
+                    #print(pomdp)
 
-                out.write("%i,%i,%i,%i,%i,%i,%.5f,%.5f\n" % (pomdp.n, pomdp.m, pomdp.z, pomdp.r, pomdp.ns, pomdp.rz, timing[0] / float(horizon), Vb0))
+                    Gamma, piResult, timing = pomdp.solve(process=p)
+
+                    # Compute the value of the initial belief, stored before doing the sigma approximation.
+                    Vb0 = pomdp.Rmin / (1.0 - pomdp.gamma)
+                    for q in range(pomdp.r):
+                        Vb0q = 0.0
+
+                        for k in range(rzOriginal):
+                            s = z0[k]
+                            if s < 0:
+                                break
+                            Vb0q += b0[k] * Gamma[q, s]
+
+                        if Vb0 < Vb0q:
+                            Vb0 = Vb0q
+
+                    # Note: use the time.time() function, which measures wall-clock time.
+                    out.write("%i,%i,%i,%i,%i,%i,%.5f,%.5f,%.5f\n" % (pomdp.n, pomdp.m, pomdp.z, pomdp.r, pomdp.ns, pomdp.rz,
+                                                                      timing[0], Vb0, sigma))
 
         print()
-
-
-
-# Plot the results.
-#x = [f['beliefStepSize'] * (j + 1) for j in range(numBeliefSteps)]
-#
-#title("CPU/GPU Execution Time vs. Number of Belief Points")
-#xlabel("Number of Belief Points")
-#ylabel("Execution Time (seconds)")
-#
-#xlim([f['beliefStepSize'], numBeliefSteps * f['beliefStepSize']])
-#xticks(x)
-#
-#hold(True)
-#
-#for f in files:
-#    plot(x, timings[f['name']]['cpu'], label=('%s (CPU)' % f['name']))
-#    plot(x, timings[f['name']]['gpu'], label=('%s (GPU)' % f['name']))
-#
-#legend()
-#
-#show()
 

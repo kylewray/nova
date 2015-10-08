@@ -645,15 +645,21 @@ class POMDP(npm.NovaPOMDP):
 
             Parameters:
                 rz  --  The desired maximal number of non-zero values in the belief vectors.
+            Returns:
+                The sigma = min_{b in B} sigma_b.
         """
 
         array_type_rrz_float = ct.c_float * (self.r * rz)
         array_type_rrz_int = ct.c_int * (self.r * rz)
 
+        array_type_1_float = ct.c_float * (1)
+
         Bnew = array_type_rrz_float(*np.zeros(self.r * rz).astype(float))
         Znew = array_type_rrz_int(*-np.ones(self.r * rz).astype(int))
 
-        result = npm._nova.pomdp_sigma_cpu(self, rz, Bnew, Znew)
+        sigma = array_type_1_float(*np.array([0.0]).astype(float))
+
+        result = npm._nova.pomdp_sigma_cpu(self, rz, Bnew, Znew, sigma)
         if result != 0:
             print("Failed to perform sigma-approximation.")
             raise Exception()
@@ -661,6 +667,8 @@ class POMDP(npm.NovaPOMDP):
         self.rz = rz
         self.B = Bnew
         self.Z = Znew
+
+        return sigma[0]
 
     def solve(self, algorithm='pbvi', process='gpu', numThreads=1024, epsilon=None):
         """ Solve the POMDP using the nova Python wrapper.

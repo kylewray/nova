@@ -36,9 +36,10 @@
  *  @param  rz          The desired maximum number of non-zero values in belief vectors.
  *  @param  Bnew        The new set of belief points after the approximation (r-rz array).
  *  @param  Znew        The new set of state indexes after the approximation (r-rz array).
+ *  @param  sigma       The resultant sigma value.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_sigma_cpu(POMDP *pomdp, unsigned int rz, float *Bnew, int *Znew);
+extern "C" int pomdp_sigma_cpu(POMDP *pomdp, unsigned int rz, float *Bnew, int *Znew, float *sigma);
 
 
 // A quick typedef for comparing beliefs and remembering their indexes.

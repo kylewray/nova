@@ -141,5 +141,6 @@ _nova.pomdp_uninitialize_belief_points_gpu.argtypes = tuple([ct.POINTER(NovaPOMD
 _nova.pomdp_sigma_cpu.argtypes = (ct.POINTER(NovaPOMDP),
                                   ct.c_uint,                # rz (the new desired one)
                                   ct.POINTER(ct.c_float),   # Bnew
-                                  ct.POINTER(ct.c_int))     # Znew
+                                  ct.POINTER(ct.c_int),     # Znew
+                                  ct.POINTER(ct.c_float))   # sigma
 
