@@ -37,12 +37,16 @@ trials = [
          #{'name': "VI GPU", 'filename': "domains/grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 4, 'h': 3},
          #{'name': "LAO* CPU", 'filename': "domains/grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 4, 'h': 3},
 
+         #{'name': "VI CPU (Intense)", 'filename': "domains/another_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 10, 'h': 10},
+         #{'name': "VI GPU (Intense)", 'filename': "domains/another_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 10, 'h': 10},
+         #{'name': "LAO* CPU (Intense)", 'filename': "domains/another_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 10, 'h': 10},
+
          #{'name': "VI CPU (Intense)", 'filename': "domains/intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 50, 'h': 50},
          #{'name': "VI GPU (Intense)", 'filename': "domains/intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 50, 'h': 50},
          #{'name': "LAO* CPU (Intense)", 'filename': "domains/intense_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 50, 'h': 50},
 
-         {'name': "VI CPU (Massive)", 'filename': "domains/massive_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 75, 'h': 75},
-         #{'name': "VI GPU (Massive)", 'filename': "domains/massive_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 75, 'h': 75},
+         #{'name': "VI CPU (Massive)", 'filename': "domains/massive_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 75, 'h': 75},
+         {'name': "VI GPU (Massive)", 'filename': "domains/massive_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 75, 'h': 75},
          {'name': "LAO* CPU (Massive)", 'filename': "domains/massive_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 75, 'h': 75},
 
          #{'name': "PBVI CPU", 'filename': "domains/grid_world_pomdp.raw", 'filetype': "raw", 'algorithm': "pbvi", 'process': "cpu", 'w': 4, 'h': 3},
@@ -56,16 +60,27 @@ for trial in trials:
     gridWorldFile = os.path.join(thisFilePath, trial['filename'])
     gridWorld = MDP()
     gridWorld.load(gridWorldFile, filetype=trial['filetype'])
-    gridWorld.horizon = 10000
+    if trial['algorithm'] == "vi":
+        gridWorld.horizon = 10000
+    if trial['algorithm'] == "lao*":
+        gridWorld.horizon = 10000000
     #print(gridWorld)
 
     # The heuristic (admissible) is the manhattan distance to the goal, which is always the upper right corner.
-    h = np.array([abs(y) + abs(trial['w'] - 1 - x) for y, x in it.product(range(trial['h']), range(trial['w']))] + [0.0]).flatten()
-    #h = np.array([0.0 for s in range(gridWorld.n)])
+    #h = np.array([abs(y) + abs(trial['w'] - 1 - x) for y, x in it.product(range(trial['h']), range(trial['w']))] + [0.0]).flatten()
+    h = np.array([0.0 for s in range(gridWorld.n)])
 
     V, pi, timing = gridWorld.solve(algorithm=trial['algorithm'], process=trial['process'], epsilon=0.01, heuristic=h)
+
     #print([[V[y * trial['w'] + x] for x in range(trial['w'])] for y in range(trial['h'])])
-    print([[pi[y * trial['w'] + x] for x in range(trial['w'])] for y in range(trial['h'])])
+    #print(np.array([[pi[y * trial['w'] + x] for x in range(trial['w'])] for y in range(trial['h'])]))
+
+    prettyActions = ["L", "U", "R", "D", " "]
+
+    for y in range(trial['h']):
+        for x in range(trial['w']):
+            print(prettyActions[pi[y * trial['w'] + x]] + " ", end='')
+        print()
 
 
 #gridWorldFile = os.path.join(thisFilePath, "grid_world_pomdp.raw")

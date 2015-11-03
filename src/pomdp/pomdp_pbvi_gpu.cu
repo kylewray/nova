@@ -328,7 +328,7 @@ int pomdp_pbvi_execute_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma, 
     if (pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 || pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
             pomdp->d_S == nullptr || pomdp->d_T == nullptr || pomdp->d_O == nullptr || pomdp->d_R == nullptr ||
             pomdp->d_Z == nullptr || pomdp->d_B == nullptr ||
-            pomdp->gamma < 0.0 || pomdp->gamma >= 1.0 || pomdp->horizon < 1) {
+            pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1) {
         fprintf(stderr, "Error[pomdp_pbvi_execute_gpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }

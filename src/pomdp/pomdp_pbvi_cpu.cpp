@@ -206,7 +206,7 @@ int pomdp_pbvi_execute_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi)
     if (pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 || pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
             pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
             pomdp->Z == nullptr || pomdp->B == nullptr ||
-            pomdp->gamma < 0.0 || pomdp->gamma >= 1.0 || pomdp->horizon < 1) {
+            pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1) {
         fprintf(stderr, "Error[pomdp_pbvi_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }

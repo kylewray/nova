@@ -47,8 +47,8 @@ files = [
         #{'name': "aloha-10", 'filename': "domains/aloha_10.pomdp", 'filetype': "pomdp", 'numExpandSteps': 6, 'sigma': True},
         #{'name': "hallway2", 'filename': "domains/hallway2.pomdp", 'filetype': "pomdp", 'numExpandSteps': 7, 'sigma': True},
         #{'name': "aloha-30", 'filename': "domains/aloha_30.pomdp", 'filetype': "pomdp", 'numExpandSteps': 7, 'sigma': True},
-        {'name': "tag", 'filename': "domains/tag.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': True},
-        {'name': "fourth", 'filename': "domains/fourth.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': True},
+        #{'name': "tag", 'filename': "domains/tag.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': True},
+        #{'name': "fourth", 'filename': "domains/fourth.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': True},
         {'name': "rock-sample (7x8)", 'filename': "domains/rockSample_7_8.pomdp", 'filetype': "pomdp", 'numExpandSteps': 9, 'sigma': True},
         #{'name': "auv-navigation", 'filename': "domains/auvNavigation.pomdp", 'filetype': "pomdp", 'numExpandSteps': 10, 'sigma': True},
 
@@ -92,6 +92,7 @@ for f in files:
 
                     pomdp = POMDP()
                     pomdp.load(filename, filetype=f['filetype'])
+                    pomdp.horizon = int(horizon)
 
                     # Store the intial belief from this file.
                     rzOriginal = pomdp.rz
@@ -100,18 +101,16 @@ for f in files:
 
                     # Do the expand step a number of times equal to the number of desired belief steps, and optionally
                     # do the sigma-approximation of belief.
-                    for k in range(f['numExpandSteps']):
-                        pomdp.expand(method='distinct_beliefs') #, numBeliefsToAdd=(f['beliefStepSize'] * (j + 1)))
+                    #for k in range(f['numExpandSteps']):
+                    #    pomdp.expand(method='distinct_beliefs')
 
-                    # Then do more expansions using random exploration, just for fun.
-                    #pomdp.expand(method='random', numBeliefsToAdd=(pow(2, f['numExpandSteps'] + j)))
+                    # Do expansions using random exploration.
+                    pomdp.expand(method='random', numBeliefsToAdd=(pow(2, f['numExpandSteps']) - 1))
 
                     # Do the sigma-approximation, if desired.
                     sigma = 1.0
                     if f['sigma'] and sigmarz > 1.0:
                         sigma = pomdp.sigma_approximate(rz=min(pomdp.rz, int(pomdp.rz / sigmarz + 1)))
-
-                    pomdp.h = int(horizon)
 
                     #print(pomdp)
 

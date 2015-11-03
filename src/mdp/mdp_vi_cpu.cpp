@@ -113,7 +113,7 @@ int mdp_vi_execute_cpu(MDP *mdp, float *V, unsigned int *pi)
     // First, ensure data is valid.
     if (mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
-            mdp->gamma < 0.0f || mdp->gamma >= 1.0f || mdp->horizon < 1 ||
+            mdp->gamma < 0.0f || mdp->gamma > 1.0f || mdp->horizon < 1 ||
             V == nullptr || pi == nullptr) {
         fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
