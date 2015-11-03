@@ -106,10 +106,6 @@ void ssp_lao_star_bellman_residual_cpu(unsigned int ne, int *expanded, float eps
         residual = std::max(residual, sResidual);
     }
 
-    // ************************************************************************************************************************************
-    //printf("RESIDUAL = %.5f\n", residual);
-    // ************************************************************************************************************************************
-
     if (residual < epsilon) {
         *converged = true;
     } else {
@@ -189,32 +185,7 @@ int ssp_lao_star_expand_cpu(MDP *mdp, unsigned int *numNewlyExpandedStates)
                 }
             }
         }
-
-        // ************************************************************************************************************************************
-        //printf("fringe = [ ");
-        //for (unsigned int k = 0; k < nf; k++) {
-        //    printf("%i ", fringe[k]);
-        //}
-        //printf("]\n");
-        //printf("nf = %i\n", nf);
-        // ************************************************************************************************************************************
-
-        // ************************************************************************************************************************************
-        //printf("expanded = [ ");
-        //for (unsigned int k = 0; k < mdp->ne; k++) {
-        //    printf("%i ", mdp->expanded[k]);
-        //}
-        //printf("]\n");
-        // ************************************************************************************************************************************
-
-        // ************************************************************************************************************************************
-        //printf("numNewlyExpandedStates = %i\n", *numNewlyExpandedStates);
-        // ************************************************************************************************************************************
     }
-
-    // ************************************************************************************************************************************
-    //printf("OUTSIDE!\n");
-    // ************************************************************************************************************************************
 
     // At the end, in post order traversal, perform Bellman updates.
     for (int i = mdp->ne - 1; i >= 0; i--) {
@@ -291,10 +262,6 @@ int ssp_lao_star_check_convergence_cpu(MDP *mdp, bool *converged, bool *nonExpan
 
         // We have not converged if we truly have never seen this state before.
         if (mdp->pi[s] == mdp->m) {
-            // ************************************************************************************************************************************
-            //printf("NON EXPANDED TIP STATE FOUND!\n");
-            // ************************************************************************************************************************************
-
             *nonExpandedTipStateFound = true;
         } else {
             // Otherwise, add all of its children to the fringe, as long as they are not already there, and the
@@ -313,31 +280,7 @@ int ssp_lao_star_check_convergence_cpu(MDP *mdp, bool *converged, bool *nonExpan
                 }
             }
         }
-
-
-        /*
-        // ************************************************************************************************************************************
-        printf("fringe = [ ");
-        for (unsigned int k = 0; k < nf; k++) {
-            printf("%i ", fringe[k]);
-        }
-        printf("]\n");
-        printf("nf = %i\n", nf);
-        // ************************************************************************************************************************************
-
-        // ************************************************************************************************************************************
-        printf("expanded = [ ");
-        for (unsigned int k = 0; k < mdp->ne; k++) {
-            printf("%i ", mdp->expanded[k]);
-        }
-        printf("]\n");
-        // ************************************************************************************************************************************
-        //*/
     }
-
-    // ************************************************************************************************************************************
-    //printf("OUTSIDE!\n");
-    // ************************************************************************************************************************************
 
     // At the end, in post order traversal, perform Bellman updates. Record if the policy has changed.
     bool anActionHasChanged = false;
@@ -385,57 +328,6 @@ int ssp_lao_star_check_convergence_cpu(MDP *mdp, bool *converged, bool *nonExpan
     }
 
     delete [] fringe;
-
-    return NOVA_SUCCESS;
-}
-
-int ssp_lao_star_check_convergence_cpu_________original(MDP *mdp, bool *converged, bool *nonExpandedTipStateFound)
-{
-    *converged = false;
-    *nonExpandedTipStateFound = false;
-
-    // Compute the Bellman update in post order traversal.
-    for (int i = mdp->ne - 1; i >= 0; i--) {
-        unsigned int s = mdp->expanded[i];
-        unsigned int a = mdp->pi[s];
-
-        // We oscillate between V and VPrime depending on the step.
-        if (mdp->currentHorizon % 2 == 0) {
-            ssp_lao_star_bellman_update_state_cpu(mdp->n, mdp->ns, mdp->m,
-                                                mdp->S, mdp->T, mdp->R, mdp->V,
-                                                mdp->ne, mdp->expanded,
-                                                s,
-                                                mdp->VPrime, mdp->pi);
-        } else {
-            ssp_lao_star_bellman_update_state_cpu(mdp->n, mdp->ns, mdp->m,
-                                                mdp->S, mdp->T, mdp->R, mdp->VPrime,
-                                                mdp->ne, mdp->expanded,
-                                                s,
-                                                mdp->V, mdp->pi);
-        }
-
-        // If the action changed, then we must check if it has a successor that is not expanded yet.
-        // If this is the case, then we return with a non-expanded tip state found.
-        if (a != mdp->pi[s]) {
-            for (unsigned int j = 0; j < mdp->ns; j++) {
-                int sp = mdp->S[s * mdp->m * mdp->ns + mdp->pi[s] * mdp->ns + j];
-                if (sp < 0) {
-                    break;
-                }
-
-                if (std::signbit(mdp->V[sp]) && std::signbit(mdp->VPrime[sp])) {
-                    *nonExpandedTipStateFound = true;
-                    return NOVA_SUCCESS;
-                }
-            }
-        }
-    }
-
-    // Compute the Bellman residual and determine if it converged or not.
-    ssp_lao_star_bellman_residual_cpu(mdp->ne, mdp->expanded, mdp->epsilon,
-                                    mdp->V, mdp->VPrime, converged);
-
-    mdp->currentHorizon++;
 
     return NOVA_SUCCESS;
 }
@@ -508,10 +400,6 @@ int ssp_lao_star_execute_cpu(MDP *mdp, float *V, unsigned int *pi)
     // We continue the process of expanding and testing convergence until convergence occurs.
     bool running = true;
     while (running) {
-        // ************************************************************************************************************************************
-        //printf("Starting outer loop...\n");
-        // ************************************************************************************************************************************
-
         // Expand Step: Perform DFS (greedy actions) and construct a tree from possible stochastic transitions.
         // This continues until you have: (1) expanded all states, and (2) have reached one of the goal states.
         unsigned int numNewlyExpandedStates = 1;
@@ -525,10 +413,6 @@ int ssp_lao_star_execute_cpu(MDP *mdp, float *V, unsigned int *pi)
                 return result;
             }
         }
-
-        // ************************************************************************************************************************************
-        //printf("Done expanding... Next testing convergence!\n");
-        // ************************************************************************************************************************************
 
         // Check Convergence Step: Run value iteration on expanded states until: (1) it converges (done), or (2) it has
         // an optimal action has a possible successor that was not yet expanded (break and continue).
@@ -550,25 +434,11 @@ int ssp_lao_star_execute_cpu(MDP *mdp, float *V, unsigned int *pi)
             }
         }
 
-        /*
-        // ************************************************************************************************************************************
-        printf("Done testing convergence...\n");
-        printf("converged = %i\n", converged);
-        printf("nonExpandedTipStateFound = %i\n", nonExpandedTipStateFound);
-        printf("currentHorizon / horizon = %i / %i\n", mdp->currentHorizon, mdp->horizon);
-        printf("num expanded states = %i\n", mdp->ne);
-        // ************************************************************************************************************************************
-        //*/
-
         // If we converged (or simply ran out of time) and all expanded tip states were valid, then we are done.
         if ((converged && !nonExpandedTipStateFound) || mdp->currentHorizon > mdp->horizon) {
             running = false;
         }
     }
-
-    // ************************************************************************************************************************************
-    //printf("DONE!\n\n");
-    // ************************************************************************************************************************************
 
     result = ssp_lao_star_get_policy_cpu(mdp, V, pi);
     if (result != NOVA_SUCCESS) {
