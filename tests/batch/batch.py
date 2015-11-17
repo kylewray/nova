@@ -48,8 +48,8 @@ files = [
         #{'name': "hallway2", 'filename': "domains/hallway2.pomdp", 'filetype': "pomdp", 'numExpandSteps': 7, 'sigma': True},
         #{'name': "aloha-30", 'filename': "domains/aloha_30.pomdp", 'filetype': "pomdp", 'numExpandSteps': 7, 'sigma': True},
         #{'name': "tag", 'filename': "domains/tag.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': True},
-        #{'name': "fourth", 'filename': "domains/fourth.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': True},
-        {'name': "rock-sample (7x8)", 'filename': "domains/rockSample_7_8.pomdp", 'filetype': "pomdp", 'numExpandSteps': 9, 'sigma': True},
+        {'name': "fourth", 'filename': "domains/fourth.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': True},
+        #{'name': "rock-sample (7x8)", 'filename': "domains/rockSample_7_8.pomdp", 'filetype': "pomdp", 'numExpandSteps': 9, 'sigma': True},
         #{'name': "auv-navigation", 'filename': "domains/auvNavigation.pomdp", 'filetype': "pomdp", 'numExpandSteps': 10, 'sigma': True},
 
         #{'name': "drive_san_francisco", 'filename': "domains/drive_san_francisco.pomdp", 'filetype': "pomdp", 'numExpandSteps': 8, 'sigma': True},
