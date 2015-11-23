@@ -1,7 +1,9 @@
 nova
 ====
 
-CUDA and MPI optimized code for solving MDPs, POMDPs, and Dec-POMDPs.
+CUDA optimized code for solving MDPs, POMDPs, and Dec-POMDPs.
+
+A tutorial will be added soon.
 
 If you use this library, then please cite our symposium paper:
 
