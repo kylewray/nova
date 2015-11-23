@@ -24,19 +24,13 @@
 
 #include "pomdp_expand_cpu.h"
 #include "error_codes.h"
+#include "constants.h"
 
 #include <stdio.h>
 #include <cstring>
 #include <cstdlib>
 #include <time.h>
 #include <cmath>
-
-
-// This is determined by hardware, so what is below is a 'safe' guess. If this is off, the
-// program might return 'nan' or 'inf'. These come from IEEE floating-point standards.
-#define FLT_MAX 1e+35
-#define FLT_MIN -1e+35
-#define FLT_ERR_TOL 1e-9
 
 
 int pomdp_expand_construct_belief_cpu(POMDP *pomdp, unsigned int i, float *b)

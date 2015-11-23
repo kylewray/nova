@@ -24,17 +24,13 @@
 
 #include "ssp_lao_star_cpu.h"
 #include "error_codes.h"
+#include "constants.h"
 
 #include <stdio.h>
 #include <cstring>
 #include <cmath>
 #include <algorithm>
 #include <math.h>
-
-
-// This is determined by hardware, so what is below is a 'safe' guess. If this is
-// off, the program might return 'nan' or 'inf'.
-#define FLT_MAX 1e+35
 
 
 void ssp_lao_star_bellman_update_state_cpu(unsigned int n, unsigned int ns, unsigned int m, 
