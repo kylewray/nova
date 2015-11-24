@@ -195,8 +195,13 @@ int pomdp_perseus_initialize_cpu(POMDP *pomdp, const float *initialGamma)
 
     // Finally, we have Btilde, which stores the indexes of the relevant belief points
     // that require updating at each step. Convergence occurs when this set is empty.
-    pomdp->rTilde = 0;
+    // Initially, BTilde = B.
+    pomdp->rTilde = pomdp->r;
     pomdp->BTilde = new unsigned int[pomdp->r];
+
+    for (unsigned int i = 0; i < pomdp->r; i++) {
+        pomdp->BTilde[i] = i;
+    }
 
     return NOVA_SUCCESS;
 }
@@ -222,13 +227,16 @@ int pomdp_perseus_execute_cpu(POMDP *pomdp, const float *initialGamma, unsigned 
         return result;
     }
 
-    // For each of the updates, run Perseus. Note that the currentHorizon is initialized to zero
-    // above, and is updated in the update function below.
+    // For each of the updates, run Perseus. The update function checks for convergence and will terminate
+    // the loop early (if BTilde is empty). Also, note that the currentHorizon is initialized to zero above,
+    // and is updated in the update function below.
     while (pomdp->currentHorizon < pomdp->horizon) {
         //printf("Perseus (CPU Version) -- Iteration %i of %i\n", pomdp->currentHorizon, pomdp->horizon);
 
         result = pomdp_perseus_update_cpu(pomdp);
-        if (result != NOVA_SUCCESS) {
+        if (result == NOVA_CONVERGED) {
+            break;
+        } else if (result != NOVA_SUCCESS) {
             return result;
         }
     }
@@ -281,22 +289,46 @@ int pomdp_perseus_uninitialize_cpu(POMDP *pomdp)
 
 int pomdp_perseus_update_cpu(POMDP *pomdp)
 {
-    // 
-    // We oscillate between Gamma and GammaPrime depending on the step.
-    if (pomdp->currentHorizon % 2 == 0) {
-        pomdp_perseus_update_step_cpu(pomdp->n, pomdp->ns, pomdp->m, pomdp->z, pomdp->r, pomdp->rz, pomdp->gamma,
-                    pomdp->S, pomdp->T, pomdp->O, pomdp->R, pomdp->Z, pomdp->B,
-                    pomdp->Gamma, pomdp->GammaPrime, pomdp->pi);
-    } else {
-        pomdp_perseus_update_step_cpu(pomdp->n, pomdp->ns, pomdp->m, pomdp->z, pomdp->r, pomdp->rz, pomdp->gamma,
-                    pomdp->S, pomdp->T, pomdp->O, pomdp->R, pomdp->Z, pomdp->B,
-                    pomdp->GammaPrime, pomdp->Gamma, pomdp->pi);
+    // For convenience, define a variable pointing to the proper Gamma and rGamma variables.
+    float *Gamma = pomdp->Gamma;
+    float *GammaPrime = pomdp->GammaPrime;
+    unsigned int rGamma = pomdp->rGamma;
+
+    if (pomdp->currentHorizon % 2 == 1) {
+        Gamma = pomdp->GammaPrime;
+        GammaPrime = pomdp->Gamma;
+        rGamma = pomdp->rGammaPrime;
     }
 
-    pomdp->currentHorizon++;
+    // Sample a belief point at random from BTilde.
+    unsigned int bIndex = (unsigned int)((float)rand() / (float)RAND_MAX * (float)rGamma);
+
+    // Perform one Bellman update to compute the optimal alpha vector and action for this belief point: bIndex.
+    pomdp_perseus_update_step_cpu(pomdp->n, pomdp->ns, pomdp->m, pomdp->z, pomdp->r, pomdp->rz, pomdp->gamma,
+                pomdp->S, pomdp->T, pomdp->O, pomdp->R, pomdp->Z, pomdp->B,
+                Gamma, GammaPrime, pomdp->pi);
+
+    // If this new alpha-vector improved the value at bIndex, then add it to the set of alpha-vectors.
+    // Otherwise, add the best alpha-vector from the current set of alpha-vectors.
+
+    // Compute BTilde again, which consists of all beliefs that degraded in value after adding whatever
+    // alpha-vector was added in the if-else statement above. Trivially, we are guaranteed to have removed
+    // belief bIndex, and this set strictly shrinks in size. Ideally, many more beliefs had values which
+    // improved, so it should shrink quite rapidly, especially for the first few iterations.
+
+    // Check for convergence (if BTilde is empty).
+    if (rTilde == 0) {
+        // We performed one complete step of Perseus for this horizon!
+        pomdp->currentHorizon++;
+
+        return NOVA_CONVERGED;
+    }
 
     return NOVA_SUCCESS;
 }
+
+
+// NOTE: You need to write a free memory function. Anytime you dynamically allocate memory in C, Python does not know...
 
 
 int pomdp_perseus_get_policy_cpu(POMDP *pomdp, unsigned int &r, float *&Gamma, unsigned int *&pi)

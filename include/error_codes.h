@@ -41,6 +41,7 @@
 
 // Other warnings which are possible during run time.
 #define NOVA_WARNING_INVALID_BELIEF                 9
+#define NOVA_CONVERGED                              10
 
 
 #endif // NOVA_ERROR_CODES_H
