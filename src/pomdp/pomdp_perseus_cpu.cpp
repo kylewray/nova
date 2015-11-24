@@ -160,17 +160,17 @@ void pomdp_perseus_update_step_cpu(unsigned int n, unsigned int ns, unsigned int
 }
 
 
-int pomdp_perseus_complete_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi)
+int pomdp_perseus_complete_cpu(POMDP *pomdp, const float *initialGamma, unsigned int &r, float *&Gamma, unsigned int *&pi)
 {
     // Note: This 'wrapper' function is provided in order to maintain the same structure
     // as the GPU version. In the GPU version, 'complete' performs the initialization
     // and uninitialization of the POMDP object on the device as well. Here, we do not
     // need that.
-    return pomdp_perseus_execute_cpu(pomdp, Gamma, pi);
+    return pomdp_perseus_execute_cpu(pomdp, initialGamma, r, Gamma, pi);
 }
 
 
-int pomdp_perseus_initialize_cpu(POMDP *pomdp, float *Gamma)
+int pomdp_perseus_initialize_cpu(POMDP *pomdp, const float *initialGamma)
 {
     // Reset the current horizon.
     pomdp->currentHorizon = 0;
@@ -181,17 +181,28 @@ int pomdp_perseus_initialize_cpu(POMDP *pomdp, float *Gamma)
     pomdp->pi = new unsigned int[pomdp->r];
 
     // Copy the data form the Gamma provided, and set the default values for pi.
-    memcpy(pomdp->Gamma, Gamma, pomdp->r * pomdp->n * sizeof(float));
-    memcpy(pomdp->GammaPrime, Gamma, pomdp->r * pomdp->n * sizeof(float));
+    memcpy(pomdp->Gamma, initialGamma, pomdp->r * pomdp->n * sizeof(float));
+    memcpy(pomdp->GammaPrime, initialGamma, pomdp->r * pomdp->n * sizeof(float));
     for (unsigned int i = 0; i < pomdp->r; i++) {
         pomdp->pi[i] = 0;
     }
+
+    // For Perseus, we might have a lot fewer alpha-vectors. The actual number is
+    // given by rGamma and rGammaPrime. Initially, the set V_n and V_n' are empty,
+    // which is equivalent to setting 0.
+    pomdp->rGamma = 0;
+    pomdp->rGammaPrime = 0;
+
+    // Finally, we have Btilde, which stores the indexes of the relevant belief points
+    // that require updating at each step. Convergence occurs when this set is empty.
+    pomdp->rTilde = 0;
+    pomdp->BTilde = new unsigned int[pomdp->r];
 
     return NOVA_SUCCESS;
 }
 
 
-int pomdp_perseus_execute_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi)
+int pomdp_perseus_execute_cpu(POMDP *pomdp, const float *initialGamma, unsigned int &r, float *&Gamma, unsigned int *&pi)
 {
     // The result from calling other functions.
     int result;
@@ -200,12 +211,13 @@ int pomdp_perseus_execute_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi)
     if (pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 || pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
             pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
             pomdp->Z == nullptr || pomdp->B == nullptr ||
-            pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1) {
+            pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
+            initialGamma == nullptr || Gamma != nullptr || pi != nullptr) {
         fprintf(stderr, "Error[pomdp_perseus_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    result = pomdp_perseus_initialize_cpu(pomdp, Gamma);
+    result = pomdp_perseus_initialize_cpu(pomdp, initialGamma);
     if (result != NOVA_SUCCESS) {
         return result;
     }
@@ -221,7 +233,7 @@ int pomdp_perseus_execute_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi)
         }
     }
 
-    result = pomdp_perseus_get_policy_cpu(pomdp, Gamma, pi);
+    result = pomdp_perseus_get_policy_cpu(pomdp, r, Gamma, pi);
     if (result != NOVA_SUCCESS) {
         return result;
     }
@@ -256,12 +268,20 @@ int pomdp_perseus_uninitialize_cpu(POMDP *pomdp)
     }
     pomdp->pi = nullptr;
 
+    // Free the memory of BTilde and reset rTilde.
+    if (pomdp->BTilde != nullptr) {
+        delete [] pomdp->BTilde;
+    }
+    pomdp->BTilde = nullptr;
+    pomdp->rTilde = 0;
+
     return NOVA_SUCCESS;
 }
 
 
 int pomdp_perseus_update_cpu(POMDP *pomdp)
 {
+    // 
     // We oscillate between Gamma and GammaPrime depending on the step.
     if (pomdp->currentHorizon % 2 == 0) {
         pomdp_perseus_update_step_cpu(pomdp->n, pomdp->ns, pomdp->m, pomdp->z, pomdp->r, pomdp->rz, pomdp->gamma,
@@ -279,16 +299,27 @@ int pomdp_perseus_update_cpu(POMDP *pomdp)
 }
 
 
-int pomdp_perseus_get_policy_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi)
+int pomdp_perseus_get_policy_cpu(POMDP *pomdp, unsigned int &r, float *&Gamma, unsigned int *&pi)
 {
-    // Copy the final (or intermediate) result of Gamma and pi to the variables. This assumes
-    // that the memory has been allocated for the variables provided.
-    if (pomdp->currentHorizon % 2 == 0) {
-        memcpy(Gamma, pomdp->Gamma, pomdp->r * pomdp->n * sizeof(float));
-    } else {
-        memcpy(Gamma, pomdp->GammaPrime, pomdp->r * pomdp->n * sizeof(float));
+    if (Gamma != nullptr || pi != nullptr) {
+        fprintf(stderr, "Error[pomdp_perseus_get_policy_cpu]: %s\n", "Invalid arguments. Gamma and pi must be undefined.");
+        return NOVA_ERROR_INVALID_DATA;
     }
-    memcpy(pi, pomdp->pi, pomdp->r * sizeof(unsigned int));
+
+    // Copy the final (or intermediate) result of Gamma and pi to the variables.
+    if (pomdp->currentHorizon % 2 == 0) {
+        Gamma = new float[pomdp->rGamma * pomdp->n];
+        pi = new unsigned int[pomdp->rGamma];
+
+        memcpy(Gamma, pomdp->Gamma, pomdp->rGamma * pomdp->n * sizeof(float));
+        memcpy(pi, pomdp->pi, pomdp->rGamma * sizeof(unsigned int));
+    } else {
+        Gamma = new float[pomdp->rGamma * pomdp->n];
+        pi = new unsigned int[pomdp->rGamma];
+
+        memcpy(Gamma, pomdp->GammaPrime, pomdp->rGammaPrime * pomdp->n * sizeof(float));
+        memcpy(pi, pomdp->pi, pomdp->rGammaPrime * sizeof(unsigned int));
+    }
 
     return NOVA_SUCCESS;
 }

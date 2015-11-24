@@ -47,6 +47,7 @@ class POMDP(npm.NovaPOMDP):
 
         # Assign a nullptr for the device-side pointers. These will be set if the GPU is utilized.
         self.currentHorizon = int(0)
+        self.BTilde = ct.POINTER(ct.c_uint)()
         self.Gamma = ct.POINTER(ct.c_float)()
         self.GammaPrime = ct.POINTER(ct.c_float)()
         self.pi = ct.POINTER(ct.c_uint)()
@@ -685,31 +686,42 @@ class POMDP(npm.NovaPOMDP):
                 timing  --  A pair (wall-time, cpu-time) for solver execution time, not including (un)initialization.
         """
 
+        print("00000")
+
         # If epsilon is specified, then re-assign the horizon.
         if epsilon is not None and epsilon > 0.0:
             self.horizon = np.log(epsilon / (self.Rmax - self.Rmin)) / np.log(self.gamma)
-            
+
         # Create Gamma and pi, assigning them their respective initial values.
-        Gamma = np.array([[0.0 for s in range(self.n)] for b in range(self.r)])
-        if self.gamma < 1.0:
-            Gamma = np.array([[float(self.Rmin / (1.0 - self.gamma)) for s in range(self.n)] \
-                        for i in range(self.r)])
-        Gamma = Gamma.flatten()
-        pi = np.array([0 for i in range(self.r)])
+        initialGamma = np.array([[0.0 for s in range(self.n)] for b in range(self.r)])
+        #if self.gamma < 1.0:
+        #    initialGamma = np.array([[float(self.Rmin / (1.0 - self.gamma)) for s in range(self.n)] \
+        #                for i in range(self.r)])
+        initialGamma = initialGamma.flatten()
 
-        # Create functions to convert flattened NumPy arrays to C arrays.
+        print("aaaaa")
+
+        # Create a function to convert a flattened numpy arrays to a C array.
         array_type_rn_float = ct.c_float * (self.r * self.n)
-        array_type_r_uint = ct.c_uint * self.r
 
-        # Create C arrays for the result.
-        Gamma = array_type_rn_float(*Gamma)
-        pi = array_type_r_uint(*pi)
+        ## Create C a array for the initial values of Gamma.
+        initialGamma = array_type_rn_float(*initialGamma)
+
+        print("bbbbb")
+
+        # Create C pointers for the result.
+        Gamma = ct.POINTER(ct.c_float)()
+        pi = ct.POINTER(ct.c_uint)()
+
+        print("ccccc")
 
         timing = None
 
         # If the process is 'gpu', then attempt to solve it. If an error arises, then
         # assign process to 'cpu' and attempt to solve it using that.
         if process == 'gpu':
+            print("ddddd")
+
             result = npm._nova.pomdp_initialize_successors_gpu(self)
             result += npm._nova.pomdp_initialize_state_transitions_gpu(self)
             result += npm._nova.pomdp_initialize_observation_transitions_gpu(self)
@@ -720,23 +732,29 @@ class POMDP(npm.NovaPOMDP):
                 print("Failed to initialize the POMDP variables for the 'nova' library's GPU POMDP solver.")
                 process = 'cpu'
 
-            result = npm._nova.pomdp_pbvi_initialize_gpu(self, Gamma)
-            if result != 0:
-                print("Failed to initialize the 'nova' library's GPU POMDP solver.")
-                process = 'cpu'
+            print("eeeee")
+
+            #result = npm._nova.pomdp_pbvi_initialize_gpu(self, initialGamma)
+            #if result != 0:
+            #    print("Failed to initialize the 'nova' library's GPU POMDP solver.")
+            #    process = 'cpu'
+
+            print("11111")
 
             timing = (time.time(), time.clock())
-            result = npm._nova.pomdp_pbvi_execute_gpu(self, int(numThreads), Gamma, pi)
+            result = npm._nova.pomdp_pbvi_execute_gpu(self, int(numThreads), initialGamma, ct.byref(Gamma), ct.byref(pi))
             timing = (time.time() - timing[0], time.clock() - timing[1])
+
+            print("22222")
 
             if result != 0:
                 print("Failed to execute the 'nova' library's GPU POMDP solver.")
                 process = 'cpu'
 
-            result = npm._nova.pomdp_pbvi_uninitialize_gpu(self)
-            if result != 0:
-                # Note: Failing at uninitialization should not cause the CPU version to be executed.
-                print("Failed to uninitialize the 'nova' library's GPU POMDP solver.")
+            #result = npm._nova.pomdp_pbvi_uninitialize_gpu(self)
+            #if result != 0:
+            #    # Note: Failing at uninitialization should not cause the CPU version to be executed.
+            #    print("Failed to uninitialize the 'nova' library's GPU POMDP solver.")
 
             result = npm._nova.pomdp_uninitialize_successors_gpu(self)
             result += npm._nova.pomdp_uninitialize_state_transitions_gpu(self)
@@ -748,28 +766,34 @@ class POMDP(npm.NovaPOMDP):
                 # Note: Failing at uninitialization should not cause the CPU version to be executed.
                 print("Failed to uninitialize the POMDP variables for the 'nova' library's GPU POMDP solver.")
 
+        print("33333")
+
         # If the process is 'cpu', then attempt to solve it.
         if process == 'cpu':
-            result = npm._nova.pomdp_pbvi_initialize_cpu(self, Gamma)
-            if result != 0:
-                print("Failed to initialize the 'nova' library's CPU POMDP solver.")
-                raise Exception()
+            #result = npm._nova.pomdp_pbvi_initialize_cpu(self, initialGamma)
+            #if result != 0:
+            #    print("Failed to initialize the 'nova' library's CPU POMDP solver.")
+            #    raise Exception()
 
             timing = (time.time(), time.clock())
-            result = npm._nova.pomdp_pbvi_execute_cpu(self, Gamma, pi)
+            result = npm._nova.pomdp_pbvi_execute_cpu(self, initialGamma, ct.byref(Gamma), ct.byref(pi))
             timing = (time.time() - timing[0], time.clock() - timing[1])
 
             if result != 0:
                 print("Failed to execute the 'nova' library's CPU POMDP solver.")
                 raise Exception()
 
-            result = npm._nova.pomdp_pbvi_uninitialize_cpu(self)
-            if result != 0:
-                # Note: Failing at uninitialization should not cause the result to be discarded.
-                print("Failed to uninitialize the 'nova' library's CPU POMDP solver.")
+            #result = npm._nova.pomdp_pbvi_uninitialize_cpu(self)
+            #if result != 0:
+            #    # Note: Failing at uninitialization should not cause the result to be discarded.
+            #    print("Failed to uninitialize the 'nova' library's CPU POMDP solver.")
+
+        print("44444")
 
         Gamma = np.array([Gamma[i] for i in range(self.r * self.n)])
         Gamma = Gamma.reshape((self.r, self.n))
+
+        print("55555")
 
         pi = np.array([pi[i] for i in range(self.r)])
 

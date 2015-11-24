@@ -160,17 +160,17 @@ void pomdp_pbvi_update_step_cpu(unsigned int n, unsigned int ns, unsigned int m,
 }
 
 
-int pomdp_pbvi_complete_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi)
+int pomdp_pbvi_complete_cpu(POMDP *pomdp, const float *initialGamma, float *&Gamma, unsigned int *&pi)
 {
     // Note: This 'wrapper' function is provided in order to maintain the same structure
     // as the GPU version. In the GPU version, 'complete' performs the initialization
     // and uninitialization of the POMDP object on the device as well. Here, we do not
     // need that.
-    return pomdp_pbvi_execute_cpu(pomdp, Gamma, pi);
+    return pomdp_pbvi_execute_cpu(pomdp, initialGamma, Gamma, pi);
 }
 
 
-int pomdp_pbvi_initialize_cpu(POMDP *pomdp, float *Gamma)
+int pomdp_pbvi_initialize_cpu(POMDP *pomdp, const float *initialGamma)
 {
     // Reset the current horizon.
     pomdp->currentHorizon = 0;
@@ -181,8 +181,8 @@ int pomdp_pbvi_initialize_cpu(POMDP *pomdp, float *Gamma)
     pomdp->pi = new unsigned int[pomdp->r];
 
     // Copy the data form the Gamma provided, and set the default values for pi.
-    memcpy(pomdp->Gamma, Gamma, pomdp->r * pomdp->n * sizeof(float));
-    memcpy(pomdp->GammaPrime, Gamma, pomdp->r * pomdp->n * sizeof(float));
+    memcpy(pomdp->Gamma, initialGamma, pomdp->r * pomdp->n * sizeof(float));
+    memcpy(pomdp->GammaPrime, initialGamma, pomdp->r * pomdp->n * sizeof(float));
     for (unsigned int i = 0; i < pomdp->r; i++) {
         pomdp->pi[i] = 0;
     }
@@ -191,7 +191,7 @@ int pomdp_pbvi_initialize_cpu(POMDP *pomdp, float *Gamma)
 }
 
 
-int pomdp_pbvi_execute_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi)
+int pomdp_pbvi_execute_cpu(POMDP *pomdp, const float *initialGamma, float *&Gamma, unsigned int *&pi)
 {
     // The result from calling other functions.
     int result;
@@ -200,12 +200,13 @@ int pomdp_pbvi_execute_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi)
     if (pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 || pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
             pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
             pomdp->Z == nullptr || pomdp->B == nullptr ||
-            pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1) {
+            pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
+            initialGamma == nullptr || Gamma != nullptr || pi != nullptr) {
         fprintf(stderr, "Error[pomdp_pbvi_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    result = pomdp_pbvi_initialize_cpu(pomdp, Gamma);
+    result = pomdp_pbvi_initialize_cpu(pomdp, initialGamma);
     if (result != NOVA_SUCCESS) {
         return result;
     }
@@ -279,10 +280,17 @@ int pomdp_pbvi_update_cpu(POMDP *pomdp)
 }
 
 
-int pomdp_pbvi_get_policy_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi)
+int pomdp_pbvi_get_policy_cpu(POMDP *pomdp, float *&Gamma, unsigned int *&pi)
 {
-    // Copy the final (or intermediate) result of Gamma and pi to the variables. This assumes
-    // that the memory has been allocated for the variables provided.
+    if (Gamma != nullptr || pi != nullptr) {
+        fprintf(stderr, "Error[pomdp_pbvi_get_policy_cpu]: %s\n", "Invalid arguments. Gamma and pi must be undefined.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    Gamma = new float[pomdp->r * pomdp->n];
+    pi = new unsigned int[pomdp->r];
+
+    // Copy the final (or intermediate) result of Gamma and pi to the variables.
     if (pomdp->currentHorizon % 2 == 0) {
         memcpy(Gamma, pomdp->Gamma, pomdp->r * pomdp->n * sizeof(float));
     } else {

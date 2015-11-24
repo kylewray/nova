@@ -31,31 +31,41 @@
 
 /**
  *  Execute the entire Perseus process for the infinite horizon POMDP model specified using the CPU.
- *  @param  pomdp   The POMDP object.
- *  @param  Gamma   The resultant policy; set of alpha vectors (r-n array).
-                    This will be modified.
- *  @param  pi      The resultant policy; one action for each alpha-vector (r-array).
- *                  This will be modified.
+ *  @param  pomdp           The POMDP object.
+ *  @param  initialGamma    The initial set of alpha vectors (r-n array).
+ *  @param  r               The new number of alpha-vectors after executing Perseus, and
+ *                          defines the size of Gamma and pi. This will be modified.
+ *  @param  Gamma           The resultant policy; set of alpha vectors (r-n array).
+                            This will be created and modified.
+ *  @param  pi              The resultant policy; one action for each alpha-vector (r-array).
+ *                          This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_perseus_complete_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi);
+extern "C" int pomdp_perseus_complete_cpu(POMDP *pomdp, const float *initialGamma,
+        unsigned int &r, float *&Gamma, unsigned int *&pi);
 
 /**
  *  Step 1/3: The initialization step of Perseus. This sets up the Gamma and pi variables.
- *  @param  pomdp   The POMDP object.
- *  @param  Gamma   The resultant policy; set of alpha vectors (r-n array). This will be modified.
+ *  @param  pomdp           The POMDP object.
+ *  @param  initialGamma    The initial set of alpha vectors (r-n array).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_perseus_initialize_cpu(POMDP *pomdp, float *Gamma);
+extern "C" int pomdp_perseus_initialize_cpu(POMDP *pomdp, const float *initialGamma);
 
 /**
  *  Step 2/3: Execute Perseus for the infinite horizon POMDP model specified.
- *  @param  pomdp   The POMDP object.
- *  @param  Gamma   The resultant policy; set of alpha vectors (r-n array). This will be modified.
- *  @param  pi      The resultant policy; one action for each alpha-vector (r-array). This will be modified.
+ *  @param  pomdp           The POMDP object.
+ *  @param  initialGamma    The initial set of alpha vectors (r-n array).
+ *  @param  r               The new number of alpha-vectors after executing Perseus, and
+ *                          defines the size of Gamma and pi.
+ *  @param  Gamma           The resultant policy; set of alpha vectors (r-n array).
+ *                          This will be created and modified.
+ *  @param  pi              The resultant policy; one action for each alpha-vector (r-array).
+ *                          This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_perseus_execute_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi);
+extern "C" int pomdp_perseus_execute_cpu(POMDP *pomdp, const float *initialGamma,
+        unsigned int &r, float *&Gamma, unsigned int *&pi);
 
 /**
  *  Step 3/3: The uninitialization step of Perseus. This sets up the Gamma and pi variables.
@@ -75,12 +85,15 @@ extern "C" int pomdp_perseus_update_cpu(POMDP *pomdp);
  *  The get resultant policy step of Perseus. This retrieves the alpha-vectors (Gamma) and
  *  corresponding actions (pi).
  *  @param  pomdp   The POMDP object.
- *  @param  Gamma   The resultant policy; set of alpha vectors (r-n array). This will be modified.
+ *  @param  r       The new number of alpha-vectors after executing Perseus, and
+ *                  defines the size of Gamma and pi. This will be modified.
+ *  @param  Gamma   The resultant policy; set of alpha vectors (r-n array).
+ *                  This will be created and modified.
  *  @param  pi      The resultant policy; one action for each alpha-vector (r-array).
-                    This will be modified.
+ *                  This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_perseus_get_policy_cpu(POMDP *pomdp, float *Gamma, unsigned int *pi);
+extern "C" int pomdp_perseus_get_policy_cpu(POMDP *pomdp, unsigned int &r, float *&Gamma, unsigned int *&pi);
 
 
 #endif // POMDP_PERSEUS_CPU_H

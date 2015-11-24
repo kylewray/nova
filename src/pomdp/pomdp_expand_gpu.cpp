@@ -113,7 +113,7 @@ int pomdp_expand_probability_observation_gpu(POMDP *pomdp, const float *b, unsig
 }
 
 
-int pomdp_expand_update_max_non_zero_values(POMDP *pomdp, const float *b, unsigned int *maxNonZeroValues)
+int pomdp_expand_update_max_non_zero_values_gpu(POMDP *pomdp, const float *b, unsigned int *maxNonZeroValues)
 {
     unsigned int numNonZeroValues = 0;
     for (unsigned int s = 0; s < pomdp->n; s++) {
@@ -129,7 +129,8 @@ int pomdp_expand_update_max_non_zero_values(POMDP *pomdp, const float *b, unsign
 }
 
 
-int pomdp_expand_random_gpu(POMDP *pomdp, unsigned int numDesiredBeliefPoints, unsigned int *maxNonZeroValues, float *Bnew)
+int pomdp_expand_random_gpu(POMDP *pomdp, unsigned int numThreads, unsigned int numDesiredBeliefPoints,
+    unsigned int *maxNonZeroValues, float *Bnew)
 {
     srand(time(nullptr));
 
@@ -183,7 +184,7 @@ int pomdp_expand_random_gpu(POMDP *pomdp, unsigned int numDesiredBeliefPoints, u
             delete [] bp;
 
             // Determine how many non-zero values exist and update rz.
-            pomdp_expand_update_max_non_zero_values(pomdp, b, maxNonZeroValues);
+            pomdp_expand_update_max_non_zero_values_gpu(pomdp, b, maxNonZeroValues);
 
             // Assign the computed belief for this trajectory.
             memcpy(&Bnew[i * pomdp->n], b, pomdp->n * sizeof(float));
@@ -198,77 +199,6 @@ int pomdp_expand_random_gpu(POMDP *pomdp, unsigned int numDesiredBeliefPoints, u
 
     delete [] b;
     delete [] b0;
-
-    return NOVA_SUCCESS;
-}
-
-
-int pomdp_expand_distinct_beliefs_gpu(POMDP *pomdp, unsigned int *maxNonZeroValues, float *Bnew)
-{
-    *maxNonZeroValues = 0;
-
-    for (unsigned int i = 0; i < pomdp->r; i++) {
-        // Construct a belief to use in computing b'.
-        float *b = new float[pomdp->n];
-        pomdp_expand_construct_belief_gpu(pomdp, i, b);
-
-        float *bpStar = new float[pomdp->n];
-        float bpStarValue = FLT_MIN;
-
-        // For this belief point, find the action-observation pair that is most distinct
-        // from the current set of beliefs B. This will be added to Bnew.
-        for (unsigned int a = 0; a < pomdp->m; a++) {
-            for (unsigned int o = 0; o < pomdp->z; o++) {
-                // Compute b'.
-                float *bp = new float[pomdp->n];
-                unsigned int result = pomdp_expand_belief_update_gpu(pomdp, b, a, o, bp);
-
-                // Since we are iterating over observations, we may examine an observation
-                // which is impossible given the current belief. This is based on the POMDP.
-                // Thus, this is an invalid successor belief state, so continue.
-                if (result == NOVA_WARNING_INVALID_BELIEF) {
-                    delete [] bp;
-                    continue;
-                }
-
-                // Compute min|b - b'| for all beliefs b in B.
-                float jStarValue = FLT_MAX;
-
-                for (unsigned int j = 0; j < pomdp->r; j++) {
-                    float *btmp = new float[pomdp->n];
-                    pomdp_expand_construct_belief_gpu(pomdp, j, btmp);
-
-                    float jValue = 0.0f;
-                    for (unsigned int s = 0; s < pomdp->n; s++) {
-                        jValue += std::fabs(btmp[s] - bp[s]);
-                    }
-
-                    if (jValue < jStarValue) {
-                        jStarValue = jValue;
-                    }
-
-                    delete [] btmp;
-                }
-
-                // Now, determine if this was the largest b' we found so far. If so, remember it.
-                if (jStarValue > bpStarValue) {
-                    memcpy(bpStar, bp, pomdp->n * sizeof(float));
-                    bpStarValue = jStarValue;
-                }
-
-                delete [] bp;
-            }
-        }
-
-        // Determine how many non-zero values exist and update rz.
-        pomdp_expand_update_max_non_zero_values(pomdp, bpStar, maxNonZeroValues);
-
-        // For this belief b, add a new belief bp* = max_{a, o} min_{b'' in B} |b'(b, a, o) - b''|_1.
-        memcpy(&Bnew[i * pomdp->n], bpStar, pomdp->n * sizeof(float));
-
-        delete [] b;
-        delete [] bpStar;
-    }
 
     return NOVA_SUCCESS;
 }

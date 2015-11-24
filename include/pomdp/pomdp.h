@@ -39,6 +39,8 @@
  *  @param  z               The number of observations.
  *  @param  r               The number of belief points.
  *  @param  rz              The maximum number of non-zero belief states.
+ *  @param  rGamma          The actual number of belief points s.t. rGamma <= r (Perseus).
+ *  @param  rGammaPrime     The actual number of belief points s.t. rGammaPrime <= r (Perseus).
  *  @param  gamma           The discount factor in [0.0, 1.0).
  *  @param  horizon         The number of iterations to execute (i.e., horizon).
  *  @param  S               A mapping of state-action-successor triples (n-m-ns array) to a state
@@ -90,6 +92,11 @@ typedef struct NovaPOMDP {
 
     // Computation Variables (Utilized by Processes Only)
     unsigned int currentHorizon;
+
+    unsigned int rGamma;
+    unsigned int rGammaPrime;
+    unsigned int *BTilde;
+    unsigned int rTilde;
 
     float *Gamma;
     float *GammaPrime;

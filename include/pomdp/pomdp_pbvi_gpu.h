@@ -33,31 +33,37 @@
  *  Execute the entire PBVI process for the infinite horizon POMDP model specified using the GPU.
  *  @param  pomdp           The POMDP object.
  *  @param  numThreads      The number of CUDA threads per block. Use multiples of 32.
+ *  @param  initialGamma    The initial set of alpha vectors (r-n array).
  *  @param  Gamma           The resultant policy; set of alpha vectors (r-n array).
-                            This will be modified.
+ *                          This will be created and modified.
  *  @param  pi              The resultant policy; one action for each alpha-vector (r-array).
- *                          This will be modified.
+ *                          This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_pbvi_complete_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma, unsigned int *pi);
+extern "C" int pomdp_pbvi_complete_gpu(POMDP *pomdp, unsigned int numThreads, const float *initialGamma,
+        float *&Gamma, unsigned int *&pi);
 
 /**
  *  Step 1/3: The initialization step of PBVI. This sets up the Gamma, pi, and alphaBA variables.
- *  @param  pomdp   The POMDP object.
- *  @param  Gamma   The resultant policy; set of alpha vectors (r-n array). This will be modified.
+ *  @param  pomdp           The POMDP object.
+ *  @param  initialGamma    The initial set of alpha vectors (r-n array).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_pbvi_initialize_gpu(POMDP *pomdp, float *Gamma);
+extern "C" int pomdp_pbvi_initialize_gpu(POMDP *pomdp, const float *initialGamma);
 
 /**
  *  Step 2/3: Execute PBVI for the infinite horizon POMDP model specified.
- *  @param  pomdp       The POMDP object.
- *  @param  numThreads  The number of CUDA threads per block. Use multiples of 32.
- *  @param  Gamma       The resultant policy; set of alpha vectors (r-n array). This will be modified.
- *  @param  pi          The resultant policy; one action for each alpha-vector (r-array). This will be modified.
+ *  @param  pomdp           The POMDP object.
+ *  @param  numThreads      The number of CUDA threads per block. Use multiples of 32.
+ *  @param  initialGamma    The initial set of alpha vectors (r-n array).
+ *  @param  Gamma           The resultant policy; set of alpha vectors (r-n array).
+ *                          This will be created and modified.
+ *  @param  pi              The resultant policy; one action for each alpha-vector (r-array).
+ *                          This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_pbvi_execute_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma, unsigned int *pi);
+extern "C" int pomdp_pbvi_execute_gpu(POMDP *pomdp, unsigned int numThreads, const float *initialGamma,
+        float *&Gamma, unsigned int *&pi);
 
 /**
  *  Step 3/3: The uninitialization step of PBVI. This sets up the Gamma, pi, and alphaBA variables.
@@ -78,12 +84,13 @@ extern "C" int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int numThreads);
  *  The get resultant policy step of PBVI. This retrieves the alpha-vectors (Gamma) and
  *  corresponding actions (pi).
  *  @param  pomdp   The POMDP object.
- *  @param  Gamma   The resultant policy; set of alpha vectors (r-n array). This will be modified.
+ *  @param  Gamma   The resultant policy; set of alpha vectors (r-n array).
+ *                  This will be created and modified.
  *  @param  pi      The resultant policy; one action for each alpha-vector (r-array).
-                    This will be modified.
+ *                  This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_pbvi_get_policy_gpu(POMDP *pomdp, float *Gamma, unsigned int *pi);
+extern "C" int pomdp_pbvi_get_policy_gpu(POMDP *pomdp, float *&Gamma, unsigned int *&pi);
 
 
 #endif // POMDP_PBVI_GPU_H

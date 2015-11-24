@@ -41,20 +41,7 @@
  *  @param  Bnew                    The new (raw) resultant belief points (numDesiredBeliefPoints-n array).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numThreads, unsigned int numDesiredBeliefPoints,
-            unsigned int *maxNonZeroValues, float *Bnew);
-
-/**
- *  Expand the set of beliefs by selecting the most distinct successor belief possible for each belief
- *  in the current set B (e.g., PBVI's original expansion). This assigns pomdp->r new elements to Bnew.
- *  This is the GPU version.
- *  @param  pomdp               The POMDP object.
- *  @param  numThreads          The number of CUDA threads per block. Use multiples of 32.
- *  @param  maxNonZeroValues    The maximum number of non-zero values over all new belief points.
- *  @param  Bnew                The new (raw) resultant belief points (r-n array).
- *  @return Returns zero upon success, non-zero otherwise.
- */
-extern "C" int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp, unsigned int numThreads,
+extern "C" int pomdp_expand_random_gpu(POMDP *pomdp, unsigned int numThreads, unsigned int numDesiredBeliefPoints,
             unsigned int *maxNonZeroValues, float *Bnew);
 
 

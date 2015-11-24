@@ -208,7 +208,7 @@ __global__ void pomdp_pbvi_update_step_gpu(unsigned int n, unsigned int ns, unsi
 }
 
 
-int pomdp_pbvi_complete_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma, unsigned int *pi)
+int pomdp_pbvi_complete_gpu(POMDP *pomdp, unsigned int numThreads, const float *initialGamma, float *&Gamma, unsigned int *&pi)
 {
     int result;
 
@@ -237,7 +237,7 @@ int pomdp_pbvi_complete_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma,
         return result;
     }
 
-    result = pomdp_pbvi_execute_gpu(pomdp, numThreads, Gamma, pi);
+    result = pomdp_pbvi_execute_gpu(pomdp, numThreads, initialGamma, Gamma, pi);
     if (result != NOVA_SUCCESS) {
         return result;
     }
@@ -266,7 +266,7 @@ int pomdp_pbvi_complete_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma,
 }
 
 
-int pomdp_pbvi_initialize_gpu(POMDP *pomdp, float *Gamma)
+int pomdp_pbvi_initialize_gpu(POMDP *pomdp, const float *initialGamma)
 {
     // Reset the current horizon.
     pomdp->currentHorizon = 0;
@@ -277,7 +277,7 @@ int pomdp_pbvi_initialize_gpu(POMDP *pomdp, float *Gamma)
                 "Failed to allocate device-side memory for Gamma.");
         return NOVA_ERROR_DEVICE_MALLOC;
     }
-    if (cudaMemcpy(pomdp->d_Gamma, Gamma, pomdp->r * pomdp->n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+    if (cudaMemcpy(pomdp->d_Gamma, initialGamma, pomdp->r * pomdp->n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
         fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s\n",
                 "Failed to copy memory from host to device for Gamma.");
         return NOVA_ERROR_MEMCPY_TO_DEVICE;
@@ -288,7 +288,7 @@ int pomdp_pbvi_initialize_gpu(POMDP *pomdp, float *Gamma)
                 "Failed to allocate device-side memory for Gamma (prime).");
         return NOVA_ERROR_DEVICE_MALLOC;
     }
-    if (cudaMemcpy(pomdp->d_GammaPrime, Gamma, pomdp->r * pomdp->n * sizeof(float),
+    if (cudaMemcpy(pomdp->d_GammaPrime, initialGamma, pomdp->r * pomdp->n * sizeof(float),
                     cudaMemcpyHostToDevice) != cudaSuccess) {
         fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s\n",
                 "Failed to copy memory from host to device for Gamma (prime).");
@@ -313,7 +313,7 @@ int pomdp_pbvi_initialize_gpu(POMDP *pomdp, float *Gamma)
 }
 
 
-int pomdp_pbvi_execute_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma, unsigned int *pi)
+int pomdp_pbvi_execute_gpu(POMDP *pomdp, unsigned int numThreads, const float *initialGamma, float *&Gamma, unsigned int *&pi)
 {
     // The result from calling other functions.
     int result;
@@ -322,7 +322,8 @@ int pomdp_pbvi_execute_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma, 
     if (pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 || pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
             pomdp->d_S == nullptr || pomdp->d_T == nullptr || pomdp->d_O == nullptr || pomdp->d_R == nullptr ||
             pomdp->d_Z == nullptr || pomdp->d_B == nullptr ||
-            pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1) {
+            pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
+            initialGamma == nullptr || Gamma != nullptr || pi != nullptr) {
         fprintf(stderr, "Error[pomdp_pbvi_execute_gpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -333,7 +334,7 @@ int pomdp_pbvi_execute_gpu(POMDP *pomdp, unsigned int numThreads, float *Gamma, 
         return NOVA_ERROR_INVALID_CUDA_PARAM;
     }
 
-    result = pomdp_pbvi_initialize_gpu(pomdp, Gamma);
+    result = pomdp_pbvi_initialize_gpu(pomdp, initialGamma);
     if (result != NOVA_SUCCESS) {
         return result;
     }
@@ -496,8 +497,16 @@ int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int numThreads)
 }
 
 
-int pomdp_pbvi_get_policy_gpu(POMDP *pomdp, float *Gamma, unsigned int *pi)
+int pomdp_pbvi_get_policy_gpu(POMDP *pomdp, float *&Gamma, unsigned int *&pi)
 {
+    if (Gamma != nullptr || pi != nullptr) {
+        fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s\n", "Invalid arguments. Gamma and pi must be undefined.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    Gamma = new float[pomdp->r * pomdp->n];
+    pi = new unsigned int[pomdp->r];
+
     // Copy the final result of Gamma and pi to the variables provided, from device to host.
     // This assumes that the memory has been allocated for the variables provided.
     if (pomdp->currentHorizon % 2 == 0) {
