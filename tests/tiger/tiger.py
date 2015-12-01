@@ -32,10 +32,25 @@ from nova.pomdp import *
 
 
 files = [
-        {'filename': "tiger_pomdp.raw", 'filetype': "raw", 'expand': None},
-        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'expand': "random"},
-        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'expand': "distinct_beliefs"},
-        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'expand': "pema"},
+        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': None},
+        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "random"},
+        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "distinct_beliefs"},
+        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "pema"},
+
+        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': None},
+        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "random"},
+        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "distinct_beliefs"},
+        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "pema"},
+
+        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'gpu', 'algorithm': 'perseus', 'expand': None},
+        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'gpu', 'algorithm': 'perseus', 'expand': "random"},
+        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'gpu', 'algorithm': 'perseus', 'expand': "distinct_beliefs"},
+        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'gpu', 'algorithm': 'perseus', 'expand': "pema"},
+
+        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'perseus', 'expand': None},
+        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "random"},
+        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "distinct_beliefs"},
+        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "pema"},
         ]
 
 for f in files:
@@ -59,7 +74,8 @@ for f in files:
             tiger.expand(method=f['expand'])
             print(tiger)
 
-    Gamma, piResult, timing = tiger.solve()
+    #Gamma, piResult, timing = tiger.solve()
+    Gamma, piResult, timing = tiger.solve(process=f['process'], algorithm=f['algorithm'])
     print(Gamma)
     print(piResult)
 
@@ -67,7 +83,7 @@ for f in files:
     pylab.title("Alpha-Vectors for Tiger Problem (Expand: %s)" % (f['expand']))
     pylab.xlabel("Belief of State s2: b(s2)")
     pylab.ylabel("Value of Belief: V(b(s2))")
-    for i in range(tiger.r):
+    for i in range(len(piResult)):
         if piResult[i] == 0:
             pylab.plot([0.0, 1.0], [Gamma[i, 0], Gamma[i, 1]], linewidth=10, color='red')
         elif piResult[i] == 1:

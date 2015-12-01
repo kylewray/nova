@@ -692,9 +692,9 @@ class POMDP(npm.NovaPOMDP):
 
         # Create Gamma and pi, assigning them their respective initial values.
         initialGamma = np.array([[0.0 for s in range(self.n)] for b in range(self.r)])
-        #if self.gamma < 1.0:
-        #    initialGamma = np.array([[float(self.Rmin / (1.0 - self.gamma)) for s in range(self.n)] \
-        #                for i in range(self.r)])
+        if self.gamma < 1.0:
+            initialGamma = np.array([[float(self.Rmin / (1.0 - self.gamma)) for s in range(self.n)] \
+                        for i in range(self.r)])
         initialGamma = initialGamma.flatten()
 
         # Create a function to convert a flattened numpy arrays to a C array.
@@ -706,6 +706,7 @@ class POMDP(npm.NovaPOMDP):
         # Create C pointers for the result.
         Gamma = ct.POINTER(ct.c_float)()
         pi = ct.POINTER(ct.c_uint)()
+        rGamma = ct.c_uint(0)
 
         timing = None
 
@@ -728,7 +729,13 @@ class POMDP(npm.NovaPOMDP):
             #    process = 'cpu'
 
             timing = (time.time(), time.clock())
-            result = npm._nova.pomdp_pbvi_execute_gpu(self, int(numThreads), initialGamma, ct.byref(Gamma), ct.byref(pi))
+            if algorithm == 'pbvi':
+                result = npm._nova.pomdp_pbvi_execute_gpu(self, int(numThreads), initialGamma, ct.byref(Gamma), ct.byref(pi))
+            #elif algorithm == 'perseus':
+            #    result = npm._nova.pomdp_perseus_execute_gpu(self, int(numThreads), initialGamma, ct.byref(rGamma), ct.byref(Gamma), ct.byref(pi))
+            else:
+                print("Failed to solve the POMDP with the GPU using 'nova' because algorithm '%s' is undefined." % (algorithm))
+                raise Exception()
             timing = (time.time() - timing[0], time.clock() - timing[1])
 
             if result != 0:
@@ -758,7 +765,13 @@ class POMDP(npm.NovaPOMDP):
             #    raise Exception()
 
             timing = (time.time(), time.clock())
-            result = npm._nova.pomdp_pbvi_execute_cpu(self, initialGamma, ct.byref(Gamma), ct.byref(pi))
+            if algorithm == 'pbvi':
+                result = npm._nova.pomdp_pbvi_execute_cpu(self, initialGamma, ct.byref(Gamma), ct.byref(pi))
+            elif algorithm == 'perseus':
+                result = npm._nova.pomdp_perseus_execute_cpu(self, initialGamma, ct.byref(rGamma), ct.byref(Gamma), ct.byref(pi))
+            else:
+                print("Failed to solve the POMDP with the GPU using 'nova' because algorithm '%s' is undefined." % (algorithm))
+                raise Exception()
             timing = (time.time() - timing[0], time.clock() - timing[1])
 
             if result != 0:
@@ -770,10 +783,15 @@ class POMDP(npm.NovaPOMDP):
             #    # Note: Failing at uninitialization should not cause the result to be discarded.
             #    print("Failed to uninitialize the 'nova' library's CPU POMDP solver.")
 
-        Gamma = np.array([Gamma[i] for i in range(self.r * self.n)])
-        Gamma = Gamma.reshape((self.r, self.n))
-
-        pi = np.array([pi[i] for i in range(self.r)])
+        if algorithm == 'pbvi':
+            Gamma = np.array([Gamma[i] for i in range(self.r * self.n)])
+            Gamma = Gamma.reshape((self.r, self.n))
+            pi = np.array([pi[i] for i in range(self.r)])
+        elif algorithm == 'perseus':
+            rGamma = rGamma.value
+            Gamma = np.array([Gamma[i] for i in range(rGamma * self.n)])
+            Gamma = Gamma.reshape((rGamma, self.n))
+            pi = np.array([pi[i] for i in range(rGamma)])
 
         return Gamma, pi, timing
 

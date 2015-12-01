@@ -32,10 +32,44 @@
 #include <time.h>
 
 
+void pomdp_perseus_compute_b_dot_alpha_cpu(unsigned int rz, const int *Z, const float *B, unsigned int bIndex,
+    const float *alpha, float *bDotAlpha)
+{
+    *bDotAlpha = 0.0f;
+
+    for (unsigned int j = 0; j < rz; j++) {
+        int s = Z[bIndex * rz + j];
+        if (s < 0) {
+            break;
+        }
+
+        *bDotAlpha += B[bIndex * rz + j] * alpha[s];
+    }
+}
+
+
+void pomdp_perseus_compute_Vb_cpu(unsigned int n, unsigned int rz, const int *Z, const float *B, unsigned int bIndex,
+    const float *Gamma, unsigned int rGamma, float *Vnb, unsigned int *alphaPrimeIndex)
+{
+    *Vnb = FLT_MIN;
+
+    for (unsigned int i = 0; i < rGamma; i++) {
+        float bDotAlpha = FLT_MIN;
+
+        pomdp_perseus_compute_b_dot_alpha_cpu(rz, Z, B, bIndex, &Gamma[i * n], &bDotAlpha);
+
+        if (*Vnb < bDotAlpha) {
+            *Vnb = bDotAlpha;
+            *alphaPrimeIndex = i;
+        }
+    }
+}
+
+
 void pomdp_perseus_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
     unsigned int r, unsigned int rz, float gamma,
     const int *S, const float *T, const float *O, const float *R, const int *Z, const float *B,
-    const float *Gamma, unsigned int i, unsigned int a, float *alpha)
+    const float *Gamma, unsigned int rGamma, unsigned int bIndex, unsigned int a, float *alpha)
 {
     float value;
     float bestValue;
@@ -45,13 +79,13 @@ void pomdp_perseus_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns
         value = FLT_MIN;
         bestValue = FLT_MIN;
 
-        for (unsigned int j = 0; j < r; j++) {
+        for (unsigned int j = 0; j < rGamma; j++) {
             // Variable 'j' represents the alpha in Gamma^{t-1}. It is this variable that we will maximize over.
 
             // Compute the value of this alpha-vector, by taking its dot product with belief (i.e., variable 'i').
             value = 0.0f;
             for (unsigned int k = 0; k < rz; k++) {
-                int s = Z[i * rz + k];
+                int s = Z[bIndex * rz + k];
                 if (s < 0) {
                     break;
                 }
@@ -70,7 +104,7 @@ void pomdp_perseus_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns
                 }
                 Vtk *= gamma;
 
-                value += Vtk * B[i * rz + k];
+                value += Vtk * B[bIndex * rz + k];
             }
 
             // Assign this as the best alpha-vector if it is better.
@@ -104,55 +138,39 @@ void pomdp_perseus_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns
 void pomdp_perseus_update_step_cpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
     unsigned int r, unsigned int rz, float gamma,
     const int *S, const float *T, const float *O, const float *R, const int *Z, const float *B,
-    const float *Gamma, float *GammaPrime, unsigned int *piPrime)
+    const float *Gamma, unsigned int rGamma,
+    unsigned int bIndex, float *alphaPrime, unsigned int *aPrime)
 {
-    float *alpha;
-    float value;
-    float bestValue;
+    float value = FLT_MIN;
+    float bestValue = FLT_MIN;
 
-    alpha = new float[n];
+    float *alpha = new float[n];
 
-    // For each belief point, we will find the best alpha vector for this point.
-    for (unsigned int i = 0; i < r; i++) {
-        // Variable 'i' refers to the current belief we are examining.
+    // Compute the argmax alpha-vector over Gamma_B. Since Gamma_B is created from the
+    // m actions, we iterate over a in A.
+    for (unsigned int a = 0; a < m; a++) {
+        // Variable 'a' also refers to the alpha-vector being considered in the argmax for
+        // the 'best' alpha-vector, as well as the action.
 
-        value = FLT_MIN;
-        bestValue = FLT_MIN;
+        // We create alpha which initially is the reward, and we will add the optimal
+        // alpha-vector for each observation in the function below.
+        for (unsigned int s = 0; s < n; s++) {
+            alpha[s] = R[s * m + a];
+        }
 
-        // Compute the argmax alpha-vector over Gamma_B. Since Gamma_B is created from the
-        // m actions, we iterate over a in A.
-        for (unsigned int a = 0; a < m; a++) {
-            // Variable 'a' also refers to the alpha-vector being considered in the argmax for
-            // the 'best' alpha-vector, as well as the action.
+        // First, compute the argmax_{alpha in Gamma_{a,omega}} for each observation.
+        pomdp_perseus_update_compute_best_alpha_cpu(n, ns, m, z, r, rz, gamma,
+                                                    S, T, O, R, Z, B, Gamma, rGamma,
+                                                    bIndex, a, alpha);
 
-            // We create alpha which initially is the reward, and we will add the optimal
-            // alpha-vector for each observation in the function below.
-            for (unsigned int s = 0; s < n; s++) {
-                alpha[s] = R[s * m + a];
-            }
+        // After the alpha-vector is computed, we must compute its value.
+        pomdp_perseus_compute_b_dot_alpha_cpu(rz, Z, B, bIndex, alpha, &value);
 
-            // First, compute the argmax_{alpha in Gamma_{a,omega}} for each observation.
-            pomdp_perseus_update_compute_best_alpha_cpu(n, ns, m, z, r, rz, gamma,
-                                                        S, T, O, R, Z, B, Gamma,
-                                                        i, a, alpha);
-
-            // After the alpha-vector is computed, we must compute its value.
-            value = 0.0f;
-            for (unsigned int k = 0; k < rz; k++) {
-                int s = Z[i * rz + k];
-                if (s < 0) {
-                    break;
-                }
-
-                value += alpha[s] * B[i * rz + k];
-            }
-
-            // If this is a new best value, then store the alpha-vector.
-            if (value > bestValue) {
-                memcpy(&GammaPrime[i * n], alpha, n * sizeof(float));
-                piPrime[i] = a;
-                bestValue = value;
-            }
+        // If this is a new best value, then store the alpha-vector.
+        if (value > bestValue) {
+            memcpy(alphaPrime, alpha, n * sizeof(float));
+            *aPrime = a;
+            bestValue = value;
         }
     }
 
@@ -193,7 +211,7 @@ int pomdp_perseus_initialize_cpu(POMDP *pomdp, const float *initialGamma)
     pomdp->rGamma = 0;
     pomdp->rGammaPrime = 0;
 
-    // Finally, we have Btilde, which stores the indexes of the relevant belief points
+    // Finally, we have BTilde, which stores the indexes of the relevant belief points
     // that require updating at each step. Convergence occurs when this set is empty.
     // Initially, BTilde = B.
     pomdp->rTilde = pomdp->r;
@@ -231,13 +249,15 @@ int pomdp_perseus_execute_cpu(POMDP *pomdp, const float *initialGamma, unsigned 
     // the loop early (if BTilde is empty). Also, note that the currentHorizon is initialized to zero above,
     // and is updated in the update function below.
     while (pomdp->currentHorizon < pomdp->horizon) {
-        //printf("Perseus (CPU Version) -- Iteration %i of %i\n", pomdp->currentHorizon, pomdp->horizon);
+        printf("Perseus (CPU Version) -- Iteration %i of %i\n", pomdp->currentHorizon, pomdp->horizon);
 
-        result = pomdp_perseus_update_cpu(pomdp);
-        if (result == NOVA_CONVERGED) {
-            break;
-        } else if (result != NOVA_SUCCESS) {
-            return result;
+        result = NOVA_SUCCESS;
+
+        while (result != NOVA_CONVERGED) {
+            result = pomdp_perseus_update_cpu(pomdp);
+            if (result != NOVA_CONVERGED && result != NOVA_SUCCESS) {
+                return result;
+            }
         }
     }
 
@@ -265,11 +285,13 @@ int pomdp_perseus_uninitialize_cpu(POMDP *pomdp)
         delete [] pomdp->Gamma;
     }
     pomdp->Gamma = nullptr;
+    pomdp->rGamma = 0;
 
     if (pomdp->GammaPrime != nullptr) {
         delete [] pomdp->GammaPrime;
     }
     pomdp->GammaPrime = nullptr;
+    pomdp->rGammaPrime = 0;
 
     if (pomdp->pi != nullptr) {
         delete [] pomdp->pi;
@@ -290,34 +312,87 @@ int pomdp_perseus_uninitialize_cpu(POMDP *pomdp)
 int pomdp_perseus_update_cpu(POMDP *pomdp)
 {
     // For convenience, define a variable pointing to the proper Gamma and rGamma variables.
+    // Note: Gamma == V_n and GammPrime == V_{n+1} from the paper.
     float *Gamma = pomdp->Gamma;
     float *GammaPrime = pomdp->GammaPrime;
-    unsigned int rGamma = pomdp->rGamma;
+    unsigned int *rGamma = &pomdp->rGamma;
 
     if (pomdp->currentHorizon % 2 == 1) {
         Gamma = pomdp->GammaPrime;
         GammaPrime = pomdp->Gamma;
-        rGamma = pomdp->rGammaPrime;
+        rGamma = &pomdp->rGammaPrime;
     }
 
     // Sample a belief point at random from BTilde.
-    unsigned int bIndex = (unsigned int)((float)rand() / (float)RAND_MAX * (float)rGamma);
+    unsigned int bTildeIndex = (unsigned int)((float)rand() / (float)RAND_MAX * (float)(pomdp->rTilde));
+    unsigned int bIndex = pomdp->BTilde[bTildeIndex];
 
-    // Perform one Bellman update to compute the optimal alpha vector and action for this belief point: bIndex.
+    // Perform one Bellman update to compute the optimal alpha-vector and action for this belief point (bIndex).
+    float *alpha = new float[pomdp->n];
+    unsigned int alphaAction = 0;
+
     pomdp_perseus_update_step_cpu(pomdp->n, pomdp->ns, pomdp->m, pomdp->z, pomdp->r, pomdp->rz, pomdp->gamma,
                 pomdp->S, pomdp->T, pomdp->O, pomdp->R, pomdp->Z, pomdp->B,
-                Gamma, GammaPrime, pomdp->pi);
+                Gamma, *rGamma,
+                bIndex, alpha, &alphaAction);
 
-    // If this new alpha-vector improved the value at bIndex, then add it to the set of alpha-vectors.
+    // First compute the value of this *new* alpha-vector at this belief.
+    float bDotAlpha = 0.0f;
+
+    pomdp_perseus_compute_b_dot_alpha_cpu(pomdp->rz, pomdp->Z, pomdp->B, bIndex, alpha, &bDotAlpha);
+
+    // Next, for each alpha-vector, we will compute the alpha-dot-b for this belief (bIndex),
+    // using the *old* alpha-vectors. This also recalls which alpha-vector obtained this value
+    // (for the else case below).
+    float Vnb = 0.0f;
+    unsigned int alphaPrimeIndex = 0;
+
+    pomdp_perseus_compute_Vb_cpu(pomdp->n, pomdp->rz, pomdp->Z, pomdp->B, bIndex, Gamma, *rGamma, &Vnb, &alphaPrimeIndex);
+
+    // Now, if this new alpha-vector improved the value at bIndex, then add it to the set of alpha-vectors.
     // Otherwise, add the best alpha-vector from the current set of alpha-vectors.
+    if (bDotAlpha >= Vnb) {
+        memcpy(&GammaPrime[(*rGamma) * pomdp->n], alpha, pomdp->n * sizeof(float));
+    } else {
+        memcpy(&GammaPrime[(*rGamma) * pomdp->n], &Gamma[alphaPrimeIndex * pomdp->n], pomdp->n * sizeof(float));
+    }
+    (*rGamma)++;
+
+    delete [] alpha;
+
+    // --------------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------------
+    printf("rGamma = %i\n", *rGamma);
+    printf("rTilde = %i\n", pomdp->rTilde);
+    printf("bDotAlpha > Vnb = %.3f > %.3f\n", bDotAlpha, Vnb);
+    // --------------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------------
 
     // Compute BTilde again, which consists of all beliefs that degraded in value after adding whatever
     // alpha-vector was added in the if-else statement above. Trivially, we are guaranteed to have removed
     // belief bIndex, and this set strictly shrinks in size. Ideally, many more beliefs had values which
     // improved, so it should shrink quite rapidly, especially for the first few iterations.
+    pomdp->rTilde = 0;
+
+    for (unsigned int i = 0; i < pomdp->r; i++) {
+        unsigned int action = 0;
+
+        Vnb = 0.0f;
+        float Vnp1b = 0.0f;
+
+        pomdp_perseus_compute_Vb_cpu(pomdp->n, pomdp->rz,  pomdp->Z, pomdp->B, i, Gamma, *rGamma - 1, &Vnb, &action);
+        pomdp_perseus_compute_Vb_cpu(pomdp->n, pomdp->rz,  pomdp->Z, pomdp->B, i, GammaPrime, *rGamma, &Vnp1b, &action);
+
+        if (Vnp1b < Vnb) {
+            pomdp->BTilde[pomdp->rTilde] = i;
+            pomdp->rTilde++;
+        }
+    }
 
     // Check for convergence (if BTilde is empty).
-    if (rTilde == 0) {
+    if (pomdp->rTilde == 0) {
         // We performed one complete step of Perseus for this horizon!
         pomdp->currentHorizon++;
 
@@ -329,6 +404,7 @@ int pomdp_perseus_update_cpu(POMDP *pomdp)
 
 
 // NOTE: You need to write a free memory function. Anytime you dynamically allocate memory in C, Python does not know...
+// THIS NEEDS TO BE DONE FOR ALL get_policy FUNCTIONS!
 
 
 int pomdp_perseus_get_policy_cpu(POMDP *pomdp, unsigned int &r, float *&Gamma, unsigned int *&pi)
@@ -340,14 +416,18 @@ int pomdp_perseus_get_policy_cpu(POMDP *pomdp, unsigned int &r, float *&Gamma, u
 
     // Copy the final (or intermediate) result of Gamma and pi to the variables.
     if (pomdp->currentHorizon % 2 == 0) {
+        r = pomdp->rGamma;
+
         Gamma = new float[pomdp->rGamma * pomdp->n];
         pi = new unsigned int[pomdp->rGamma];
 
         memcpy(Gamma, pomdp->Gamma, pomdp->rGamma * pomdp->n * sizeof(float));
         memcpy(pi, pomdp->pi, pomdp->rGamma * sizeof(unsigned int));
     } else {
-        Gamma = new float[pomdp->rGamma * pomdp->n];
-        pi = new unsigned int[pomdp->rGamma];
+        r = pomdp->rGammaPrime;
+
+        Gamma = new float[pomdp->rGammaPrime * pomdp->n];
+        pi = new unsigned int[pomdp->rGammaPrime];
 
         memcpy(Gamma, pomdp->GammaPrime, pomdp->rGammaPrime * pomdp->n * sizeof(float));
         memcpy(pi, pomdp->pi, pomdp->rGammaPrime * sizeof(unsigned int));

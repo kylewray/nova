@@ -98,19 +98,22 @@ _nova.pomdp_pbvi_get_policy_cpu.argtypes = (ct.POINTER(NovaPOMDP),
 # Functions from 'pomdp_perseus_cpu.h'.
 _nova.pomdp_perseus_complete_cpu.argtypes = (ct.POINTER(NovaPOMDP),
                                             ct.POINTER(ct.c_float),                 # initialGamma
+                                            ct.POINTER(ct.c_uint),                  # rGamma
                                             ct.POINTER(ct.POINTER(ct.c_float)),     # Gamma
                                             ct.POINTER(ct.POINTER(ct.c_uint)))      # pi
 _nova.pomdp_perseus_initialize_cpu.argtypes = (ct.POINTER(NovaPOMDP),
                                                 ct.POINTER(ct.c_float))    # initialGamma
 _nova.pomdp_perseus_execute_cpu.argtypes = (ct.POINTER(NovaPOMDP),
                                             ct.POINTER(ct.c_float),                 # initialGamma
+                                            ct.POINTER(ct.c_uint),                  # rGamma
                                             ct.POINTER(ct.POINTER(ct.c_float)),     # Gamma
                                             ct.POINTER(ct.POINTER(ct.c_uint)))      # pi
 _nova.pomdp_perseus_uninitialize_cpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
 _nova.pomdp_perseus_update_cpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
 _nova.pomdp_perseus_get_policy_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                                ct.POINTER(ct.POINTER(ct.c_float)),   # Gamma
-                                                ct.POINTER(ct.POINTER(ct.c_uint)))    # pi
+                                                ct.POINTER(ct.c_uint),                  # rGamma
+                                                ct.POINTER(ct.POINTER(ct.c_float)),     # Gamma
+                                                ct.POINTER(ct.POINTER(ct.c_uint)))      # pi
 
 
 # Functions from 'pomdp_expand_cpu.h'.
