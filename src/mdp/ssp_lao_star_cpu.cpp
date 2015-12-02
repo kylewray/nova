@@ -329,17 +329,17 @@ int ssp_lao_star_check_convergence_cpu(MDP *mdp, bool *converged, bool *nonExpan
 }
 
 
-int ssp_lao_star_complete_cpu(MDP *mdp, float *V, unsigned int *pi)
+int ssp_lao_star_complete_cpu(MDP *mdp, const float *Vinitial, unsigned int &r, unsigned int *&S, float *&V, unsigned int *&pi)
 {
     // Note: This 'wrapper' function is provided in order to maintain 
     // the same structure as the GPU version. In the GPU version,
     // 'complete' performs the initilization and uninitialization of
     // the MDP object on the device as well. Here, we do not need that.
-    return ssp_lao_star_execute_cpu(mdp, V, pi);
+    return ssp_lao_star_execute_cpu(mdp, Vinitial, r, S, V, pi);
 }
 
 
-int ssp_lao_star_initialize_cpu(MDP *mdp, float *V)
+int ssp_lao_star_initialize_cpu(MDP *mdp, const float *Vinitial)
 {
     // Reset the current horizon.
     mdp->currentHorizon = 0;
@@ -356,8 +356,8 @@ int ssp_lao_star_initialize_cpu(MDP *mdp, float *V)
     // Note that these values of V are the heuristics for each state.
     // Also, the default values for the expanded states are -1, meaning
     // no expanded state is defined for the index.
-    memcpy(mdp->V, V, mdp->n * sizeof(float));
-    memcpy(mdp->VPrime, V, mdp->n * sizeof(float));
+    memcpy(mdp->V, Vinitial, mdp->n * sizeof(float));
+    memcpy(mdp->VPrime, Vinitial, mdp->n * sizeof(float));
     for (unsigned int i = 0; i < mdp->n; i++) {
         mdp->pi[i] = 0;
         mdp->expanded[i] = -1;
@@ -367,7 +367,7 @@ int ssp_lao_star_initialize_cpu(MDP *mdp, float *V)
 }
 
 
-int ssp_lao_star_execute_cpu(MDP *mdp, float *V, unsigned int *pi)
+int ssp_lao_star_execute_cpu(MDP *mdp, const float *Vinitial, unsigned int &r, unsigned int *&S, float *&V, unsigned int *&pi)
 {
     int result;
 
@@ -376,12 +376,12 @@ int ssp_lao_star_execute_cpu(MDP *mdp, float *V, unsigned int *pi)
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
             mdp->horizon < 1 || mdp->epsilon < 0.0f ||
             //mdp->ne != 0 || mdp->expanded != nullptr ||
-            V == nullptr || pi == nullptr) {
+            Vinitial == nullptr || S != nullptr || V != nullptr || pi != nullptr) {
         fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    result = ssp_lao_star_initialize_cpu(mdp, V);
+    result = ssp_lao_star_initialize_cpu(mdp, Vinitial);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n", "Failed to initialize the CPU variables.");
         return result;
@@ -436,7 +436,7 @@ int ssp_lao_star_execute_cpu(MDP *mdp, float *V, unsigned int *pi)
         }
     }
 
-    result = ssp_lao_star_get_policy_cpu(mdp, V, pi);
+    result = ssp_lao_star_get_policy_cpu(mdp, r, S, V, pi);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n", "Failed to get the policy.");
         return result;
@@ -484,8 +484,35 @@ int ssp_lao_star_uninitialize_cpu(MDP *mdp)
 }
 
 
-int ssp_lao_star_get_policy_cpu(MDP *mdp, float *V, unsigned int *pi)
+int ssp_lao_star_get_policy_cpu(MDP *mdp, unsigned int &r, unsigned int *&S, float *&V, unsigned int *&pi)
 {
+    if (S != nullptr || V != nullptr || pi != nullptr) {
+        fprintf(stderr, "Error[ssp_lao_star_get_policy_cpu]: %s\n", "Invalid arguments. S, V, and pi must be undefined.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    // First, count the number of states that are valid following the policy.
+    r = 0;
+
+    for (unsigned int i = 0; i < mdp->ne; i++) {
+        unsigned int s = mdp->expanded[i];
+
+        // Only include the visited states as part of the final policy. These states are all reachable states
+        // following the optimal policy. Recall that some states might be expanded early on in the process,
+        // but are quickly abandoned.
+        if (!std::signbit(mdp->V[s]) || !std::signbit(mdp->VPrime[s])) {
+            r++;
+        }
+    }
+
+    S = new unsigned int[r];
+    V = new float[r];
+    pi = new unsigned int[r];
+
+    // TODO: Update the Python code to that it takes double pointers for everything.
+
+    // TODO: Update the solver Python code to actually use the free functions everywhere.
+
     // Determine which is the source for V based on the current horizon.
     float *Vsrc = nullptr;
     if (mdp->currentHorizon % 2 == 0) {
@@ -510,10 +537,32 @@ int ssp_lao_star_get_policy_cpu(MDP *mdp, float *V, unsigned int *pi)
         // following the optimal policy. Recall that some states might be expanded early on in the process,
         // but are quickly abandoned.
         if (!std::signbit(mdp->V[s]) || !std::signbit(mdp->VPrime[s])) {
-            V[s] = Vsrc[s];
-            pi[s] = mdp->pi[s];
+            S[i] = s;
+            V[i] = Vsrc[s];
+            pi[i] = mdp->pi[s];
         }
     }
+
+    return NOVA_SUCCESS;
+}
+
+
+int ssp_lao_star_free_policy_cpu(MDP *mdp, unsigned int *&S, float *&V, unsigned int *&pi)
+{
+    if (S != nullptr) {
+        delete [] S;
+    }
+    S = nullptr;
+
+    if (V != nullptr) {
+        delete [] V;
+    }
+    V = nullptr;
+
+    if (pi != nullptr) {
+        delete [] pi;
+    }
+    pi = nullptr;
 
     return NOVA_SUCCESS;
 }

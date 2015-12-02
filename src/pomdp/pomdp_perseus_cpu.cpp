@@ -466,3 +466,19 @@ int pomdp_perseus_get_policy_cpu(POMDP *pomdp, unsigned int &r, float *&Gamma, u
     return NOVA_SUCCESS;
 }
 
+
+int pomdp_perseus_free_policy_cpu(float *&Gamma, unsigned int *&pi)
+{
+    if (Gamma != nullptr) {
+        delete [] Gamma;
+    }
+    Gamma = nullptr;
+
+    if (pi != nullptr) {
+        delete [] pi;
+    }
+    pi = nullptr;
+
+    return NOVA_SUCCESS;
+}
+

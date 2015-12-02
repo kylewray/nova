@@ -301,3 +301,19 @@ int pomdp_pbvi_get_policy_cpu(POMDP *pomdp, float *&Gamma, unsigned int *&pi)
     return NOVA_SUCCESS;
 }
 
+
+int pomdp_pbvi_free_policy_cpu(float *&Gamma, unsigned int *&pi)
+{
+    if (Gamma != nullptr) {
+        delete [] Gamma;
+    }
+    Gamma = nullptr;
+
+    if (pi != nullptr) {
+        delete [] pi;
+    }
+    pi = nullptr;
+
+    return NOVA_SUCCESS;
+}
+

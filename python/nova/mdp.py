@@ -184,24 +184,31 @@ class MDP(nm.NovaMDP):
                                 Optional. Default value is None, yielding an n-array of zeros.
 
             Returns:
-                V       --  The values of each state, mapping states to values.
-                pi      --  The policy, mapping states to actions.
+                V, pi, timing           -- If algorithm is 'vi'.
+                r, S, V, pi, timing     -- If algorithm is 'lao*'.
+                r       --  The size of the valid states found by heuristic search algorithms (e.g., 'lao*').
+                S       --  The actual r state indexes found by heuristic search algorithms (e.g., 'lao*').
+                V       --  The values of each state, mapping states to values. In heuristic search, S contains the state index.
+                pi      --  The policy, mapping states to actions. In heuristic search, S contains the state index.
                 timing  --  A pair (wall-time, cpu-time) for solver execution time, not including (un)initialization.
         """
 
         # Create V and pi, assigning them their respective initial values.
-        V = np.array([0.0 for s in range(self.n)])
-        #if self.gamma < 1.0:
-        #    V = np.array([float(self.Rmin / (1.0 - self.gamma)) for s in range(self.n)])
-        pi = np.array([0 for s in range(self.n)])
+        Vinitial = np.array([0.0 for s in range(self.n)])
+        if self.gamma < 1.0:
+            Vinitial = np.array([float(self.Rmin / (1.0 - self.gamma)) for s in range(self.n)])
 
         # Create functions to convert flattened NumPy arrays to C arrays.
         array_type_n_float = ct.c_float * self.n
-        array_type_n_uint = ct.c_uint * self.n
 
-        # Create C arrays for the result.
-        V = array_type_n_float(*V)
-        pi = array_type_n_uint(*pi)
+        # Create a C array for the initial values.
+        Vinitial = array_type_n_float(*Vinitial)
+
+        # Create C arrays for the result. Some are unused depending on the algorithm.
+        r = ct.c_uint(0)
+        S = ct.POINTER(ct.c_uint)()
+        V = ct.POINTER(ct.c_float)()
+        pi = ct.POINTER(ct.c_uint)()
 
         # For informed search algorithms, define the heuristic, which is stored in V initially.
         if algorithm == 'lao*' and heuristic is not None:
@@ -212,14 +219,15 @@ class MDP(nm.NovaMDP):
         # If the process is 'gpu', then attempt to solve it. If an error arises, then
         # assign process to 'cpu' and attempt to solve it using that.
         if process == 'gpu':
+            timing = (time.time(), time.clock())
             if algorithm == 'vi':
-                timing = (time.time(), time.clock())
-                result = nm._nova.mdp_vi_complete_gpu(self, int(numThreads), V, pi)
-                timing = (time.time() - timing[0], time.clock() - timing[1])
+                result = nm._nova.mdp_vi_complete_gpu(self, int(numThreads), Vinitial,
+                                                            ct.byref(V), ct.byref(pi))
             elif algorithm == 'lao*':
-                timing = (time.time(), time.clock())
-                result = nm._nova.ssp_lao_star_complete_gpu(self, int(numThreads), V, pi)
-                timing = (time.time() - timing[0], time.clock() - timing[1])
+                result = nm._nova.ssp_lao_star_complete_gpu(self, int(numThreads), Vinitial,
+                                                            ct.byref(r), ct.byref(S),
+                                                            ct.byref(V), ct.byref(pi))
+            timing = (time.time() - timing[0], time.clock() - timing[1])
 
             if result != 0:
                 print("Failed to execute the 'nova' library's GPU MDP solver.")
@@ -227,27 +235,34 @@ class MDP(nm.NovaMDP):
 
         # If the process is 'cpu', then attempt to solve it.
         if process == 'cpu':
+            timing = (time.time(), time.clock())
             if algorithm == 'vi':
-                timing = (time.time(), time.clock())
-                result = nm._nova.mdp_vi_complete_cpu(self, V, pi)
-                timing = (time.time() - timing[0], time.clock() - timing[1])
+                result = nm._nova.mdp_vi_complete_cpu(self, Vinitial, V, pi)
             elif algorithm == 'lao*':
-                timing = (time.time(), time.clock())
-                result = nm._nova.ssp_lao_star_complete_cpu(self, V, pi)
-                timing = (time.time() - timing[0], time.clock() - timing[1])
+                result = nm._nova.ssp_lao_star_complete_cpu(self, Vinitial, r, S, V, pi)
+            timing = (time.time() - timing[0], time.clock() - timing[1])
 
             if result != 0:
                 print("Failed to execute the 'nova' library's CPU MDP solver.")
                 raise Exception()
 
         if result == 0:
-            V = np.array([V[i] for i in range(self.n)])
-            pi = np.array([pi[i] for i in range(self.n)])
+            if algorithm == 'vi':
+                V = np.array([V[i] for i in range(self.n)])
+                pi = np.array([pi[i] for i in range(self.n)])
+            elif algorithm == 'lao*':
+                r = r.value
+                S = np.array([S[i] for i in range(r)])
+                V = np.array([V[i] for i in range(r)])
+                pi = np.array([pi[i] for i in range(r)])
         else:
             print("Failed to solve MDP using the 'nova' library.")
             raise Exception()
 
-        return V, pi, timing
+        if algorithm == 'vi':
+            return V, pi, timing
+        elif algorithm == 'lao*':
+            return r, S, V, pi, timing
 
     def __str__(self):
         """ Return the string of the MDP values akin to the raw file format.

@@ -33,33 +33,41 @@
  *  Execute the entire LAO* process for the SSP MDP model specified until convergence. Uses the CPU.
  *  Note we assume the rewards R are all positive costs or 0 for goal states.
  *  @param  mdp     The MDP object.
- *  @param  V       The final value function, mapping states (n array) to floats.
- *                  This will be modified.
- *  @param  pi      The resultant policy, mapping every state (n array) to an
- *                  action (in 0 to m-1). This will be modified.
+ *  @param  Vinitial    The initial value function, mapping states (n-array) to floats. Importantly,
+ *                      this should initially hold the *admissible heuristic* values for each state.
+ *  @param  r           The number of states relevant to the final policy with r <= n.
+ *  @param  S           The set of relevant state indexes (r-array). This will be modified.
+ *  @param  V           The resultant policy; one value for each state (r-array). This will be modified.
+ *  @param  pi          The resultant policy; one action for each state (r-array). This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int ssp_lao_star_complete_cpu(MDP *mdp, float *V, unsigned int *pi);
+extern "C" int ssp_lao_star_complete_cpu(MDP *mdp, const float *Vinitial, unsigned int &r,
+    unsigned int *&S, float *&V, unsigned int *&pi);
 
 /**
  *  Step 1/3: The initialization step of LAO*. This sets up the V and pi variables.
  *  Note we assume the rewards R are all positive costs or 0 for goal states.
- *  @param  mdp     The MDP object.
- *  @param  V       The final value function, mapping states (n array) to floats. Importantly,
- *                  this should initially hold the *admissible heuristic* values for each state.
+ *  @param  mdp         The MDP object.
+ *  @param  Vinitial    The initial value function, mapping states (n-array) to floats. Importantly,
+ *                      this should initially hold the *admissible heuristic* values for each state.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int ssp_lao_star_initialize_cpu(MDP *mdp, float *V);
+extern "C" int ssp_lao_star_initialize_cpu(MDP *mdp, const float *Vinitial);
 
 /**
  *  Step 2/3: Execute LAO* for the SSP MDP model specified.
  *  Note we assume the rewards R are all positive costs or 0 for goal states.
- *  @param  mdp     The MDP object.
- *  @param  V       The resultant policy; one value for each state (n-array). This will be modified.
- *  @param  pi      The resultant policy; one action for each state (n-array). This will be modified.
+ *  @param  mdp         The MDP object.
+ *  @param  Vinitial    The initial value function, mapping states (n-array) to floats. Importantly,
+ *                      this should initially hold the *admissible heuristic* values for each state.
+ *  @param  r           The number of states relevant to the final policy with r <= n.
+ *  @param  S           The set of relevant state indexes (r-array). This will be modified.
+ *  @param  V           The resultant policy; one value for each state (r-array). This will be modified.
+ *  @param  pi          The resultant policy; one action for each state (r-array). This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int ssp_lao_star_execute_cpu(MDP *mdp, float *V, unsigned int *pi);
+extern "C" int ssp_lao_star_execute_cpu(MDP *mdp, const float *Vinitial, unsigned int &r,
+    unsigned int *&S, float *&V, unsigned int *&pi);
 
 /**
  *  Step 3/3: The uninitialization step of LAO*. This sets up the V and pi variables.
@@ -75,11 +83,23 @@ extern "C" int ssp_lao_star_uninitialize_cpu(MDP *mdp);
  *  values V(s) and actions pi(s).
  *  Note we assume the rewards R are all positive costs or 0 for goal states.
  *  @param  mdp     The MDP object.
- *  @param  V       The resultant policy; one value for each state (n-array). This will be modified.
- *  @param  pi      The resultant policy; one action for each state (n-array). This will be modified.
+ *  @param  r       The number of states relevant to the final policy with r <= n.
+ *  @param  S       The set of relevant state indexes (r-array). This will be modified.
+ *  @param  V       The resultant policy; one value for each relevant state (r-array). This will be modified.
+ *  @param  pi      The resultant policy; one action for each relevant state (r-array). This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int ssp_lao_star_get_policy_cpu(MDP *mdp, float *V, unsigned int *pi);
+extern "C" int ssp_lao_star_get_policy_cpu(MDP *mdp, unsigned int &r, unsigned int *&S,
+    float *&V, unsigned int *&pi);
+
+/**
+ *  Free the policy produced by the get policy above.
+ *  @param  S       The set of relevant state indexes (r-array). This will be modified.
+ *  @param  V       The resultant policy; one value for each relevant state (r-array). This will be modified.
+ *  @param  pi      The resultant policy; one action for each relevant state (r-array). This will be modified.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int ssp_lao_star_free_policy_cpu(MDP *mdp, unsigned int *&S, float *&V, unsigned int *&pi);
 
 
 #endif // SSP_LAO_STAR_CPU_H

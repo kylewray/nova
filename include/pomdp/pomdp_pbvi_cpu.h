@@ -87,6 +87,16 @@ extern "C" int pomdp_pbvi_update_cpu(POMDP *pomdp);
  */
 extern "C" int pomdp_pbvi_get_policy_cpu(POMDP *pomdp, float *&Gamma, unsigned int *&pi);
 
+/**
+ *  Free the policy produced by the get policy above.
+ *  @param  Gamma   The resultant policy; set of alpha vectors (r-n array).
+ *                  This will be created and modified.
+ *  @param  pi      The resultant policy; one action for each alpha-vector (r-array).
+ *                  This will be created and modified.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int pomdp_pbvi_free_policy_cpu(float *&Gamma, unsigned int *&pi);
 
+ 
 #endif // POMDP_PBVI_CPU_H
 

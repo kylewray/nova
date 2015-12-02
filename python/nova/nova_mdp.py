@@ -72,15 +72,20 @@ class NovaMDP(ct.Structure):
 
 
 _nova.mdp_vi_complete_cpu.argtypes = (ct.POINTER(NovaMDP),
-                                    ct.POINTER(ct.c_float), # V
-                                    ct.POINTER(ct.c_uint))  # pi
+                                    ct.POINTER(ct.c_float),             # Vinitial
+                                    ct.POINTER(ct.POINTER(ct.c_float)), # V
+                                    ct.POINTER(ct.POINTER(ct.c_uint)))  # pi
 
 _nova.mdp_vi_complete_gpu.argtypes = (ct.POINTER(NovaMDP),
-                                    ct.c_uint,              # numThreads
-                                    ct.POINTER(ct.c_float), # V
-                                    ct.POINTER(ct.c_uint))  # pi
+                                    ct.c_uint,                          # numThreads
+                                    ct.POINTER(ct.c_float),             # Vinitial
+                                    ct.POINTER(ct.POINTER(ct.c_float)), # V
+                                    ct.POINTER(ct.POINTER(ct.c_uint)))  # pi
 
 _nova.ssp_lao_star_complete_cpu.argtypes = (ct.POINTER(NovaMDP),
-                                    ct.POINTER(ct.c_float), # V
-                                    ct.POINTER(ct.c_uint))  # pi
+                                    ct.POINTER(ct.c_float),             # Vinitial
+                                    ct.POINTER(ct.c_uint),              # r
+                                    ct.POINTER(ct.POINTER(ct.c_uint)),  # S
+                                    ct.POINTER(ct.POINTER(ct.c_float)), # V
+                                    ct.POINTER(ct.POINTER(ct.c_uint)))  # pi
 
