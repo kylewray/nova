@@ -47,10 +47,10 @@ files = [
         #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'gpu', 'algorithm': 'perseus', 'expand': "distinct_beliefs"},
         #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'gpu', 'algorithm': 'perseus', 'expand': "pema"},
 
-        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'perseus', 'expand': None},
+        {'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'perseus', 'expand': None},
         {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "random"},
-        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "distinct_beliefs"},
-        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "pema"},
+        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "distinct_beliefs"},
+        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "pema"},
         ]
 
 for f in files:

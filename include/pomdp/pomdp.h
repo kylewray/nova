@@ -101,6 +101,7 @@ typedef struct NovaPOMDP {
     float *Gamma;
     float *GammaPrime;
     unsigned int *pi;
+    unsigned int *piPrime;
 
     int *d_S;
     float *d_T;
@@ -112,6 +113,7 @@ typedef struct NovaPOMDP {
     float *d_Gamma;
     float *d_GammaPrime;
     unsigned int *d_pi;
+    unsigned int *d_piPrime;
     float *d_alphaBA;
 } POMDP;
 

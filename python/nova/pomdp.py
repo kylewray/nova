@@ -51,6 +51,7 @@ class POMDP(npm.NovaPOMDP):
         self.Gamma = ct.POINTER(ct.c_float)()
         self.GammaPrime = ct.POINTER(ct.c_float)()
         self.pi = ct.POINTER(ct.c_uint)()
+        self.piPrime = ct.POINTER(ct.c_uint)()
         self.d_S = ct.POINTER(ct.c_int)()
         self.d_T = ct.POINTER(ct.c_float)()
         self.d_O = ct.POINTER(ct.c_float)()
@@ -60,6 +61,7 @@ class POMDP(npm.NovaPOMDP):
         self.d_Gamma = ct.POINTER(ct.c_float)()
         self.d_GammaPrime = ct.POINTER(ct.c_float)()
         self.d_pi = ct.POINTER(ct.c_uint)()
+        self.d_piPrime = ct.POINTER(ct.c_uint)()
         self.d_alphaBA = ct.POINTER(ct.c_float)()
 
         # Additional informative variables.

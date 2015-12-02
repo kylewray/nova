@@ -42,6 +42,7 @@
 // Other warnings which are possible during run time.
 #define NOVA_WARNING_INVALID_BELIEF                 9
 #define NOVA_CONVERGED                              10
+#define NOVA_ERROR_OUT_OF_MEMORY                    11
 
 
 #endif // NOVA_ERROR_CODES_H

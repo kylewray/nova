@@ -64,6 +64,7 @@ class NovaPOMDP(ct.Structure):
                 ("Gamma", ct.POINTER(ct.c_float)),
                 ("GammaPrime", ct.POINTER(ct.c_float)),
                 ("pi", ct.POINTER(ct.c_uint)),
+                ("piPrime", ct.POINTER(ct.c_uint)),
                 ("d_S", ct.POINTER(ct.c_int)),
                 ("d_T", ct.POINTER(ct.c_float)),
                 ("d_O", ct.POINTER(ct.c_float)),
@@ -73,6 +74,7 @@ class NovaPOMDP(ct.Structure):
                 ("d_Gamma", ct.POINTER(ct.c_float)),
                 ("d_GammaPrime", ct.POINTER(ct.c_float)),
                 ("d_pi", ct.POINTER(ct.c_uint)),
+                ("d_piPrime", ct.POINTER(ct.c_uint)),
                 ("d_alphaBA", ct.POINTER(ct.c_float)),
                 ]
 

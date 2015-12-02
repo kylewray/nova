@@ -69,7 +69,7 @@ void pomdp_perseus_compute_Vb_cpu(unsigned int n, unsigned int rz, const int *Z,
 void pomdp_perseus_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
     unsigned int r, unsigned int rz, float gamma,
     const int *S, const float *T, const float *O, const float *R, const int *Z, const float *B,
-    const float *Gamma, unsigned int rGamma, unsigned int bIndex, unsigned int a, float *alpha)
+    unsigned int bIndex, const float *Gamma, unsigned int rGamma, unsigned int a, float *alpha)
 {
     float value;
     float bestValue;
@@ -160,8 +160,8 @@ void pomdp_perseus_update_step_cpu(unsigned int n, unsigned int ns, unsigned int
 
         // First, compute the argmax_{alpha in Gamma_{a,omega}} for each observation.
         pomdp_perseus_update_compute_best_alpha_cpu(n, ns, m, z, r, rz, gamma,
-                                                    S, T, O, R, Z, B, Gamma, rGamma,
-                                                    bIndex, a, alpha);
+                                                    S, T, O, R, Z, B, bIndex,
+                                                    Gamma, rGamma, a, alpha);
 
         // After the alpha-vector is computed, we must compute its value.
         pomdp_perseus_compute_b_dot_alpha_cpu(rz, Z, B, bIndex, alpha, &value);
@@ -197,12 +197,14 @@ int pomdp_perseus_initialize_cpu(POMDP *pomdp, const float *initialGamma)
     pomdp->Gamma = new float[pomdp->r *pomdp->n];
     pomdp->GammaPrime = new float[pomdp->r * pomdp->n];
     pomdp->pi = new unsigned int[pomdp->r];
+    pomdp->piPrime = new unsigned int[pomdp->r];
 
     // Copy the data form the Gamma provided, and set the default values for pi.
     memcpy(pomdp->Gamma, initialGamma, pomdp->r * pomdp->n * sizeof(float));
     memcpy(pomdp->GammaPrime, initialGamma, pomdp->r * pomdp->n * sizeof(float));
     for (unsigned int i = 0; i < pomdp->r; i++) {
         pomdp->pi[i] = 0;
+        pomdp->piPrime[i] = 0;
     }
 
     // For Perseus, we might have a lot fewer alpha-vectors. The actual number is
@@ -249,7 +251,7 @@ int pomdp_perseus_execute_cpu(POMDP *pomdp, const float *initialGamma, unsigned 
     // the loop early (if BTilde is empty). Also, note that the currentHorizon is initialized to zero above,
     // and is updated in the update function below.
     while (pomdp->currentHorizon < pomdp->horizon) {
-        printf("Perseus (CPU Version) -- Iteration %i of %i\n", pomdp->currentHorizon, pomdp->horizon);
+        //printf("Perseus (CPU Version) -- Iteration %i of %i\n", pomdp->currentHorizon, pomdp->horizon);
 
         result = NOVA_SUCCESS;
 
@@ -298,6 +300,11 @@ int pomdp_perseus_uninitialize_cpu(POMDP *pomdp)
     }
     pomdp->pi = nullptr;
 
+    if (pomdp->piPrime != nullptr) {
+        delete [] pomdp->piPrime;
+    }
+    pomdp->piPrime = nullptr;
+
     // Free the memory of BTilde and reset rTilde.
     if (pomdp->BTilde != nullptr) {
         delete [] pomdp->BTilde;
@@ -315,12 +322,22 @@ int pomdp_perseus_update_cpu(POMDP *pomdp)
     // Note: Gamma == V_n and GammPrime == V_{n+1} from the paper.
     float *Gamma = pomdp->Gamma;
     float *GammaPrime = pomdp->GammaPrime;
+
     unsigned int *rGamma = &pomdp->rGamma;
+    unsigned int *rGammaPrime = &pomdp->rGammaPrime;
+
+    unsigned int *pi = pomdp->pi;
+    unsigned int *piPrime = pomdp->piPrime;
 
     if (pomdp->currentHorizon % 2 == 1) {
         Gamma = pomdp->GammaPrime;
         GammaPrime = pomdp->Gamma;
+
         rGamma = &pomdp->rGammaPrime;
+        rGammaPrime = &pomdp->rGamma;
+
+        pi = pomdp->piPrime;
+        piPrime = pomdp->pi;
     }
 
     // Sample a belief point at random from BTilde.
@@ -352,23 +369,20 @@ int pomdp_perseus_update_cpu(POMDP *pomdp)
     // Now, if this new alpha-vector improved the value at bIndex, then add it to the set of alpha-vectors.
     // Otherwise, add the best alpha-vector from the current set of alpha-vectors.
     if (bDotAlpha >= Vnb) {
-        memcpy(&GammaPrime[(*rGamma) * pomdp->n], alpha, pomdp->n * sizeof(float));
+        memcpy(&GammaPrime[(*rGammaPrime) * pomdp->n], alpha, pomdp->n * sizeof(float));
+        piPrime[*rGammaPrime] = alphaAction;
     } else {
-        memcpy(&GammaPrime[(*rGamma) * pomdp->n], &Gamma[alphaPrimeIndex * pomdp->n], pomdp->n * sizeof(float));
+        memcpy(&GammaPrime[(*rGammaPrime) * pomdp->n], &Gamma[alphaPrimeIndex * pomdp->n], pomdp->n * sizeof(float));
+        piPrime[*rGammaPrime] = pi[alphaPrimeIndex];
     }
-    (*rGamma)++;
+    (*rGammaPrime)++;
 
     delete [] alpha;
 
-    // --------------------------------------------------------------------------------------------------
-    // --------------------------------------------------------------------------------------------------
-    // --------------------------------------------------------------------------------------------------
-    printf("rGamma = %i\n", *rGamma);
-    printf("rTilde = %i\n", pomdp->rTilde);
-    printf("bDotAlpha > Vnb = %.3f > %.3f\n", bDotAlpha, Vnb);
-    // --------------------------------------------------------------------------------------------------
-    // --------------------------------------------------------------------------------------------------
-    // --------------------------------------------------------------------------------------------------
+    if (*rGammaPrime > pomdp->r) {
+        fprintf(stderr, "Error[pomdp_perseus_update_cpu]: %s\n", "Out of memory. Too many alpha-vectors added.");
+        return NOVA_ERROR_OUT_OF_MEMORY;
+    }
 
     // Compute BTilde again, which consists of all beliefs that degraded in value after adding whatever
     // alpha-vector was added in the if-else statement above. Trivially, we are guaranteed to have removed
@@ -382,8 +396,8 @@ int pomdp_perseus_update_cpu(POMDP *pomdp)
         Vnb = 0.0f;
         float Vnp1b = 0.0f;
 
-        pomdp_perseus_compute_Vb_cpu(pomdp->n, pomdp->rz,  pomdp->Z, pomdp->B, i, Gamma, *rGamma - 1, &Vnb, &action);
-        pomdp_perseus_compute_Vb_cpu(pomdp->n, pomdp->rz,  pomdp->Z, pomdp->B, i, GammaPrime, *rGamma, &Vnp1b, &action);
+        pomdp_perseus_compute_Vb_cpu(pomdp->n, pomdp->rz,  pomdp->Z, pomdp->B, i, Gamma, *rGamma, &Vnb, &action);
+        pomdp_perseus_compute_Vb_cpu(pomdp->n, pomdp->rz,  pomdp->Z, pomdp->B, i, GammaPrime, *rGammaPrime, &Vnp1b, &action);
 
         if (Vnp1b < Vnb) {
             pomdp->BTilde[pomdp->rTilde] = i;
@@ -395,6 +409,22 @@ int pomdp_perseus_update_cpu(POMDP *pomdp)
     if (pomdp->rTilde == 0) {
         // We performed one complete step of Perseus for this horizon!
         pomdp->currentHorizon++;
+
+        // Note #1: The way this code is written puts the reset here. In the original paper, it is
+        // at the beginning of the next horizon's set of iterations.
+
+        // Note #2: Resetting rGamma here still allows for the correct set of policies to be grabbed via
+        // the get_policy function below, because the horizon was incremented, so the GammaPrime values
+        // will actually be retrieved in get_policy.
+
+        // Reset V_{n+1} to empty set.
+        *rGamma = 0;
+
+        // Reset BTilde to B.
+        pomdp->rTilde = pomdp->r;
+        for (unsigned int i = 0; i < pomdp->r; i++) {
+            pomdp->BTilde[i] = i;
+        }
 
         return NOVA_CONVERGED;
     }
@@ -430,7 +460,7 @@ int pomdp_perseus_get_policy_cpu(POMDP *pomdp, unsigned int &r, float *&Gamma, u
         pi = new unsigned int[pomdp->rGammaPrime];
 
         memcpy(Gamma, pomdp->GammaPrime, pomdp->rGammaPrime * pomdp->n * sizeof(float));
-        memcpy(pi, pomdp->pi, pomdp->rGammaPrime * sizeof(unsigned int));
+        memcpy(pi, pomdp->piPrime, pomdp->rGammaPrime * sizeof(unsigned int));
     }
 
     return NOVA_SUCCESS;
