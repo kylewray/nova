@@ -33,17 +33,20 @@ from nova.pomdp import *
 
 
 trials = [
-         #{'name': "VI CPU", 'filename': "domains/grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 4, 'h': 3},
-         #{'name': "VI GPU", 'filename': "domains/grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 4, 'h': 3},
-         #{'name': "LAO* CPU", 'filename': "domains/grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 4, 'h': 3},
+         {'name': "VI CPU", 'filename': "domains/grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 4, 'h': 3},
+         {'name': "VI GPU", 'filename': "domains/grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 4, 'h': 3},
+         {'name': "LAO* CPU", 'filename': "domains/grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 4, 'h': 3},
+         {'name': "RTDP CPU", 'filename': "domains/grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "rtdp", 'process': "cpu", 'w': 4, 'h': 3},
 
          #{'name': "VI CPU (Intense)", 'filename': "domains/another_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 10, 'h': 10},
          #{'name': "VI GPU (Intense)", 'filename': "domains/another_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 10, 'h': 10},
          #{'name': "LAO* CPU (Intense)", 'filename': "domains/another_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 10, 'h': 10},
+         #{'name': "RTDP CPU (Intense)", 'filename': "domains/another_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "rtdp", 'process': "cpu", 'w': 10, 'h': 10},
 
-         {'name': "VI CPU (Intense)", 'filename': "domains/intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 50, 'h': 50},
-         {'name': "VI GPU (Intense)", 'filename': "domains/intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 50, 'h': 50},
-         {'name': "LAO* CPU (Intense)", 'filename': "domains/intense_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 50, 'h': 50},
+         #{'name': "VI CPU (Intense)", 'filename': "domains/intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 50, 'h': 50},
+         #{'name': "VI GPU (Intense)", 'filename': "domains/intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 50, 'h': 50},
+         #{'name': "LAO* CPU (Intense)", 'filename': "domains/intense_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 50, 'h': 50},
+         #{'name': "RTDP CPU (Intense)", 'filename': "domains/intense_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "rtdp", 'process': "cpu", 'w': 50, 'h': 50},
 
          #{'name': "VI CPU (Massive)", 'filename': "domains/massive_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 75, 'h': 75},
          #{'name': "VI GPU (Massive)", 'filename': "domains/massive_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 75, 'h': 75},
@@ -65,6 +68,8 @@ for trial in trials:
         gridWorld.horizon = 10000
     elif trial['algorithm'] == "lao*":
         gridWorld.horizon = 10000000
+    elif trial['algorithm'] == "rtdp":
+        gridWorld.horizon = 100
 
     # The heuristic (admissible) is the manhattan distance to the goal, which is always the upper right corner.
     #h = np.array([abs(y) + abs(trial['w'] - 1 - x) for y, x in it.product(range(trial['h']), range(trial['w']))] + [0.0]).flatten()
@@ -72,7 +77,7 @@ for trial in trials:
 
     if trial['algorithm'] == "vi":
         V, pi, timing = gridWorld.solve(algorithm=trial['algorithm'], process=trial['process'], epsilon=0.01, heuristic=h)
-    elif trial['algorithm'] == "lao*":
+    elif trial['algorithm'] == "lao*" or trial['algorithm'] == "rtdp":
         r, S, V, pi, timing = gridWorld.solve(algorithm=trial['algorithm'], process=trial['process'], epsilon=0.01, heuristic=h)
 
     prettyActions = ["L", "U", "R", "D"]
@@ -82,7 +87,7 @@ for trial in trials:
             for x in range(trial['w']):
                 print(prettyActions[pi[y * trial['w'] + x]] + " ", end='')
             print()
-    elif trial['algorithm'] == "lao*":
+    elif trial['algorithm'] == "lao*" or trial['algorithm'] == "rtdp":
         for y in range(trial['h']):
             for x in range(trial['w']):
                 try:

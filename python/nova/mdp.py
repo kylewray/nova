@@ -174,7 +174,7 @@ class MDP(nm.NovaMDP):
         """ Solve the MDP using the nova Python wrapper.
 
             Parameters:
-                algorithm   --  The algorithm to use, either 'vi' or 'lao*'. Default is 'vi'.
+                algorithm   --  The algorithm to use, either 'vi', 'lao*', or 'rtdp'. Default is 'vi'.
                 process     --  Use the 'cpu' or 'gpu'. If 'gpu' fails, it tries 'cpu'. Default is 'gpu'.
                 numThreads  --  The number of CUDA threads to execute (multiple of 32). Default is 1024.
                 epsilon     --  The optional error of the value function. Default is 0.01.
@@ -227,6 +227,10 @@ class MDP(nm.NovaMDP):
                 result = nm._nova.ssp_lao_star_complete_gpu(self, int(numThreads), Vinitial,
                                                             ct.byref(r), ct.byref(S),
                                                             ct.byref(V), ct.byref(pi))
+            elif algorithm == 'rtdp':
+                result = nm._nova.ssp_rtdp_complete_gpu(self, int(numThreads), Vinitial,
+                                                            ct.byref(r), ct.byref(S),
+                                                            ct.byref(V), ct.byref(pi))
             timing = (time.time() - timing[0], time.clock() - timing[1])
 
             if result != 0:
@@ -240,6 +244,8 @@ class MDP(nm.NovaMDP):
                 result = nm._nova.mdp_vi_complete_cpu(self, Vinitial, V, pi)
             elif algorithm == 'lao*':
                 result = nm._nova.ssp_lao_star_complete_cpu(self, Vinitial, r, S, V, pi)
+            elif algorithm == 'rtdp':
+                result = nm._nova.ssp_rtdp_complete_cpu(self, Vinitial, r, S, V, pi)
             timing = (time.time() - timing[0], time.clock() - timing[1])
 
             if result != 0:
@@ -250,7 +256,7 @@ class MDP(nm.NovaMDP):
             if algorithm == 'vi':
                 V = np.array([V[i] for i in range(self.n)])
                 pi = np.array([pi[i] for i in range(self.n)])
-            elif algorithm == 'lao*':
+            elif algorithm == 'lao*' or algorithm == 'rtdp':
                 r = r.value
                 S = np.array([S[i] for i in range(r)])
                 V = np.array([V[i] for i in range(r)])
@@ -261,7 +267,7 @@ class MDP(nm.NovaMDP):
 
         if algorithm == 'vi':
             return V, pi, timing
-        elif algorithm == 'lao*':
+        elif algorithm == 'lao*' or algorithm == 'rtdp':
             return r, S, V, pi, timing
 
     def __str__(self):

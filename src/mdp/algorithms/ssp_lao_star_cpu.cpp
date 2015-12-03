@@ -22,7 +22,7 @@
  */
 
 
-#include "ssp_lao_star_cpu.h"
+#include "algorithms/ssp_lao_star_cpu.h"
 #include "error_codes.h"
 #include "constants.h"
 
@@ -142,6 +142,7 @@ int ssp_lao_star_expand_cpu(MDP *mdp, unsigned int *numNewlyExpandedStates)
         for (unsigned int i = 0; i < mdp->ng; i++) {
             if (s == mdp->goals[i]) {
                 isGoal = true;
+                break;
             }
         }
         if (isGoal) {
@@ -246,6 +247,7 @@ int ssp_lao_star_check_convergence_cpu(MDP *mdp, bool *converged, bool *nonExpan
         for (unsigned int i = 0; i < mdp->ng; i++) {
             if (s == mdp->goals[i]) {
                 isGoal = true;
+                break;
             }
         }
         if (isGoal) {

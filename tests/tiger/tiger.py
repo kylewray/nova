@@ -32,15 +32,15 @@ from nova.pomdp import *
 
 
 files = [
-        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': None},
-        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "random"},
-        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "distinct_beliefs"},
-        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "pema"},
+        {'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': None},
+        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "random"},
+        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "distinct_beliefs"},
+        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "pema"},
 
-        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': None},
-        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "random"},
-        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "distinct_beliefs"},
-        #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "pema"},
+        {'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': None},
+        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "random"},
+        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "distinct_beliefs"},
+        {'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "pema"},
 
         #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'gpu', 'algorithm': 'perseus', 'expand': None},
         #{'filename': "tiger_95.pomdp", 'filetype': "pomdp", 'process': 'gpu', 'algorithm': 'perseus', 'expand': "random"},

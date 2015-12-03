@@ -22,7 +22,7 @@
  */
 
 
-#include "mdp_vi_cpu.h"
+#include "algorithms/mdp_vi_cpu.h"
 #include "error_codes.h"
 #include "constants.h"
 

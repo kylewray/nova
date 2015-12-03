@@ -22,7 +22,7 @@
  */
 
 
-#include "mdp_model_gpu.h"
+#include "utilities/mdp_model_gpu.h"
 #include "error_codes.h"
 
 #include <stdio.h>

@@ -89,3 +89,10 @@ _nova.ssp_lao_star_complete_cpu.argtypes = (ct.POINTER(NovaMDP),
                                     ct.POINTER(ct.POINTER(ct.c_float)), # V
                                     ct.POINTER(ct.POINTER(ct.c_uint)))  # pi
 
+_nova.ssp_rtdp_complete_cpu.argtypes = (ct.POINTER(NovaMDP),
+                                    ct.POINTER(ct.c_float),             # Vinitial
+                                    ct.POINTER(ct.c_uint),              # r
+                                    ct.POINTER(ct.POINTER(ct.c_uint)),  # S
+                                    ct.POINTER(ct.POINTER(ct.c_float)), # V
+                                    ct.POINTER(ct.POINTER(ct.c_uint)))  # pi
+

@@ -22,8 +22,8 @@
  */
 
 
-#include "mdp_vi_gpu.h"
-#include "mdp_model_gpu.h"
+#include "algorithms/mdp_vi_gpu.h"
+#include "utilities/mdp_model_gpu.h"
 #include "error_codes.h"
 #include "constants.h"
 

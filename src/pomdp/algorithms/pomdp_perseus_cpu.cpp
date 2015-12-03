@@ -22,7 +22,7 @@
  */
 
 
-#include "pomdp_perseus_cpu.h"
+#include "algorithms/pomdp_perseus_cpu.h"
 #include "error_codes.h"
 #include "constants.h"
 

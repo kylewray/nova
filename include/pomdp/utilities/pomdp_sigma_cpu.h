@@ -41,10 +41,8 @@
  */
 extern "C" int pomdp_sigma_cpu(POMDP *pomdp, unsigned int rz, float *Bnew, int *Znew, float *sigma);
 
-
 // A quick typedef for comparing beliefs and remembering their indexes.
 typedef std::pair<float, int> SigmaPair;
-
 
 /**
  *  A comparator function for SigmaPair types.

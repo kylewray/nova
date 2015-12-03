@@ -22,7 +22,7 @@
  */
 
 
-#include "pomdp_expand_cpu.h"
+#include "utilities/pomdp_expand_cpu.h"
 #include "error_codes.h"
 #include "constants.h"
 
