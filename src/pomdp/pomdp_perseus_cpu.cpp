@@ -320,22 +320,25 @@ int pomdp_perseus_update_cpu(POMDP *pomdp)
 {
     // For convenience, define a variable pointing to the proper Gamma and rGamma variables.
     // Note: Gamma == V_n and GammPrime == V_{n+1} from the paper.
-    float *Gamma = pomdp->Gamma;
-    float *GammaPrime = pomdp->GammaPrime;
+    float *Gamma = nullptr;
+    float *GammaPrime = nullptr;
+    unsigned int *rGamma = nullptr;
+    unsigned int *rGammaPrime = nullptr;
+    unsigned int *pi = nullptr;
+    unsigned int *piPrime = nullptr;
 
-    unsigned int *rGamma = &pomdp->rGamma;
-    unsigned int *rGammaPrime = &pomdp->rGammaPrime;
-
-    unsigned int *pi = pomdp->pi;
-    unsigned int *piPrime = pomdp->piPrime;
-
-    if (pomdp->currentHorizon % 2 == 1) {
+    if (pomdp->currentHorizon % 2 == 0) {
+        Gamma = pomdp->Gamma;
+        GammaPrime = pomdp->GammaPrime;
+        rGamma = &pomdp->rGamma;
+        rGammaPrime = &pomdp->rGammaPrime;
+        pi = pomdp->pi;
+        piPrime = pomdp->piPrime;
+    } else {
         Gamma = pomdp->GammaPrime;
         GammaPrime = pomdp->Gamma;
-
         rGamma = &pomdp->rGammaPrime;
         rGammaPrime = &pomdp->rGamma;
-
         pi = pomdp->piPrime;
         piPrime = pomdp->pi;
     }

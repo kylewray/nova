@@ -509,10 +509,6 @@ int ssp_lao_star_get_policy_cpu(MDP *mdp, unsigned int &r, unsigned int *&S, flo
     V = new float[r];
     pi = new unsigned int[r];
 
-    // TODO: Update the Python code to that it takes double pointers for everything.
-
-    // TODO: Update the solver Python code to actually use the free functions everywhere.
-
     // Determine which is the source for V based on the current horizon.
     float *Vsrc = nullptr;
     if (mdp->currentHorizon % 2 == 0) {
@@ -521,15 +517,12 @@ int ssp_lao_star_get_policy_cpu(MDP *mdp, unsigned int &r, unsigned int *&S, flo
         Vsrc = mdp->V;
     }
 
-    // First, we assign all actions to invalid ones. The non-expanded states will have these values.
-    for (unsigned int s = 0; s < mdp->n; s++) {
-        pi[s] = mdp->m;
-    }
-
     // Copy the final (or intermediate) result, both V and pi. This assumes memory has been allocated
     // for the variables provided. Importantly, only the values of the expanded states are copied.
     // The non-expanded states are left alone. Also, recall that V and pi in the SSP MDP are following
     // the order in which they were expanded.
+    unsigned int rCounter = 0;
+
     for (unsigned int i = 0; i < mdp->ne; i++) {
         unsigned int s = mdp->expanded[i];
 
@@ -537,9 +530,11 @@ int ssp_lao_star_get_policy_cpu(MDP *mdp, unsigned int &r, unsigned int *&S, flo
         // following the optimal policy. Recall that some states might be expanded early on in the process,
         // but are quickly abandoned.
         if (!std::signbit(mdp->V[s]) || !std::signbit(mdp->VPrime[s])) {
-            S[i] = s;
-            V[i] = Vsrc[s];
-            pi[i] = mdp->pi[s];
+            S[rCounter] = s;
+            V[rCounter] = Vsrc[s];
+            pi[rCounter] = mdp->pi[s];
+
+            rCounter++;
         }
     }
 
