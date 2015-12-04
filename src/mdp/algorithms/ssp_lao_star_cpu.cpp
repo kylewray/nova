@@ -34,10 +34,8 @@
 
 
 void ssp_lao_star_bellman_update_state_cpu(unsigned int n, unsigned int ns, unsigned int m, 
-                            const int *S, const float *T, const float *R, const float *V,
-                            unsigned int ne, const int *expanded,
-                            unsigned int s,
-                            float *VPrime, unsigned int *pi)
+    const int *S, const float *T, const float *R, const float *V,
+    unsigned int s, float *VPrime, unsigned int *pi)
 {
     VPrime[s] = FLT_MAX;
 
@@ -87,8 +85,8 @@ void ssp_lao_star_reset_visited(unsigned int n, float *V, float *VPrime)
 }
 
 
-void ssp_lao_star_bellman_residual_cpu(unsigned int ne, int *expanded, float epsilon, float *V, float *VPrime,
-                                        bool *converged)
+void ssp_lao_star_bellman_residual_cpu(unsigned int ne, int *expanded, float epsilon,
+    float *V, float *VPrime, bool *converged)
 {
     float residual = 0.0f;
 
@@ -161,9 +159,7 @@ int ssp_lao_star_expand_cpu(MDP *mdp, unsigned int *numNewlyExpandedStates)
             // Store this for both V and VPrime so that the updates align properly...
             ssp_lao_star_bellman_update_state_cpu(mdp->n, mdp->ns, mdp->m,
                                                 mdp->S, mdp->T, mdp->R, mdp->V,
-                                                mdp->ne, mdp->expanded,
-                                                s,
-                                                mdp->VPrime, mdp->pi);
+                                                s, mdp->VPrime, mdp->pi);
             mdp->V[s] = mdp->VPrime[s];
         } else {
             // Otherwise, add all of its children to the fringe, as long as they are not already there, and the
@@ -194,15 +190,11 @@ int ssp_lao_star_expand_cpu(MDP *mdp, unsigned int *numNewlyExpandedStates)
             if (mdp->currentHorizon % 2 == 0) {
                 ssp_lao_star_bellman_update_state_cpu(mdp->n, mdp->ns, mdp->m,
                                                     mdp->S, mdp->T, mdp->R, mdp->V,
-                                                    mdp->ne, mdp->expanded,
-                                                    s,
-                                                    mdp->VPrime, mdp->pi);
+                                                    s, mdp->VPrime, mdp->pi);
             } else {
                 ssp_lao_star_bellman_update_state_cpu(mdp->n, mdp->ns, mdp->m,
                                                     mdp->S, mdp->T, mdp->R, mdp->VPrime,
-                                                    mdp->ne, mdp->expanded,
-                                                    s,
-                                                    mdp->V, mdp->pi);
+                                                    s, mdp->V, mdp->pi);
             }
         } else {
             if (mdp->currentHorizon % 2 == 0) {
@@ -292,15 +284,11 @@ int ssp_lao_star_check_convergence_cpu(MDP *mdp, bool *converged, bool *nonExpan
             if (mdp->currentHorizon % 2 == 0) {
                 ssp_lao_star_bellman_update_state_cpu(mdp->n, mdp->ns, mdp->m,
                                                     mdp->S, mdp->T, mdp->R, mdp->V,
-                                                    mdp->ne, mdp->expanded,
-                                                    s,
-                                                    mdp->VPrime, mdp->pi);
+                                                    s, mdp->VPrime, mdp->pi);
             } else {
                 ssp_lao_star_bellman_update_state_cpu(mdp->n, mdp->ns, mdp->m,
                                                     mdp->S, mdp->T, mdp->R, mdp->VPrime,
-                                                    mdp->ne, mdp->expanded,
-                                                    s,
-                                                    mdp->V, mdp->pi);
+                                                    s, mdp->V, mdp->pi);
             }
         } else {
             if (mdp->currentHorizon % 2 == 0) {
@@ -331,7 +319,8 @@ int ssp_lao_star_check_convergence_cpu(MDP *mdp, bool *converged, bool *nonExpan
 }
 
 
-int ssp_lao_star_complete_cpu(MDP *mdp, const float *Vinitial, unsigned int &r, unsigned int *&S, float *&V, unsigned int *&pi)
+int ssp_lao_star_complete_cpu(MDP *mdp, const float *Vinitial, unsigned int &r, unsigned int *&S,
+    float *&V, unsigned int *&pi)
 {
     // Note: This 'wrapper' function is provided in order to maintain 
     // the same structure as the GPU version. In the GPU version,
@@ -369,7 +358,8 @@ int ssp_lao_star_initialize_cpu(MDP *mdp, const float *Vinitial)
 }
 
 
-int ssp_lao_star_execute_cpu(MDP *mdp, const float *Vinitial, unsigned int &r, unsigned int *&S, float *&V, unsigned int *&pi)
+int ssp_lao_star_execute_cpu(MDP *mdp, const float *Vinitial, unsigned int &r, unsigned int *&S,
+    float *&V, unsigned int *&pi)
 {
     int result;
 
@@ -377,7 +367,7 @@ int ssp_lao_star_execute_cpu(MDP *mdp, const float *Vinitial, unsigned int &r, u
     if (mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
             mdp->horizon < 1 || mdp->epsilon < 0.0f ||
-            //mdp->ne != 0 || mdp->expanded != nullptr ||
+            mdp->ne != 0 || mdp->expanded != nullptr ||
             Vinitial == nullptr || S != nullptr || V != nullptr || pi != nullptr) {
         fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
