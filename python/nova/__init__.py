@@ -20,5 +20,5 @@
     CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-__all__ = ["nova_mdp", "mdp", "nova_pomdp", "pomdp"]
+__all__ = ["nova_mdp", "mdp", "nova_pomdp", "pomdp", "file_loader"]
 
