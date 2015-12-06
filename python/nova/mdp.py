@@ -31,6 +31,7 @@ import csv
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import nova_mdp as nm
+import nova_file_loader as nfl
 
 
 class MDP(nm.NovaMDP):
@@ -66,109 +67,48 @@ class MDP(nm.NovaMDP):
         self.Rmin = None
         self.Rmax = None
 
-    def load(self, filename, filetype='mdp', scalarize=lambda x: x[0]):
-        """ Load a raw Multi-Objective POMDP file given the filename and optionally the file type.
+    def load(self, filename, filetype='cassandra', scalarize=lambda x: x[0]):
+        """ Load a Multi-Objective POMDP file given the filename and optionally the file type.
 
             Parameters:
                 filename    --  The name and path of the file to load.
-                filetype    --  Either 'mdp' or 'raw'. Default is 'mdp'.
+                filetype    --  Either 'cassandra' or 'raw'. Default is 'cassandra'.
                 scalarize   --  Optionally define a scalarization function. Only used for 'raw' files.
                                 Default returns the first reward.
         """
 
-        if filetype == 'mdp':
-            self._load_mdp(filename)
+        novaFileLoader = nfl.NovaFileLoader()
+
+        if filetype == 'cassandra':
+            novaFileLoader.load_cassandra(filename)
         elif filetype == 'raw':
-            self._load_raw(filename, scalarize)
+            novaFileLoader.load_raw_mdp(filename, scalarize)
         else:
             print("Invalid file type '%s'." % (filetype))
             raise Exception()
 
-    def _load_mdp(self, filename):
-        """ Load a Cassandra-format MDP file given the filename and optionally a scalarization function.
+        self.n = novaFileLoader.n
+        self.ns = novaFileLoader.ns
+        self.m = novaFileLoader.m
 
-            Parameters:
-                filename    --  The name and path of the file to load.
-                scalarize   --  Optionally define a scalarization function. Default returns the first reward.
-        """
+        self.s0 = novaFileLoader.s0
+        self.ng = novaFileLoader.ng
 
-        # Attempt to parse all the data into their respective variables.
-        try:
-            with open(filename, 'r') as f:
-                reader = csv.reader(f)
-                for row in reader:
-                    #row = str(row)
-                    print(row)
+        self.gamma = novaFileLoader.gamma
+        self.horizon = novaFileLoader.horizon
 
-        except Exception:
-            print("Failed to load file '%s'." % (filename))
-            raise Exception()
+        self.Rmin = novaFileLoader.Rmin
+        self.Rmax = novaFileLoader.Rmax
 
-    def _load_raw(self, filename, scalarize=lambda x: x[0]):
-        """ Load a raw Multi-Objective MDP file given the filename and optionally a scalarization function.
+        array_type_ng_uint = ct.c_uint * (self.ng)
+        array_type_nmns_int = ct.c_int * (self.n * self.m * self.ns)
+        array_type_nmns_float = ct.c_float * (self.n * self.m * self.ns)
+        array_type_nm_float = ct.c_float * (self.n * self.m)
 
-            Parameters:
-                filename    --  The name and path of the file to load.
-                scalarize   --  Optionally define a scalarization function. Default returns the first reward.
-        """
-
-        # Load all the data in this object.
-        data = list()
-        with open(filename, 'r') as f:
-            reader = csv.reader(f, delimiter=',')
-            for row in reader:
-                data += [list(row)]
-
-        # Attempt to parse all the data into their respective variables.
-        try:
-            # Load the header information.
-            self.n = int(data[0][0])
-            self.ns = int(data[0][1])
-            self.m = int(data[0][2])
-
-            k = int(data[0][3])
-            self.s0 = int(data[0][4])
-            self.ng = int(data[0][5])
-
-            self.horizon = int(data[0][6])
-            self.gamma = float(data[0][7])
-            self.epsilon = float(0.01)
-
-            # Functions to convert flattened NumPy arrays to C arrays.
-            array_type_ng_uint = ct.c_uint * (self.ng)
-            array_type_nmns_int = ct.c_int * (self.n * self.m * self.ns)
-            array_type_nmns_float = ct.c_float * (self.n * self.m * self.ns)
-            array_type_nm_float = ct.c_float * (self.n * self.m)
-
-            # Load each of the larger data structures into memory and immediately
-            # convert them to their C object type to save memory.
-            rowOffset = 1
-            self.goals = array_type_ng_uint(*np.array([int(data[rowOffset][s]) for s in range(self.ng)]).flatten())
-
-            rowOffset = 2
-            self.S = array_type_nmns_int(*np.array([[[int(data[(self.n * a + s) + rowOffset][sp]) \
-                                for sp in range(self.ns)] \
-                            for a in range(self.m)] \
-                        for s in range(self.n)]).flatten())
-
-            rowOffset = 2 + self.n * self.m
-            self.T = array_type_nmns_float(*np.array([[[float(data[(self.n * a + s) + rowOffset][sp]) \
-                                for sp in range(self.ns)] \
-                            for a in range(self.m)] \
-                        for s in range(self.n)]).flatten())
-
-            rowOffset = 2 + self.n * self.m + self.n * self.m
-            self.R = array_type_nm_float(*scalarize(np.array([[[float(data[(self.m * i + a) + rowOffset][s])
-                                for a in range(self.m)] \
-                            for s in range(self.n)] \
-                        for i in range(k)])).flatten())
-
-            self.Rmax = max([self.R[i] for i in range(self.n * self.m)])
-            self.Rmin = min([self.R[i] for i in range(self.n * self.m)])
-
-        except Exception:
-            print("Failed to load file '%s'." % (filename))
-            raise Exception()
+        self.goals = array_type_ng_uint(*novaFileLoader.goals.flatten())
+        self.S = array_type_nmns_int(*novaFileLoader.S.flatten())
+        self.T = array_type_nmns_float(*novaFileLoader.T.flatten())
+        self.R = array_type_nm_float(*novaFileLoader.R.flatten())
 
     def solve(self, algorithm='vi', process='gpu', numThreads=1024, epsilon=float(0.01), heuristic=None):
         """ Solve the MDP using the nova Python wrapper.

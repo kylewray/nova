@@ -40,7 +40,7 @@ class NovaFileLoader(object):
     """
 
     def __init__(self):
-        """ Initialize the POMDPFile class by creating default variables. """
+        """ Initialize the NovaFileLoader class by creating default variables. """
 
         self.n = 0
         self.ns = 0
@@ -51,6 +51,9 @@ class NovaFileLoader(object):
         self.k = 0
 
         self.s0 = 0
+        self.ng = 0
+        self.goals = None
+
         self.gamma = 0.0
         self.horizon = 0
 
@@ -68,8 +71,70 @@ class NovaFileLoader(object):
         # like in tiger, then epsilon is 0.11.
         self.epsilon = 0.0
 
-    def load_raw(self, filename, scalarize=lambda x: x[0]):
-        """ Load a raw Multi-Objective (PO)MDP file given the filename and optionally a scalarization function.
+    def load_raw_mdp(self, filename, scalarize=lambda x: x[0]):
+        """ Load a raw Multi-Objective MDP file given the filename and optionally a scalarization function.
+
+            Parameters:
+                filename    --  The name and path of the file to load.
+                scalarize   --  Optionally define a scalarization function. Default returns the first reward.
+        """
+
+        # Load all the data in this object.
+        data = list()
+        with open(filename, 'r') as f:
+            reader = csv.reader(f, delimiter=',')
+            for row in reader:
+                data += [list(row)]
+
+        # Attempt to parse all the data into their respective variables.
+        try:
+            # Load the header information.
+            self.n = int(data[0][0])
+            self.ns = int(data[0][1])
+            self.m = int(data[0][2])
+
+            k = int(data[0][3])
+            self.s0 = int(data[0][4])
+            self.ng = int(data[0][5])
+
+            self.horizon = int(data[0][6])
+            self.gamma = float(data[0][7])
+
+            # Load each of the larger data structures into memory and immediately
+            # convert them to their C object type to save memory.
+            rowOffset = 1
+            self.goals = np.array([int(data[rowOffset][s]) for s in range(self.ng)])
+
+            rowOffset = 2
+            self.S = np.array([[[int(data[(self.n * a + s) + rowOffset][sp]) \
+                                for sp in range(self.ns)] \
+                            for a in range(self.m)] \
+                        for s in range(self.n)])
+
+            rowOffset = 2 + self.n * self.m
+            self.T = np.array([[[float(data[(self.n * a + s) + rowOffset][sp]) \
+                                for sp in range(self.ns)] \
+                            for a in range(self.m)] \
+                        for s in range(self.n)])
+
+            rowOffset = 2 + self.n * self.m + self.n * self.m
+            self.R = scalarize(np.array([[[float(data[(self.m * i + a) + rowOffset][s])
+                                for a in range(self.m)] \
+                            for s in range(self.n)] \
+                        for i in range(k)]))
+
+            self.Rmax = self.R.max()
+            self.Rmin = self.R.min()
+
+            # This is computed but not used for computing the horizon in the raw format.
+            self.epsilon = (self.Rmax - self.Rmin) / 1000.0
+
+        except Exception:
+            print("Failed to load file '%s'." % (filename))
+            raise Exception()
+
+    def load_raw_pomdp(self, filename, scalarize=lambda x: x[0]):
+        """ Load a raw Multi-Objective POMDP file given the filename and optionally a scalarization function.
 
             Parameters:
                 filename    --  The name and path of the file to load.
@@ -122,8 +187,6 @@ class NovaFileLoader(object):
                                 for a in range(self.m)] \
                             for s in range(self.n)] \
                         for i in range(k)]))
-
-            print(self.R)
 
             self.Rmax = self.R.max()
             self.Rmin = self.R.min()

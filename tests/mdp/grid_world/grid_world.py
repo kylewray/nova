@@ -27,7 +27,7 @@ import itertools as it
 
 thisFilePath = os.path.dirname(os.path.realpath(__file__))
 
-sys.path.append(os.path.join(thisFilePath, "..", "..", "python"))
+sys.path.append(os.path.join(thisFilePath, "..", "..", "..", "python"))
 from nova.mdp import *
 from nova.pomdp import *
 
@@ -60,6 +60,10 @@ for trial in trials:
     gridWorldFile = os.path.join(thisFilePath, trial['filename'])
     gridWorld = MDP()
     gridWorld.load(gridWorldFile, filetype=trial['filetype'])
+
+    # TODO: These algorithms look like they are broken ever since I merged the file loading code. Fix it.
+    print(gridWorld)
+    raise Exception()
 
     if trial['algorithm'] == "vi":
         gridWorld.horizon = 10000

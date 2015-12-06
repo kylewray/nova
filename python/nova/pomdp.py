@@ -29,7 +29,6 @@ import time
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import nova_pomdp as npm
-
 import nova_file_loader as nfl
 
 
@@ -72,11 +71,11 @@ class POMDP(npm.NovaPOMDP):
         self.epsilon = 0.01
 
     def load(self, filename, filetype='cassandra', scalarize=lambda x: x[0]):
-        """ Load a raw Multi-Objective POMDP file given the filename and optionally the file type.
+        """ Load a POMDP file given the filename and optionally the file type.
 
             Parameters:
                 filename    --  The name and path of the file to load.
-                filetype    --  Either 'pomdp' or 'raw'. Default is 'pomdp'.
+                filetype    --  Either 'cassandra' or 'raw'. Default is 'cassandra'.
                 scalarize   --  Optionally define a scalarization function. Only used for 'raw' files.
                                 Default returns the first reward.
         """
@@ -86,7 +85,7 @@ class POMDP(npm.NovaPOMDP):
         if filetype == 'cassandra':
             novaFileLoader.load_cassandra(filename)
         elif filetype == 'raw':
-            novaFileLoader.load_raw(filename, scalarize)
+            novaFileLoader.load_raw_pomdp(filename, scalarize)
         else:
             print("Invalid file type '%s'." % (filetype))
             raise Exception()
@@ -98,7 +97,6 @@ class POMDP(npm.NovaPOMDP):
         self.r = novaFileLoader.r
         self.rz = novaFileLoader.rz
 
-        #self.s0 = novaFileLoader.s0
         self.gamma = novaFileLoader.gamma
         self.horizon = novaFileLoader.horizon
 
