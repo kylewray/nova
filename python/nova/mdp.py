@@ -66,6 +66,7 @@ class MDP(nm.NovaMDP):
         # Additional informative variables.
         self.Rmin = None
         self.Rmax = None
+        self.epsilon = 0.01
 
     def load(self, filename, filetype='cassandra', scalarize=lambda x: x[0]):
         """ Load a Multi-Objective POMDP file given the filename and optionally the file type.
@@ -96,6 +97,7 @@ class MDP(nm.NovaMDP):
 
         self.gamma = novaFileLoader.gamma
         self.horizon = novaFileLoader.horizon
+        self.epsilon = novaFileLoader.epsilon
 
         self.Rmin = novaFileLoader.Rmin
         self.Rmax = novaFileLoader.Rmax
@@ -110,16 +112,13 @@ class MDP(nm.NovaMDP):
         self.T = array_type_nmns_float(*novaFileLoader.T.flatten())
         self.R = array_type_nm_float(*novaFileLoader.R.flatten())
 
-    def solve(self, algorithm='vi', process='gpu', numThreads=1024, epsilon=float(0.01), heuristic=None):
+    def solve(self, algorithm='vi', process='gpu', numThreads=1024, heuristic=None):
         """ Solve the MDP using the nova Python wrapper.
 
             Parameters:
                 algorithm   --  The algorithm to use, either 'vi', 'lao*', or 'rtdp'. Default is 'vi'.
                 process     --  Use the 'cpu' or 'gpu'. If 'gpu' fails, it tries 'cpu'. Default is 'gpu'.
                 numThreads  --  The number of CUDA threads to execute (multiple of 32). Default is 1024.
-                epsilon     --  The optional error of the value function. Default is 0.01.
-                                If algorithm is 'vi', then it changes the horizon.
-                                If algorithm is 'lao*', then it also sets the epsilon for convergence tests.
                 heuristic   --  For 'lao*', this function or list maps state indexes to heuristic values.
                                 Optional. Default value is None, yielding an n-array of zeros.
 

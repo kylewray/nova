@@ -99,6 +99,7 @@ class POMDP(npm.NovaPOMDP):
 
         self.gamma = novaFileLoader.gamma
         self.horizon = novaFileLoader.horizon
+        self.epsilon = novaFileLoader.epsilon
 
         self.Rmin = novaFileLoader.Rmin
         self.Rmax = novaFileLoader.Rmax
@@ -219,24 +220,19 @@ class POMDP(npm.NovaPOMDP):
 
         return sigma[0]
 
-    def solve(self, algorithm='pbvi', process='gpu', numThreads=1024, epsilon=None):
+    def solve(self, algorithm='pbvi', process='gpu', numThreads=1024):
         """ Solve the POMDP using the nova Python wrapper.
 
             Parameters:
                 algorithm   --  The method to use, either 'pbvi' or 'perseus'. Default is 'pbvi'.
                 process     --  Use the 'cpu' or 'gpu'. If 'gpu' fails, it tries 'cpu'. Default is 'gpu'.
                 numThreads  --  The number of CUDA threads to execute (multiple of 32). Default is 1024.
-                epsilon     --  The error of the value function, changing the horizon. Optional. Default is 'None'.
 
             Returns:
                 Gamma   --  The alpha-vectors, one for each belief point, mapping states to values.
                 pi      --  The policy, mapping alpha-vectors (belief points) to actions.
                 timing  --  A pair (wall-time, cpu-time) for solver execution time, not including (un)initialization.
         """
-
-        # If epsilon is specified, then re-assign the horizon.
-        if epsilon is not None and epsilon > 0.0:
-            self.horizon = np.log(epsilon / (self.Rmax - self.Rmin)) / np.log(self.gamma)
 
         # Create Gamma and pi, assigning them their respective initial values.
         initialGamma = np.array([[0.0 for s in range(self.n)] for b in range(self.r)])
@@ -358,7 +354,6 @@ class POMDP(npm.NovaPOMDP):
         result += "rz:      " + str(self.rz) + "\n"
         result += "horizon: " + str(self.horizon) + "\n"
         result += "gamma:   " + str(self.gamma) + "\n"
-        result += "epsilon: " + str(self.epsilon) + "\n\n"
 
         result += "S(s, a, s'):\n%s" % (str(np.array([self.S[i] \
                     for i in range(self.n * self.m * self.ns)]).reshape((self.n, self.m, self.ns)))) + "\n\n"

@@ -61,14 +61,10 @@ for trial in trials:
     gridWorld = MDP()
     gridWorld.load(gridWorldFile, filetype=trial['filetype'])
 
-    # TODO: These algorithms look like they are broken ever since I merged the file loading code. Fix it.
-    print(gridWorld)
-    raise Exception()
-
     if trial['algorithm'] == "vi":
         gridWorld.horizon = 10000
     elif trial['algorithm'] == "lao*":
-        gridWorld.horizon = 10000000
+        gridWorld.horizon = 1000000
     elif trial['algorithm'] == "rtdp":
         gridWorld.horizon = 10000
 
@@ -77,9 +73,9 @@ for trial in trials:
     h = np.array([0.0 for s in range(gridWorld.n)])
 
     if trial['algorithm'] == "vi":
-        V, pi, timing = gridWorld.solve(algorithm=trial['algorithm'], process=trial['process'], epsilon=0.01, heuristic=h)
+        V, pi, timing = gridWorld.solve(algorithm=trial['algorithm'], process=trial['process'], heuristic=h)
     elif trial['algorithm'] == "lao*" or trial['algorithm'] == "rtdp":
-        r, S, V, pi, timing = gridWorld.solve(algorithm=trial['algorithm'], process=trial['process'], epsilon=0.01, heuristic=h)
+        r, S, V, pi, timing = gridWorld.solve(algorithm=trial['algorithm'], process=trial['process'], heuristic=h)
 
     prettyActions = ["L", "U", "R", "D"]
 
