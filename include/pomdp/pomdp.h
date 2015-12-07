@@ -103,6 +103,10 @@ typedef struct NovaPOMDP {
     unsigned int *pi;
     unsigned int *piPrime;
 
+    //unsigned int nFSC;
+    //float *psiFSC;
+    //float *etaFSC;
+
     int *d_S;
     float *d_T;
     float *d_O;
