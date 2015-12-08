@@ -28,7 +28,7 @@ import numpy as np
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 
 
-class NovaFileLoader(object):
+class FileLoader(object):
     """ Load a (PO)MDP file in the style of Cassandra's format or a raw format.
     
         Specifically, the variables in the constructor are assigned when loaded.
@@ -40,7 +40,7 @@ class NovaFileLoader(object):
     """
 
     def __init__(self):
-        """ Initialize the NovaFileLoader class by creating default variables. """
+        """ Initialize the FileLoader class by creating default variables. """
 
         self.n = 0
         self.ns = 0

@@ -33,7 +33,7 @@
 #include <cmath>
 
 
-int pomdp_expand_construct_belief_cpu(POMDP *pomdp, unsigned int i, float *b)
+int pomdp_expand_construct_belief_cpu(const POMDP *pomdp, unsigned int i, float *b)
 {
     for (unsigned int s = 0; s < pomdp->n; s++) {
         b[s] = 0.0f;
@@ -50,7 +50,7 @@ int pomdp_expand_construct_belief_cpu(POMDP *pomdp, unsigned int i, float *b)
 }
 
 
-int pomdp_expand_belief_update_cpu(POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float *bp)
+int pomdp_expand_belief_update_cpu(const POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float *bp)
 {
     for (unsigned int sp = 0; sp < pomdp->n; sp++) {
         bp[sp] = 0.0f;
@@ -89,7 +89,7 @@ int pomdp_expand_belief_update_cpu(POMDP *pomdp, const float *b, unsigned int a,
 }
 
 
-int pomdp_expand_probability_observation_cpu(POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float &prObs)
+int pomdp_expand_probability_observation_cpu(const POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float &prObs)
 {
     prObs = 0.0f;
 
@@ -113,7 +113,7 @@ int pomdp_expand_probability_observation_cpu(POMDP *pomdp, const float *b, unsig
 }
 
 
-int pomdp_expand_update_max_non_zero_values_cpu(POMDP *pomdp, const float *b, unsigned int *maxNonZeroValues)
+int pomdp_expand_update_max_non_zero_values_cpu(const POMDP *pomdp, const float *b, unsigned int *maxNonZeroValues)
 {
     unsigned int numNonZeroValues = 0;
     for (unsigned int s = 0; s < pomdp->n; s++) {
@@ -129,7 +129,7 @@ int pomdp_expand_update_max_non_zero_values_cpu(POMDP *pomdp, const float *b, un
 }
 
 
-int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numDesiredBeliefPoints, unsigned int *maxNonZeroValues, float *Bnew)
+int pomdp_expand_random_cpu(const POMDP *pomdp, unsigned int numDesiredBeliefPoints, unsigned int *maxNonZeroValues, float *Bnew)
 {
     srand(time(nullptr));
 
@@ -203,7 +203,7 @@ int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numDesiredBeliefPoints, u
 }
 
 
-int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp, unsigned int *maxNonZeroValues, float *Bnew)
+int pomdp_expand_distinct_beliefs_cpu(const POMDP *pomdp, unsigned int *maxNonZeroValues, float *Bnew)
 {
     *maxNonZeroValues = 0;
 
@@ -274,11 +274,26 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp, unsigned int *maxNonZeroValu
 }
 
 
-int pomdp_expand_pema_cpu(POMDP *pomdp, float Rmin, float Rmax, float *Gamma, unsigned int *maxNonZeroValues, float *Bnew)
+int pomdp_expand_pema_cpu(const POMDP *pomdp, const POMDPAlphaVectors *policy,
+    unsigned int *maxNonZeroValues, float *Bnew)
 {
     *maxNonZeroValues = 0;
 
     float bStarEpsilonErrorBound = FLT_MIN;
+
+    // Compute Rmin and Rmax.
+    float Rmax = FLT_MIN;
+    float Rmin = FLT_MAX;
+    for (unsigned int s = 0; s < pomdp->n; s++) {
+        for (unsigned int a = 0; a < pomdp->m; a++) {
+            if (Rmax < pomdp->R[s * pomdp->m + a]) {
+                Rmax = pomdp->R[s * pomdp->m + a];
+            }
+            if (Rmin > pomdp->R[s * pomdp->m + a]) {
+                Rmin = pomdp->R[s * pomdp->m + a];
+            }
+        }
+    }
 
     for (unsigned int i = 0; i < pomdp->r; i++) {
         unsigned int aStar = 0;
@@ -359,13 +374,30 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, float Rmin, float Rmax, float *Gamma, un
                     delete [] bCheck;
                 }
 
+                // Compute alpha = argmax_{alpha in Gamma} alpha * b.
+                float VbStar = FLT_MIN;
+                unsigned int alphaIndexStar = 0;
+
+                for (unsigned int j = 0; j < policy->r; j++) {
+                    float Vb = 0.0f;
+
+                    for (unsigned int s = 0; s < policy->n; s++) {
+                        Vb = policy->Gamma[j * policy->n + s] *  bClosest[s];
+
+                        if (Vb < VbStar) {
+                            Vb = VbStar;
+                            alphaIndexStar = j;
+                        }
+                    }
+                }
+
                 // Compute epsilon(b'(bClosest, a, o)).
                 float epsilonBeliefPrime = 0.0f;
                 for (unsigned int s = 0; s < pomdp->n; s++) {
                     if (bp[s] >= b[s]) {
-                        epsilonBeliefPrime += (Rmax / (1.0f - pomdp->gamma) - Gamma[bClosestIndex * pomdp->n + s]) * (bp[s] - bClosest[s]);
+                        epsilonBeliefPrime += (Rmax / (1.0f - pomdp->gamma) - policy->Gamma[alphaIndexStar * pomdp->n + s]) * (bp[s] - bClosest[s]);
                     } else {
-                        epsilonBeliefPrime += (Rmin / (1.0f - pomdp->gamma) - Gamma[bClosestIndex * pomdp->n + s]) * (bp[s] - bClosest[s]);
+                        epsilonBeliefPrime += (Rmin / (1.0f - pomdp->gamma) - policy->Gamma[alphaIndexStar * pomdp->n + s]) * (bp[s] - bClosest[s]);
                     }
                 }
 

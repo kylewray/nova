@@ -78,14 +78,6 @@ extern "C" int pomdp_bpi_update_cpu(POMDP *pomdp);
  */
 extern "C" int pomdp_bpi_get_policy_cpu(POMDP *pomdp, POMDPFSC *&fsc);
 
-/**
- *  Free the policy produced by the get policy above.
- *  @param  fsc     The resultant policy represented as a finite state controller.
- *                  This will be created and modified.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-extern "C" int pomdp_bpi_free_policy_cpu(POMDPFSC *&fsc);
-
  
 #endif // POMDP_PBVI_CPU_H
 

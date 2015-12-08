@@ -27,6 +27,7 @@
 
 
 #include "pomdp.h"
+#include "policies/pomdp_alpha_vectors.h"
 
 
 /**
@@ -40,8 +41,8 @@
  *  @param  Bnew                    The new (raw) resultant belief points (numDesiredBeliefPoints-n array).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numDesiredBeliefPoints,
-            unsigned int *maxNonZeroValues, float *Bnew);
+extern "C" int pomdp_expand_random_cpu(const POMDP *pomdp, unsigned int numDesiredBeliefPoints,
+        unsigned int *maxNonZeroValues, float *Bnew);
 
 /**
  *  Expand the set of beliefs by selecting the most distinct successor belief possible for each belief
@@ -51,7 +52,7 @@ extern "C" int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numDesiredBeli
  *  @param  Bnew                The new (raw) resultant belief points (r-n array).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp, unsigned int *maxNonZeroValues, float *Bnew);
+extern "C" int pomdp_expand_distinct_beliefs_cpu(const POMDP *pomdp, unsigned int *maxNonZeroValues, float *Bnew);
 
 /**
  *  Expand the set of beliefs following the Point-based Error Minimization Algorithm (PEMA)
@@ -64,7 +65,8 @@ extern "C" int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp, unsigned int *max
  *  @param  Bnew                The new (raw) resultant belief points (r-n array).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_expand_pema_cpu(POMDP *pomdp, float Rmin, float Rmax, float *Gamma, unsigned int *maxNonZeroValues, float *Bnew);
+extern "C" int pomdp_expand_pema_cpu(const POMDP *pomdp, const POMDPAlphaVectors *policy,
+        unsigned int *maxNonZeroValues, float *Bnew);
 
 
 #endif // POMDP_EXPAND_CPU_H

@@ -208,7 +208,7 @@ __global__ void pomdp_pbvi_update_step_gpu(unsigned int n, unsigned int ns, unsi
 }
 
 
-int pomdp_pbvi_complete_gpu(POMDP *pomdp, unsigned int numThreads, const float *initialGamma, float *&Gamma, unsigned int *&pi)
+int pomdp_pbvi_complete_gpu(POMDP *pomdp, unsigned int numThreads, const float *initialGamma, POMDPAlphaVectors *&policy)
 {
     int result;
 
@@ -237,7 +237,7 @@ int pomdp_pbvi_complete_gpu(POMDP *pomdp, unsigned int numThreads, const float *
         return result;
     }
 
-    result = pomdp_pbvi_execute_gpu(pomdp, numThreads, initialGamma, Gamma, pi);
+    result = pomdp_pbvi_execute_gpu(pomdp, numThreads, initialGamma, policy);
     if (result != NOVA_SUCCESS) {
         return result;
     }
@@ -313,7 +313,7 @@ int pomdp_pbvi_initialize_gpu(POMDP *pomdp, const float *initialGamma)
 }
 
 
-int pomdp_pbvi_execute_gpu(POMDP *pomdp, unsigned int numThreads, const float *initialGamma, float *&Gamma, unsigned int *&pi)
+int pomdp_pbvi_execute_gpu(POMDP *pomdp, unsigned int numThreads, const float *initialGamma, POMDPAlphaVectors *&policy)
 {
     // The result from calling other functions.
     int result;
@@ -323,7 +323,7 @@ int pomdp_pbvi_execute_gpu(POMDP *pomdp, unsigned int numThreads, const float *i
             pomdp->d_S == nullptr || pomdp->d_T == nullptr || pomdp->d_O == nullptr || pomdp->d_R == nullptr ||
             pomdp->d_Z == nullptr || pomdp->d_B == nullptr ||
             pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
-            initialGamma == nullptr || Gamma != nullptr || pi != nullptr) {
+            initialGamma == nullptr || policy != nullptr) {
         fprintf(stderr, "Error[pomdp_pbvi_execute_gpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -350,7 +350,7 @@ int pomdp_pbvi_execute_gpu(POMDP *pomdp, unsigned int numThreads, const float *i
         }
     }
 
-    result = pomdp_pbvi_get_policy_gpu(pomdp, Gamma, pi);
+    result = pomdp_pbvi_get_policy_gpu(pomdp, policy);
     if (result != NOVA_SUCCESS) {
         return result;
     }
@@ -497,27 +497,33 @@ int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int numThreads)
 }
 
 
-int pomdp_pbvi_get_policy_gpu(POMDP *pomdp, float *&Gamma, unsigned int *&pi)
+int pomdp_pbvi_get_policy_gpu(const POMDP *pomdp, POMDPAlphaVectors *&policy)
 {
-    if (Gamma != nullptr || pi != nullptr) {
-        fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s\n", "Invalid arguments. Gamma and pi must be undefined.");
+    if (policy != nullptr) {
+        fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s\n", "Invalid arguments. Policy must be undefined.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    Gamma = new float[pomdp->r * pomdp->n];
-    pi = new unsigned int[pomdp->r];
+    policy = new POMDPAlphaVectors();
+
+    policy->n = pomdp->n;
+    policy->m = pomdp->m;
+    policy->r = pomdp->r;
+
+    policy->Gamma = new float[pomdp->r * pomdp->n];
+    policy->pi = new unsigned int[pomdp->r];
 
     // Copy the final result of Gamma and pi to the variables provided, from device to host.
     // This assumes that the memory has been allocated for the variables provided.
     if (pomdp->currentHorizon % 2 == 0) {
-        if (cudaMemcpy(Gamma, pomdp->d_Gamma, pomdp->r * pomdp->n * sizeof(float),
+        if (cudaMemcpy(policy->Gamma, pomdp->d_Gamma, pomdp->r * pomdp->n * sizeof(float),
                         cudaMemcpyDeviceToHost) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s\n",
                     "Failed to copy memory from device to host for Gamma.");
             return NOVA_ERROR_MEMCPY_TO_HOST;
         }
     } else {
-        if (cudaMemcpy(Gamma, pomdp->d_GammaPrime, pomdp->r * pomdp->n * sizeof(float),
+        if (cudaMemcpy(policy->Gamma, pomdp->d_GammaPrime, pomdp->r * pomdp->n * sizeof(float),
                         cudaMemcpyDeviceToHost) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s\n",
                     "Failed to copy memory from device to host for Gamma (prime).");
@@ -525,7 +531,7 @@ int pomdp_pbvi_get_policy_gpu(POMDP *pomdp, float *&Gamma, unsigned int *&pi)
         }
     }
 
-    if (cudaMemcpy(pi, pomdp->d_pi, pomdp->r * sizeof(unsigned int),
+    if (cudaMemcpy(policy->pi, pomdp->d_pi, pomdp->r * sizeof(unsigned int),
                     cudaMemcpyDeviceToHost) != cudaSuccess) {
         fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s\n",
                 "Failed to copy memory from device to host for pi.");
@@ -535,19 +541,4 @@ int pomdp_pbvi_get_policy_gpu(POMDP *pomdp, float *&Gamma, unsigned int *&pi)
     return NOVA_SUCCESS;
 }
 
-
-int pomdp_pbvi_free_policy_gpu(float *&Gamma, unsigned int *&pi)
-{
-    if (Gamma != nullptr) {
-        delete [] Gamma;
-    }
-    Gamma = nullptr;
-
-    if (pi != nullptr) {
-        delete [] pi;
-    }
-    pi = nullptr;
-
-    return NOVA_SUCCESS;
-}
 

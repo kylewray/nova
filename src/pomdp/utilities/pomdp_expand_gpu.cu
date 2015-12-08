@@ -33,7 +33,7 @@
 #include <cmath>
 
 
-int pomdp_expand_construct_belief_gpu(POMDP *pomdp, unsigned int i, float *b)
+int pomdp_expand_construct_belief_gpu(const POMDP *pomdp, unsigned int i, float *b)
 {
     for (unsigned int s = 0; s < pomdp->n; s++) {
         b[s] = 0.0f;
@@ -50,7 +50,8 @@ int pomdp_expand_construct_belief_gpu(POMDP *pomdp, unsigned int i, float *b)
 }
 
 
-int pomdp_expand_belief_update_gpu(POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float *bp)
+int pomdp_expand_belief_update_gpu(const POMDP *pomdp, const float *b, unsigned int a,
+    unsigned int o, float *bp)
 {
     for (unsigned int sp = 0; sp < pomdp->n; sp++) {
         bp[sp] = 0.0f;
@@ -89,7 +90,8 @@ int pomdp_expand_belief_update_gpu(POMDP *pomdp, const float *b, unsigned int a,
 }
 
 
-int pomdp_expand_probability_observation_gpu(POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float &prObs)
+int pomdp_expand_probability_observation_gpu(const POMDP *pomdp, const float *b,
+    unsigned int a, unsigned int o, float &prObs)
 {
     prObs = 0.0f;
 
@@ -113,7 +115,8 @@ int pomdp_expand_probability_observation_gpu(POMDP *pomdp, const float *b, unsig
 }
 
 
-int pomdp_expand_update_max_non_zero_values_gpu(POMDP *pomdp, const float *b, unsigned int *maxNonZeroValues)
+int pomdp_expand_update_max_non_zero_values_gpu(const POMDP *pomdp, const float *b,
+    unsigned int *maxNonZeroValues)
 {
     unsigned int numNonZeroValues = 0;
     for (unsigned int s = 0; s < pomdp->n; s++) {
@@ -129,7 +132,8 @@ int pomdp_expand_update_max_non_zero_values_gpu(POMDP *pomdp, const float *b, un
 }
 
 
-int pomdp_expand_random_gpu(POMDP *pomdp, unsigned int numThreads, unsigned int numDesiredBeliefPoints,
+int pomdp_expand_random_gpu(const POMDP *pomdp, unsigned int numThreads,
+    unsigned int numDesiredBeliefPoints,
     unsigned int *maxNonZeroValues, float *Bnew)
 {
     srand(time(nullptr));

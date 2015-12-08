@@ -160,13 +160,13 @@ void pomdp_pbvi_update_step_cpu(unsigned int n, unsigned int ns, unsigned int m,
 }
 
 
-int pomdp_pbvi_complete_cpu(POMDP *pomdp, const float *initialGamma, float *&Gamma, unsigned int *&pi)
+int pomdp_pbvi_complete_cpu(POMDP *pomdp, const float *initialGamma, POMDPAlphaVectors *&policy)
 {
     // Note: This 'wrapper' function is provided in order to maintain the same structure
     // as the GPU version. In the GPU version, 'complete' performs the initialization
     // and uninitialization of the POMDP object on the device as well. Here, we do not
     // need that.
-    return pomdp_pbvi_execute_cpu(pomdp, initialGamma, Gamma, pi);
+    return pomdp_pbvi_execute_cpu(pomdp, initialGamma, policy);
 }
 
 
@@ -191,7 +191,7 @@ int pomdp_pbvi_initialize_cpu(POMDP *pomdp, const float *initialGamma)
 }
 
 
-int pomdp_pbvi_execute_cpu(POMDP *pomdp, const float *initialGamma, float *&Gamma, unsigned int *&pi)
+int pomdp_pbvi_execute_cpu(POMDP *pomdp, const float *initialGamma, POMDPAlphaVectors *&policy)
 {
     // The result from calling other functions.
     int result;
@@ -201,7 +201,7 @@ int pomdp_pbvi_execute_cpu(POMDP *pomdp, const float *initialGamma, float *&Gamm
             pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
             pomdp->Z == nullptr || pomdp->B == nullptr ||
             pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
-            initialGamma == nullptr || Gamma != nullptr || pi != nullptr) {
+            initialGamma == nullptr || policy != nullptr) {
         fprintf(stderr, "Error[pomdp_pbvi_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -222,7 +222,7 @@ int pomdp_pbvi_execute_cpu(POMDP *pomdp, const float *initialGamma, float *&Gamm
         }
     }
 
-    result = pomdp_pbvi_get_policy_cpu(pomdp, Gamma, pi);
+    result = pomdp_pbvi_get_policy_cpu(pomdp, policy);
     if (result != NOVA_SUCCESS) {
         return result;
     }
@@ -280,40 +280,31 @@ int pomdp_pbvi_update_cpu(POMDP *pomdp)
 }
 
 
-int pomdp_pbvi_get_policy_cpu(POMDP *pomdp, float *&Gamma, unsigned int *&pi)
+int pomdp_pbvi_get_policy_cpu(const POMDP *pomdp, POMDPAlphaVectors *&policy)
 {
-    if (Gamma != nullptr || pi != nullptr) {
-        fprintf(stderr, "Error[pomdp_pbvi_get_policy_cpu]: %s\n", "Invalid arguments. Gamma and pi must be undefined.");
+    if (policy != nullptr) {
+        fprintf(stderr, "Error[pomdp_pbvi_get_policy_cpu]: %s\n", "Invalid arguments. Policy must be undefined.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    Gamma = new float[pomdp->r * pomdp->n];
-    pi = new unsigned int[pomdp->r];
+    policy = new POMDPAlphaVectors();
+
+    policy->n = pomdp->n;
+    policy->m = pomdp->m;
+    policy->r = pomdp->r;
+
+    policy->Gamma = new float[pomdp->r * pomdp->n];
+    policy->pi = new unsigned int[pomdp->r];
 
     // Copy the final (or intermediate) result of Gamma and pi to the variables.
     if (pomdp->currentHorizon % 2 == 0) {
-        memcpy(Gamma, pomdp->Gamma, pomdp->r * pomdp->n * sizeof(float));
+        memcpy(policy->Gamma, pomdp->Gamma, pomdp->r * pomdp->n * sizeof(float));
     } else {
-        memcpy(Gamma, pomdp->GammaPrime, pomdp->r * pomdp->n * sizeof(float));
+        memcpy(policy->Gamma, pomdp->GammaPrime, pomdp->r * pomdp->n * sizeof(float));
     }
-    memcpy(pi, pomdp->pi, pomdp->r * sizeof(unsigned int));
+    memcpy(policy->pi, pomdp->pi, pomdp->r * sizeof(unsigned int));
 
     return NOVA_SUCCESS;
 }
 
-
-int pomdp_pbvi_free_policy_cpu(float *&Gamma, unsigned int *&pi)
-{
-    if (Gamma != nullptr) {
-        delete [] Gamma;
-    }
-    Gamma = nullptr;
-
-    if (pi != nullptr) {
-        delete [] pi;
-    }
-    pi = nullptr;
-
-    return NOVA_SUCCESS;
-}
 

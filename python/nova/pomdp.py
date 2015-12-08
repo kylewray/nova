@@ -29,8 +29,10 @@ import time
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import nova_pomdp as npm
-import nova_file_loader as nfl
+import file_loader as fl
 
+import nova_pomdp_alpha_vectors as npav
+import pomdp_alpha_vectors as pav
 
 csv.field_size_limit(sys.maxsize)
 
@@ -80,29 +82,29 @@ class POMDP(npm.NovaPOMDP):
                                 Default returns the first reward.
         """
 
-        novaFileLoader = nfl.NovaFileLoader()
+        fileLoader = fl.FileLoader()
 
         if filetype == 'cassandra':
-            novaFileLoader.load_cassandra(filename)
+            fileLoader.load_cassandra(filename)
         elif filetype == 'raw':
-            novaFileLoader.load_raw_pomdp(filename, scalarize)
+            fileLoader.load_raw_pomdp(filename, scalarize)
         else:
             print("Invalid file type '%s'." % (filetype))
             raise Exception()
 
-        self.n = novaFileLoader.n
-        self.ns = novaFileLoader.ns
-        self.m = novaFileLoader.m
-        self.z = novaFileLoader.z
-        self.r = novaFileLoader.r
-        self.rz = novaFileLoader.rz
+        self.n = fileLoader.n
+        self.ns = fileLoader.ns
+        self.m = fileLoader.m
+        self.z = fileLoader.z
+        self.r = fileLoader.r
+        self.rz = fileLoader.rz
 
-        self.gamma = novaFileLoader.gamma
-        self.horizon = novaFileLoader.horizon
-        self.epsilon = novaFileLoader.epsilon
+        self.gamma = fileLoader.gamma
+        self.horizon = fileLoader.horizon
+        self.epsilon = fileLoader.epsilon
 
-        self.Rmin = novaFileLoader.Rmin
-        self.Rmax = novaFileLoader.Rmax
+        self.Rmin = fileLoader.Rmin
+        self.Rmax = fileLoader.Rmax
 
         array_type_nmns_int = ct.c_int * (self.n * self.m * self.ns)
         array_type_nmns_float = ct.c_float * (self.n * self.m * self.ns)
@@ -111,12 +113,12 @@ class POMDP(npm.NovaPOMDP):
         array_type_rrz_int = ct.c_int * (self.r * self.rz)
         array_type_rrz_float = ct.c_float * (self.r * self.rz)
 
-        self.S = array_type_nmns_int(*novaFileLoader.S.flatten())
-        self.T = array_type_nmns_float(*novaFileLoader.T.flatten())
-        self.O = array_type_mnz_float(*novaFileLoader.O.flatten())
-        self.R = array_type_nm_float(*novaFileLoader.R.flatten())
-        self.Z = array_type_rrz_int(*novaFileLoader.Z.flatten())
-        self.B = array_type_rrz_float(*novaFileLoader.B.flatten())
+        self.S = array_type_nmns_int(*fileLoader.S.flatten())
+        self.T = array_type_nmns_float(*fileLoader.T.flatten())
+        self.O = array_type_mnz_float(*fileLoader.O.flatten())
+        self.R = array_type_nm_float(*fileLoader.R.flatten())
+        self.Z = array_type_rrz_int(*fileLoader.Z.flatten())
+        self.B = array_type_rrz_float(*fileLoader.B.flatten())
 
     def expand(self, method='random', numBeliefsToAdd=1000, Gamma=None):
         """ Expand the belief points by, for example, PBVI's original method, PEMA, or Perseus' random method.
@@ -155,12 +157,9 @@ class POMDP(npm.NovaPOMDP):
             npm._nova.pomdp_expand_distinct_beliefs_cpu(self, maxNonZeroValues, Bnew)
         elif method == "pema":
             if Gamma is None:
-                Gamma, pi, timings = self.solve()
+                policy, timings = self.solve()
 
-            array_type_rn_float = ct.c_float * (self.r * self.n)
-            Gamma = array_type_rn_float(*Gamma.flatten())
-
-            npm._nova.pomdp_expand_pema_cpu(self, self.Rmin, self.Rmax, Gamma, maxNonZeroValues, Bnew)
+            npm._nova.pomdp_expand_pema_cpu(self, ct.byref(policy), maxNonZeroValues, Bnew)
 
         # Reconstruct the compressed Z and B.
         rPrime = int(self.r + numBeliefsToAdd)
@@ -229,8 +228,7 @@ class POMDP(npm.NovaPOMDP):
                 numThreads  --  The number of CUDA threads to execute (multiple of 32). Default is 1024.
 
             Returns:
-                Gamma   --  The alpha-vectors, one for each belief point, mapping states to values.
-                pi      --  The policy, mapping alpha-vectors (belief points) to actions.
+                policy  --  The alpha-vectors and associated actions, one for each belief point.
                 timing  --  A pair (wall-time, cpu-time) for solver execution time, not including (un)initialization.
         """
 
@@ -241,17 +239,11 @@ class POMDP(npm.NovaPOMDP):
                         for i in range(self.r)])
         initialGamma = initialGamma.flatten()
 
-        # Create a function to convert a flattened numpy arrays to a C array.
+        # Create a function to convert a flattened numpy arrays to a C array, then convert initialGamma.
         array_type_rn_float = ct.c_float * (self.r * self.n)
-
-        ## Create C a array for the initial values of Gamma.
         initialGamma = array_type_rn_float(*initialGamma)
 
-        # Create C pointers for the result.
-        Gamma = ct.POINTER(ct.c_float)()
-        pi = ct.POINTER(ct.c_uint)()
-        rGamma = ct.c_uint(0)
-
+        policy = ct.POINTER(pav.POMDPAlphaVectors)()
         timing = None
 
         # If the process is 'gpu', then attempt to solve it. If an error arises, then
@@ -267,29 +259,21 @@ class POMDP(npm.NovaPOMDP):
                 print("Failed to initialize the POMDP variables for the 'nova' library's GPU POMDP solver.")
                 process = 'cpu'
 
-            #result = npm._nova.pomdp_pbvi_initialize_gpu(self, initialGamma)
-            #if result != 0:
-            #    print("Failed to initialize the 'nova' library's GPU POMDP solver.")
-            #    process = 'cpu'
-
             timing = (time.time(), time.clock())
+
             if algorithm == 'pbvi':
-                result = npm._nova.pomdp_pbvi_execute_gpu(self, int(numThreads), initialGamma, ct.byref(Gamma), ct.byref(pi))
+                result = npm._nova.pomdp_pbvi_execute_gpu(self, int(numThreads), initialGamma, ct.byref(policy))
             #elif algorithm == 'perseus':
-            #    result = npm._nova.pomdp_perseus_execute_gpu(self, int(numThreads), initialGamma, ct.byref(rGamma), ct.byref(Gamma), ct.byref(pi))
+            #    result = npm._nova.pomdp_perseus_execute_gpu(self, int(numThreads), initialGamma, ct.byref(policy))
             else:
                 print("Failed to solve the POMDP with the GPU using 'nova' because algorithm '%s' is undefined." % (algorithm))
                 raise Exception()
+
             timing = (time.time() - timing[0], time.clock() - timing[1])
 
             if result != 0:
                 print("Failed to execute the 'nova' library's GPU POMDP solver.")
                 process = 'cpu'
-
-            #result = npm._nova.pomdp_pbvi_uninitialize_gpu(self)
-            #if result != 0:
-            #    # Note: Failing at uninitialization should not cause the CPU version to be executed.
-            #    print("Failed to uninitialize the 'nova' library's GPU POMDP solver.")
 
             result = npm._nova.pomdp_uninitialize_successors_gpu(self)
             result += npm._nova.pomdp_uninitialize_state_transitions_gpu(self)
@@ -303,41 +287,26 @@ class POMDP(npm.NovaPOMDP):
 
         # If the process is 'cpu', then attempt to solve it.
         if process == 'cpu':
-            #result = npm._nova.pomdp_pbvi_initialize_cpu(self, initialGamma)
-            #if result != 0:
-            #    print("Failed to initialize the 'nova' library's CPU POMDP solver.")
-            #    raise Exception()
-
             timing = (time.time(), time.clock())
+
             if algorithm == 'pbvi':
-                result = npm._nova.pomdp_pbvi_execute_cpu(self, initialGamma, ct.byref(Gamma), ct.byref(pi))
+                result = npm._nova.pomdp_pbvi_execute_cpu(self, initialGamma, ct.byref(policy))
             elif algorithm == 'perseus':
-                result = npm._nova.pomdp_perseus_execute_cpu(self, initialGamma, ct.byref(rGamma), ct.byref(Gamma), ct.byref(pi))
+                result = npm._nova.pomdp_perseus_execute_cpu(self, initialGamma, ct.byref(policy))
             else:
                 print("Failed to solve the POMDP with the GPU using 'nova' because algorithm '%s' is undefined." % (algorithm))
                 raise Exception()
+
             timing = (time.time() - timing[0], time.clock() - timing[1])
 
             if result != 0:
                 print("Failed to execute the 'nova' library's CPU POMDP solver.")
                 raise Exception()
 
-            #result = npm._nova.pomdp_pbvi_uninitialize_cpu(self)
-            #if result != 0:
-            #    # Note: Failing at uninitialization should not cause the result to be discarded.
-            #    print("Failed to uninitialize the 'nova' library's CPU POMDP solver.")
+        # Dereference the pointer (this is how you do it in ctypes).
+        policy = policy.contents
 
-        if algorithm == 'pbvi':
-            Gamma = np.array([Gamma[i] for i in range(self.r * self.n)])
-            Gamma = Gamma.reshape((self.r, self.n))
-            pi = np.array([pi[i] for i in range(self.r)])
-        elif algorithm == 'perseus':
-            rGamma = rGamma.value
-            Gamma = np.array([Gamma[i] for i in range(rGamma * self.n)])
-            Gamma = Gamma.reshape((rGamma, self.n))
-            pi = np.array([pi[i] for i in range(rGamma)])
-
-        return Gamma, pi, timing
+        return policy, timing
 
     def __str__(self):
         """ Return the string of the POMDP values akin to the raw file format.

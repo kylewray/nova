@@ -74,21 +74,19 @@ for f in files:
             tiger.expand(method=f['expand'])
             print(tiger)
 
-    #Gamma, piResult, timing = tiger.solve()
-    Gamma, piResult, timing = tiger.solve(process=f['process'], algorithm=f['algorithm'])
-    print(Gamma)
-    print(piResult)
+    policy, timing = tiger.solve(process=f['process'], algorithm=f['algorithm'])
+    print(policy)
 
     pylab.hold(True)
     pylab.title("Alpha-Vectors for Tiger Problem (Expand: %s)" % (f['expand']))
     pylab.xlabel("Belief of State s2: b(s2)")
     pylab.ylabel("Value of Belief: V(b(s2))")
-    for i in range(len(piResult)):
-        if piResult[i] == 0:
-            pylab.plot([0.0, 1.0], [Gamma[i, 0], Gamma[i, 1]], linewidth=10, color='red')
-        elif piResult[i] == 1:
-            pylab.plot([0.0, 1.0], [Gamma[i, 0], Gamma[i, 1]], linewidth=10, color='green')
-        elif piResult[i] == 2:
-            pylab.plot([0.0, 1.0], [Gamma[i, 0], Gamma[i, 1]], linewidth=10, color='blue')
+    for i in range(policy.r):
+        if policy.pi[i] == 0:
+            pylab.plot([0.0, 1.0], [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]], linewidth=10, color='red')
+        elif policy.pi[i] == 1:
+            pylab.plot([0.0, 1.0], [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]], linewidth=10, color='green')
+        elif policy.pi[i] == 2:
+            pylab.plot([0.0, 1.0], [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]], linewidth=10, color='blue')
     pylab.show()
 

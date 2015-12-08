@@ -31,7 +31,7 @@ import csv
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import nova_mdp as nm
-import nova_file_loader as nfl
+import file_loader as fl
 
 
 class MDP(nm.NovaMDP):
@@ -78,39 +78,39 @@ class MDP(nm.NovaMDP):
                                 Default returns the first reward.
         """
 
-        novaFileLoader = nfl.NovaFileLoader()
+        fileLoader = fl.FileLoader()
 
         if filetype == 'cassandra':
-            novaFileLoader.load_cassandra(filename)
+            fileLoader.load_cassandra(filename)
         elif filetype == 'raw':
-            novaFileLoader.load_raw_mdp(filename, scalarize)
+            fileLoader.load_raw_mdp(filename, scalarize)
         else:
             print("Invalid file type '%s'." % (filetype))
             raise Exception()
 
-        self.n = novaFileLoader.n
-        self.ns = novaFileLoader.ns
-        self.m = novaFileLoader.m
+        self.n = fileLoader.n
+        self.ns = fileLoader.ns
+        self.m = fileLoader.m
 
-        self.s0 = novaFileLoader.s0
-        self.ng = novaFileLoader.ng
+        self.s0 = fileLoader.s0
+        self.ng = fileLoader.ng
 
-        self.gamma = novaFileLoader.gamma
-        self.horizon = novaFileLoader.horizon
-        self.epsilon = novaFileLoader.epsilon
+        self.gamma = fileLoader.gamma
+        self.horizon = fileLoader.horizon
+        self.epsilon = fileLoader.epsilon
 
-        self.Rmin = novaFileLoader.Rmin
-        self.Rmax = novaFileLoader.Rmax
+        self.Rmin = fileLoader.Rmin
+        self.Rmax = fileLoader.Rmax
 
         array_type_ng_uint = ct.c_uint * (self.ng)
         array_type_nmns_int = ct.c_int * (self.n * self.m * self.ns)
         array_type_nmns_float = ct.c_float * (self.n * self.m * self.ns)
         array_type_nm_float = ct.c_float * (self.n * self.m)
 
-        self.goals = array_type_ng_uint(*novaFileLoader.goals.flatten())
-        self.S = array_type_nmns_int(*novaFileLoader.S.flatten())
-        self.T = array_type_nmns_float(*novaFileLoader.T.flatten())
-        self.R = array_type_nm_float(*novaFileLoader.R.flatten())
+        self.goals = array_type_ng_uint(*fileLoader.goals.flatten())
+        self.S = array_type_nmns_int(*fileLoader.S.flatten())
+        self.T = array_type_nmns_float(*fileLoader.T.flatten())
+        self.R = array_type_nm_float(*fileLoader.R.flatten())
 
     def solve(self, algorithm='vi', process='gpu', numThreads=1024, heuristic=None):
         """ Solve the MDP using the nova Python wrapper.

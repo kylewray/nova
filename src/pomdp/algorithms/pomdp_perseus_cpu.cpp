@@ -178,13 +178,13 @@ void pomdp_perseus_update_step_cpu(unsigned int n, unsigned int ns, unsigned int
 }
 
 
-int pomdp_perseus_complete_cpu(POMDP *pomdp, const float *initialGamma, unsigned int &r, float *&Gamma, unsigned int *&pi)
+int pomdp_perseus_complete_cpu(POMDP *pomdp, const float *initialGamma, POMDPAlphaVectors *&policy)
 {
     // Note: This 'wrapper' function is provided in order to maintain the same structure
     // as the GPU version. In the GPU version, 'complete' performs the initialization
     // and uninitialization of the POMDP object on the device as well. Here, we do not
     // need that.
-    return pomdp_perseus_execute_cpu(pomdp, initialGamma, r, Gamma, pi);
+    return pomdp_perseus_execute_cpu(pomdp, initialGamma, policy);
 }
 
 
@@ -227,7 +227,7 @@ int pomdp_perseus_initialize_cpu(POMDP *pomdp, const float *initialGamma)
 }
 
 
-int pomdp_perseus_execute_cpu(POMDP *pomdp, const float *initialGamma, unsigned int &r, float *&Gamma, unsigned int *&pi)
+int pomdp_perseus_execute_cpu(POMDP *pomdp, const float *initialGamma, POMDPAlphaVectors *&policy)
 {
     // The result from calling other functions.
     int result;
@@ -237,7 +237,7 @@ int pomdp_perseus_execute_cpu(POMDP *pomdp, const float *initialGamma, unsigned 
             pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
             pomdp->Z == nullptr || pomdp->B == nullptr ||
             pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
-            initialGamma == nullptr || Gamma != nullptr || pi != nullptr) {
+            initialGamma == nullptr || policy != nullptr) {
         fprintf(stderr, "Error[pomdp_perseus_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -263,7 +263,7 @@ int pomdp_perseus_execute_cpu(POMDP *pomdp, const float *initialGamma, unsigned 
         }
     }
 
-    result = pomdp_perseus_get_policy_cpu(pomdp, r, Gamma, pi);
+    result = pomdp_perseus_get_policy_cpu(pomdp, policy);
     if (result != NOVA_SUCCESS) {
         return result;
     }
@@ -436,52 +436,38 @@ int pomdp_perseus_update_cpu(POMDP *pomdp)
 }
 
 
-// NOTE: You need to write a free memory function. Anytime you dynamically allocate memory in C, Python does not know...
-// THIS NEEDS TO BE DONE FOR ALL get_policy FUNCTIONS!
-
-
-int pomdp_perseus_get_policy_cpu(POMDP *pomdp, unsigned int &r, float *&Gamma, unsigned int *&pi)
+int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPAlphaVectors *&policy)
 {
-    if (Gamma != nullptr || pi != nullptr) {
-        fprintf(stderr, "Error[pomdp_perseus_get_policy_cpu]: %s\n", "Invalid arguments. Gamma and pi must be undefined.");
+    if (policy != nullptr) {
+        fprintf(stderr, "Error[pomdp_perseus_get_policy_cpu]: %s\n", "Invalid arguments. Policy must be undefined.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
+    policy = new POMDPAlphaVectors();
+
+    policy->n = pomdp->n;
+    policy->m = pomdp->m;
+
     // Copy the final (or intermediate) result of Gamma and pi to the variables.
     if (pomdp->currentHorizon % 2 == 0) {
-        r = pomdp->rGamma;
+        policy->r = pomdp->rGamma;
 
-        Gamma = new float[pomdp->rGamma * pomdp->n];
-        pi = new unsigned int[pomdp->rGamma];
+        policy->Gamma = new float[pomdp->rGamma * pomdp->n];
+        policy->pi = new unsigned int[pomdp->rGamma];
 
-        memcpy(Gamma, pomdp->Gamma, pomdp->rGamma * pomdp->n * sizeof(float));
-        memcpy(pi, pomdp->pi, pomdp->rGamma * sizeof(unsigned int));
+        memcpy(policy->Gamma, pomdp->Gamma, pomdp->rGamma * pomdp->n * sizeof(float));
+        memcpy(policy->pi, pomdp->pi, pomdp->rGamma * sizeof(unsigned int));
     } else {
-        r = pomdp->rGammaPrime;
+        policy->r = pomdp->rGammaPrime;
 
-        Gamma = new float[pomdp->rGammaPrime * pomdp->n];
-        pi = new unsigned int[pomdp->rGammaPrime];
+        policy->Gamma = new float[pomdp->rGammaPrime * pomdp->n];
+        policy->pi = new unsigned int[pomdp->rGammaPrime];
 
-        memcpy(Gamma, pomdp->GammaPrime, pomdp->rGammaPrime * pomdp->n * sizeof(float));
-        memcpy(pi, pomdp->piPrime, pomdp->rGammaPrime * sizeof(unsigned int));
+        memcpy(policy->Gamma, pomdp->GammaPrime, pomdp->rGammaPrime * pomdp->n * sizeof(float));
+        memcpy(policy->pi, pomdp->piPrime, pomdp->rGammaPrime * sizeof(unsigned int));
     }
 
     return NOVA_SUCCESS;
 }
 
-
-int pomdp_perseus_free_policy_cpu(float *&Gamma, unsigned int *&pi)
-{
-    if (Gamma != nullptr) {
-        delete [] Gamma;
-    }
-    Gamma = nullptr;
-
-    if (pi != nullptr) {
-        delete [] pi;
-    }
-    pi = nullptr;
-
-    return NOVA_SUCCESS;
-}
 

@@ -22,29 +22,48 @@
  */
 
 
-#ifndef POMDP_EXPAND_GPU_H
-#define POMDP_EXPAND_GPU_H
+#include "algorithms/pomdp_perseus_cpu.h"
+#include "error_codes.h"
+#include "constants.h"
+
+#include <stdio.h>
 
 
-#include "pomdp.h"
+int pomdp_alpha_vectors_value_and_action(const POMDPAlphaVectors *policy,
+    const float *b, float &Vb, unsigned int &a)
+{
+    float VbStar = FLT_MIN;
+    unsigned int aStar = 0;
+
+    for (unsigned int i = 0; i < policy->r; i++) {
+        float V = 0.0f;
+
+        for (unsigned int s = 0; s < policy->n; s++) {
+            V += policy->Gamma[i * policy->n + s] * b[s];
+        }
+
+        if (VbStar < V) {
+            VbStar = V;
+            aStar = policy->pi[i];
+        }
+    }
+
+    return NOVA_SUCCESS;
+}
 
 
-/**
- *  Expand the set of beliefs following random trajectories (e.g., Perseus' expansion). This assumes that
- *  the variable B contains only one element: The initial belief b0. From this, B is expanded to the
- *  size specified; all are reachable belief points from random horizons. This assigns numDesiredBeliefPoints
- *  new elements to Bnew. This is the GPU version.
- *  @param  pomdp                   The POMDP object.
- *  @param  numThreads              The number of CUDA threads per block. Use multiples of 32.
- *  @param  numDesiredBeliefPoints  The number of belief points desired after randomly adding beliefs.
- *  @param  maxNonZeroValues        The maximum number of non-zero values over all new belief points.
- *  @param  Bnew                    The new (raw) resultant belief points (numDesiredBeliefPoints-n array).
- *  @return Returns zero upon success, non-zero otherwise.
- */
-extern "C" int pomdp_expand_random_gpu(const POMDP *pomdp, unsigned int numThreads,
-        unsigned int numDesiredBeliefPoints, unsigned int *maxNonZeroValues, float *Bnew);
+int pomdp_alpha_vectors_free(POMDPAlphaVectors *policy)
+{
+    if (policy->Gamma != nullptr) {
+        delete [] policy->Gamma;
+    }
+    policy->Gamma = nullptr;
 
+    if (policy->pi != nullptr) {
+        delete [] policy->pi;
+    }
+    policy->pi = nullptr;
 
-#endif // POMDP_EXPAND_GPU_H
-
+    return NOVA_SUCCESS;
+}
 
