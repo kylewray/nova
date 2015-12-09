@@ -28,72 +28,49 @@ import numpy as np
 import time
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
-import nova_pomdp_alpha_vectors as npav
+import nova_mdp_value_function as nmvf
 
 
-class POMDPAlphaVectors(npav.NovaPOMDPAlphaVectors):
-    """ The alpha-vector representation of a POMDP policy.
+class MDPValueFunction(nmvf.NovaMDPValueFunction):
+    """ The value function representation of an MDP policy.
 
-        Specifically, this class is a clean python wrapper around computing the optimal values
-        and actions at beliefs, as well as freeing the memory.
+        Specifically, this class is a clean python wrapper around simple operations,
+        such as freeing the memory.
     """
 
     def __init__(self):
-        """ The constructor for the POMDPAlphaVectors class. """
+        """ The constructor for the MDPValueFunction class. """
 
         self.n = 0
         self.m = 0
         self.r = 0
-        self.Gamma = ct.POINTER(ct.c_float)()
+        self.S = ct.POINTER(ct.c_uint)()
+        self.V = ct.POINTER(ct.c_float)()
         self.pi = ct.POINTER(ct.c_uint)()
 
     def __del__(self):
         """ Free the memory of the policy when this object is deleted. """
 
-        result = npav._nova.pomdp_alpha_vectors_free(self)
+        result = nmvf._nova.mdp_value_function_free(self)
         if result != 0:
-            print("Failed to free the alpha vectors.")
+            print("Failed to free the value function.")
             raise Exception()
 
     def __str__(self):
-        """ Return the string of the POMDP alpha-vectors.
+        """ Return the string of the MDP value function.
 
             Returns:
-                The string of the POMDP alpha-vectors.
+                The string of the MDP value function.
         """
 
-        result = "Gamma:\n%s" % (str(np.array([[self.Gamma[i * self.n + s] \
+        result = "S:\n%s" % (str(np.array([self.S[i] \
+                    for i in range(self.r)]))) + "\n\n"
+
+        result += "V:\n%s" % (str(np.array([[self.Gamma[i * self.n + s] \
                     for i in range(self.r)] for s in range(self.n)]))) + "\n\n"
 
         result += "pi:\n%s" % (str(np.array([self.pi[i] \
                     for i in range(self.r)]))) + "\n\n"
 
         return result
-
-    def value_and_action(self, b):
-        """ Compute the optimal value and action at a belief state.
-
-            Parameters:
-                b   --  A numpy array for the belief (n array).
-
-            Returns:
-                V   --  The optimal value at this belief.
-                a   --  The optimal action at this belief.
-        """
-
-        array_type_n_float = ct.c_float * (self.n)
-        belief = array_type_n_float(*b)
-
-        Vb = ct.c_float(0.0)
-        a = ct.c_uint(0)
-
-        result = npav._nova.pomdp_alpha_vectors_value_and_action(self, belief, ct.byref(Vb), ct.byref(a))
-        if result != 0:
-            print("Failed to compute the optimal value and action.")
-            raise Exception()
-
-        Vb = Vb.value
-        a = a.value
-
-        return Vb, a
 

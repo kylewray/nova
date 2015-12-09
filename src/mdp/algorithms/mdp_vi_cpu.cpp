@@ -71,13 +71,13 @@ void mdp_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, flo
 }
 
 
-int mdp_vi_complete_cpu(MDP *mdp, const float *Vinitial, float *&V, unsigned int *&pi)
+int mdp_vi_complete_cpu(MDP *mdp, const float *Vinitial, MDPValueFunction *&policy)
 {
     // Note: This 'wrapper' function is provided in order to maintain 
     // the same structure as the GPU version. In the GPU version,
     // 'complete' performs the initilization and uninitialization of
     // the MDP object on the device as well. Here, we do not need that.
-    return mdp_vi_execute_cpu(mdp, Vinitial, V, pi);
+    return mdp_vi_execute_cpu(mdp, Vinitial, policy);
 }
 
 
@@ -102,7 +102,7 @@ int mdp_vi_initialize_cpu(MDP *mdp, const float *Vinitial)
 }
 
 
-int mdp_vi_execute_cpu(MDP *mdp, const float *Vinitial, float *&V, unsigned int *&pi)
+int mdp_vi_execute_cpu(MDP *mdp, const float *Vinitial, MDPValueFunction *&policy)
 {
     int result;
 
@@ -110,7 +110,7 @@ int mdp_vi_execute_cpu(MDP *mdp, const float *Vinitial, float *&V, unsigned int 
     if (mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
             mdp->gamma < 0.0f || mdp->gamma > 1.0f || mdp->horizon < 1 ||
-            Vinitial == nullptr || V != nullptr || pi != nullptr) {
+            Vinitial == nullptr || policy != nullptr) {
         fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -131,7 +131,7 @@ int mdp_vi_execute_cpu(MDP *mdp, const float *Vinitial, float *&V, unsigned int 
         }
     }
 
-    result = mdp_vi_get_policy_cpu(mdp, V, pi);
+    result = mdp_vi_get_policy_cpu(mdp, policy);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Failed to get the policy.");
         return result;
@@ -187,40 +187,31 @@ int mdp_vi_update_cpu(MDP *mdp)
 }
 
 
-int mdp_vi_get_policy_cpu(MDP *mdp, float *&V, unsigned int *&pi)
+int mdp_vi_get_policy_cpu(const MDP *mdp, MDPValueFunction *&policy)
 {
-    if (V != nullptr || pi != nullptr) {
-        fprintf(stderr, "Error[mdp_vi_get_policy_cpu]: %s\n", "Invalid arguments. V and pi must be undefined.");
+    if (policy != nullptr) {
+        fprintf(stderr, "Error[mdp_vi_get_policy_cpu]: %s\n", "Invalid arguments. The policy must be undefined.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    V = new float[mdp->n];
-    pi = new unsigned int[mdp->n];
+    policy = new MDPValueFunction();
+
+    policy->n = mdp->n;
+    policy->m = mdp->m;
+    policy->r = 0;
+
+    policy->S = nullptr;
+    policy->V = new float[mdp->n];
+    policy->pi = new unsigned int[mdp->n];
 
     // Copy the final (or intermediate) result, both V and pi. This assumes memory has been allocated
     // for the variables provided.
     if (mdp->currentHorizon % 2 == 0) {
-        memcpy(V, mdp->V, mdp->n * sizeof(float));
+        memcpy(policy->V, mdp->V, mdp->n * sizeof(float));
     } else {
-        memcpy(V, mdp->VPrime, mdp->n * sizeof(float));
+        memcpy(policy->V, mdp->VPrime, mdp->n * sizeof(float));
     }
-    memcpy(pi, mdp->pi, mdp->n * sizeof(float));
-
-    return NOVA_SUCCESS;
-}
-
-
-int mdp_vi_free_policy_cpu(MDP *mdp, float *&V, unsigned int *&pi)
-{
-    if (V != nullptr) {
-        delete [] V;
-    }
-    V = nullptr;
-
-    if (pi != nullptr) {
-        delete [] pi;
-    }
-    pi = nullptr;
+    memcpy(policy->pi, mdp->pi, mdp->n * sizeof(float));
 
     return NOVA_SUCCESS;
 }

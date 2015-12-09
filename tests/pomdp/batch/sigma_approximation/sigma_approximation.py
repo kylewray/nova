@@ -81,9 +81,12 @@ for f in files:
                 pomdp.horizon = int(horizon)
 
                 # Store the intial belief from this file.
-                rzOriginal = pomdp.rz
-                b0 = [pomdp.B[0 * pomdp.rz + k] for k in range(pomdp.rz)]
-                z0 = [pomdp.Z[0 * pomdp.rz + k] for k in range(pomdp.rz)]
+                b0 = zeros(pomdp.n)
+                for k in range(pomdp.rz):
+                    s = pomdp.Z[0 * pomdp.rz + k]
+                    if s < 0:
+                        break
+                    b0[s] = pomdp.B[0 * pomdp.rz + k]
 
                 # Do expansions using random exploration.
                 pomdp.expand(method='random', numBeliefsToAdd=(pow(2, f['numExpandSteps']) - 1))
@@ -93,25 +96,13 @@ for f in files:
                 if sigmarz > 1.0:
                     sigma = pomdp.sigma_approximate(rz=min(pomdp.rz, int(pomdp.rz / sigmarz + 1)))
 
-                Gamma, piResult, timing = pomdp.solve(process=fixedProcess, algorithm=fixedAlgorithm)
+                policy, timing = pomdp.solve(process=fixedProcess, algorithm=fixedAlgorithm)
 
                 #print(pomdp)
-                #print(Gamma)
-                #print(piResult)
+                #print(policy)
 
                 # Compute the value of the initial belief, stored before doing the sigma approximation.
-                Vb0 = pomdp.Rmin / (1.0 - pomdp.gamma)
-                for q in range(Gamma.shape[0]):
-                    Vb0q = 0.0
-
-                    for k in range(rzOriginal):
-                        s = z0[k]
-                        if s < 0:
-                            break
-                        Vb0q += b0[k] * Gamma[q, s]
-
-                    if Vb0 < Vb0q:
-                        Vb0 = Vb0q
+                Vb0, ab0 = policy.value_and_action(b0)
 
                 # Note: use the time.time() function, which measures wall-clock time.
                 out.write("%i,%i,%i,%i,%i,%i,%.5f,%.5f,%.5f\n" % (pomdp.n, pomdp.m, pomdp.z, pomdp.r, pomdp.ns, pomdp.rz,

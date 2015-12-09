@@ -27,6 +27,7 @@
 
 
 #include "mdp.h"
+#include "policies/mdp_value_function.h"
 
 
 /**
@@ -35,14 +36,11 @@
  *  @param  numThreads  The number of CUDA threads per block. Use 128, 256, or 512
  *                      (multiples of 32).
  *  @param  Vinitial    The initial value function, mapping states (n-array) to floats.
- *  @param  V           The final value function, mapping states (n array) to floats.
- *                      This will be modified.
- *  @param  pi          The resultant policy, mapping every state (n array) to an
- *                      action (in 0 to m-1). This will be modified.
+ *  @param  policy      The resulting value function policy. This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int mdp_vi_complete_gpu(MDP *mdp, unsigned int numThreads, const float *Vinitial,
-    float *&V, unsigned int *&pi);
+        MDPValueFunction *&policy);
 
 /**
  *  Step 1/3: The initialization step of VI. This sets up the V and pi variables.
@@ -57,12 +55,11 @@ extern "C" int mdp_vi_initialize_gpu(MDP *mdp, const float *Vinitial);
  *  @param  mdp         The MDP object.
  *  @param  numThreads  The number of CUDA threads per block. Use multiples of 32.
  *  @param  Vinitial    The initial value function, mapping states (n-array) to floats.
- *  @param  V           The resultant policy; one value for each state (n-array). This will be modified.
- *  @param  pi          The resultant policy; one action for each state (n-array). This will be modified.
+ *  @param  policy      The resulting value function policy. This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int mdp_vi_execute_gpu(MDP *mdp, unsigned int numThreads, const float *Vinitial,
-        float *&V, unsigned int *&pi);
+        MDPValueFunction *&policy);
 
 /**
  *  Step 3/3: The uninitialization step of VI. This sets up the V and pi variables.
@@ -83,19 +80,10 @@ extern "C" int mdp_vi_update_gpu(MDP *mdp, unsigned int numThreads);
  *  The get resultant policy step of VI. This retrieves the values of states (V) and
  *  the corresponding actions at each state (pi).
  *  @param  mdp     The MDP object.
- *  @param  V       The resultant policy; one value for each state (n-array). This will be modified.
- *  @param  pi      The resultant policy; one action for each state (n-array). This will be modified.
+ *  @param  policy  The resulting value function policy. This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int mdp_vi_get_policy_gpu(MDP *mdp, float *&V, unsigned int *&pi);
-
-/**
- *  Free the policy produced by the get policy above.
- *  @param  V       The resultant policy; one value for each state (n-array). This will be modified.
- *  @param  pi      The resultant policy; one action for each state (n-array). This will be modified.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-extern "C" int mdp_vi_free_policy_gpu(MDP *mdp, float *&V, unsigned int *&pi);
+extern "C" int mdp_vi_get_policy_gpu(const MDP *mdp, MDPValueFunction *&policy);
 
 
 #endif // MDP_VI_GPU_H

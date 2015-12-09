@@ -22,46 +22,28 @@
  */
 
 
-#include "policies/pomdp_alpha_vectors.h"
+#include "policies/mdp_value_function.h"
 #include "error_codes.h"
 #include "constants.h"
 
 #include <stdio.h>
 
 
-int pomdp_alpha_vectors_value_and_action(const POMDPAlphaVectors *policy,
-    const float *b, float &Vb, unsigned int &a)
-{
-    Vb = FLT_MIN;
-    a = 0;
-
-    for (unsigned int i = 0; i < policy->r; i++) {
-        float V = 0.0f;
-
-        for (unsigned int s = 0; s < policy->n; s++) {
-            V += policy->Gamma[i * policy->n + s] * b[s];
-        }
-
-        if (Vb < V) {
-            Vb = V;
-            a = policy->pi[i];
-        }
-    }
-
-    return NOVA_SUCCESS;
-}
-
-
-int pomdp_alpha_vectors_free(POMDPAlphaVectors *policy)
+int mdp_value_function_free(MDPValueFunction *policy)
 {
     policy->n = 0;
     policy->m = 0;
     policy->r = 0;
 
-    if (policy->Gamma != nullptr) {
-        delete [] policy->Gamma;
+    if (policy->S != nullptr) {
+        delete [] policy->S;
     }
-    policy->Gamma = nullptr;
+    policy->S = nullptr;
+
+    if (policy->V != nullptr) {
+        delete [] policy->V;
+    }
+    policy->V = nullptr;
 
     if (policy->pi != nullptr) {
         delete [] policy->pi;
@@ -70,4 +52,5 @@ int pomdp_alpha_vectors_free(POMDPAlphaVectors *policy)
 
     return NOVA_SUCCESS;
 }
+
 

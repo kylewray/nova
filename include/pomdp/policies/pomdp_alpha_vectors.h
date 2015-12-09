@@ -28,7 +28,6 @@
 
 /*
  *  A structure for POMDP alpha-vector policies within nova.
- *
  *  @param  n       The number of states in the POMDP.
  *  @param  m       The number of actions in the POMDP.
  *  @param  r       The number of alpha vectors.
@@ -56,7 +55,7 @@ extern "C" int pomdp_alpha_vectors_value_and_action(const POMDPAlphaVectors *pol
 
 /**
  *  Free the memory for *only* the policy's internal arrays.
- *  @param  policy  The resultant set of alpha-vectors. This will be created and modified.
+ *  @param  policy  The resultant set of alpha-vectors. Arrays within will be freed.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_alpha_vectors_free(POMDPAlphaVectors *policy);

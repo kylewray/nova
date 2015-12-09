@@ -72,24 +72,22 @@ for trial in trials:
     #h = np.array([abs(y) + abs(trial['w'] - 1 - x) for y, x in it.product(range(trial['h']), range(trial['w']))] + [0.0]).flatten()
     h = np.array([0.0 for s in range(gridWorld.n)])
 
-    if trial['algorithm'] == "vi":
-        V, pi, timing = gridWorld.solve(algorithm=trial['algorithm'], process=trial['process'], heuristic=h)
-    elif trial['algorithm'] == "lao*" or trial['algorithm'] == "rtdp":
-        r, S, V, pi, timing = gridWorld.solve(algorithm=trial['algorithm'], process=trial['process'], heuristic=h)
+    policy, timing = gridWorld.solve(algorithm=trial['algorithm'], process=trial['process'], heuristic=h)
 
     prettyActions = ["L", "U", "R", "D"]
 
-    if trial['algorithm'] == "vi":
+    if policy.r == 0:
         for y in range(trial['h']):
             for x in range(trial['w']):
-                print(prettyActions[pi[y * trial['w'] + x]] + " ", end='')
+                print(prettyActions[policy.pi[y * trial['w'] + x]] + " ", end='')
             print()
-    elif trial['algorithm'] == "lao*" or trial['algorithm'] == "rtdp":
+    else:
+        S = [policy.S[i] for i in range(policy.r)]
         for y in range(trial['h']):
             for x in range(trial['w']):
                 try:
-                    i = S.tolist().index(y * trial['w'] + x)
-                    print(prettyActions[pi[i]] + " ", end='')
+                    i = S.index(y * trial['w'] + x)
+                    print(prettyActions[policy.pi[i]] + " ", end='')
                 except ValueError:
                     print("  ", end='')
             print()

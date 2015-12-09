@@ -33,6 +33,9 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import nova_mdp as nm
 import file_loader as fl
 
+import nova_mdp_value_function as nmvf
+import mdp_value_function as mvf
+
 
 class MDP(nm.NovaMDP):
     """ A Markov Decision Process (MDP) object that can load, solve, and save.
@@ -137,22 +140,16 @@ class MDP(nm.NovaMDP):
         if self.gamma < 1.0:
             Vinitial = np.array([float(self.Rmin / (1.0 - self.gamma)) for s in range(self.n)])
 
-        # Create functions to convert flattened NumPy arrays to C arrays.
+        # Create a function to convert a flattened numpy arrays to a C array, then convert Vinitial.
         array_type_n_float = ct.c_float * self.n
-
-        # Create a C array for the initial values.
         Vinitial = array_type_n_float(*Vinitial)
 
-        # Create C arrays for the result. Some are unused depending on the algorithm.
-        r = ct.c_uint(0)
-        S = ct.POINTER(ct.c_uint)()
-        V = ct.POINTER(ct.c_float)()
-        pi = ct.POINTER(ct.c_uint)()
 
         # For informed search algorithms, define the heuristic, which is stored in V initially.
         if algorithm == 'lao*' and heuristic is not None:
             self.V = array_type_n_float(*np.array([float(heuristic[s]) for s in range(self.n)]))
 
+        policy = ct.POINTER(mvf.MDPValueFunction)()
         timing = None
 
         # If the process is 'gpu', then attempt to solve it. If an error arises, then
@@ -161,15 +158,13 @@ class MDP(nm.NovaMDP):
             timing = (time.time(), time.clock())
             if algorithm == 'vi':
                 result = nm._nova.mdp_vi_complete_gpu(self, int(numThreads), Vinitial,
-                                                            ct.byref(V), ct.byref(pi))
+                                                            ct.byref(policy))
             elif algorithm == 'lao*':
                 result = nm._nova.ssp_lao_star_complete_gpu(self, int(numThreads), Vinitial,
-                                                            ct.byref(r), ct.byref(S),
-                                                            ct.byref(V), ct.byref(pi))
+                                                            ct.byref(policy))
             elif algorithm == 'rtdp':
                 result = nm._nova.ssp_rtdp_complete_gpu(self, int(numThreads), Vinitial,
-                                                            ct.byref(r), ct.byref(S),
-                                                            ct.byref(V), ct.byref(pi))
+                                                            ct.byref(policy))
             timing = (time.time() - timing[0], time.clock() - timing[1])
 
             if result != 0:
@@ -180,34 +175,21 @@ class MDP(nm.NovaMDP):
         if process == 'cpu':
             timing = (time.time(), time.clock())
             if algorithm == 'vi':
-                result = nm._nova.mdp_vi_complete_cpu(self, Vinitial, V, pi)
+                result = nm._nova.mdp_vi_complete_cpu(self, Vinitial, ct.byref(policy))
             elif algorithm == 'lao*':
-                result = nm._nova.ssp_lao_star_complete_cpu(self, Vinitial, r, S, V, pi)
+                result = nm._nova.ssp_lao_star_complete_cpu(self, Vinitial, ct.byref(policy))
             elif algorithm == 'rtdp':
-                result = nm._nova.ssp_rtdp_complete_cpu(self, Vinitial, r, S, V, pi)
+                result = nm._nova.ssp_rtdp_complete_cpu(self, Vinitial, ct.byref(policy))
             timing = (time.time() - timing[0], time.clock() - timing[1])
 
             if result != 0:
                 print("Failed to execute the 'nova' library's CPU MDP solver.")
                 raise Exception()
 
-        if result == 0:
-            if algorithm == 'vi':
-                V = np.array([V[i] for i in range(self.n)])
-                pi = np.array([pi[i] for i in range(self.n)])
-            elif algorithm == 'lao*' or algorithm == 'rtdp':
-                r = r.value
-                S = np.array([S[i] for i in range(r)])
-                V = np.array([V[i] for i in range(r)])
-                pi = np.array([pi[i] for i in range(r)])
-        else:
-            print("Failed to solve MDP using the 'nova' library.")
-            raise Exception()
+        # Dereference the pointer (this is how you do it in ctypes).
+        policy = policy.contents
 
-        if algorithm == 'vi':
-            return V, pi, timing
-        elif algorithm == 'lao*' or algorithm == 'rtdp':
-            return r, S, V, pi, timing
+        return policy, timing
 
     def __str__(self):
         """ Return the string of the MDP values akin to the raw file format.

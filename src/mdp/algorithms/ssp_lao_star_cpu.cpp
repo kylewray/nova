@@ -319,14 +319,13 @@ int ssp_lao_star_check_convergence_cpu(MDP *mdp, bool *converged, bool *nonExpan
 }
 
 
-int ssp_lao_star_complete_cpu(MDP *mdp, const float *Vinitial, unsigned int &r, unsigned int *&S,
-    float *&V, unsigned int *&pi)
+int ssp_lao_star_complete_cpu(MDP *mdp, const float *Vinitial, MDPValueFunction *&policy)
 {
     // Note: This 'wrapper' function is provided in order to maintain 
     // the same structure as the GPU version. In the GPU version,
     // 'complete' performs the initilization and uninitialization of
     // the MDP object on the device as well. Here, we do not need that.
-    return ssp_lao_star_execute_cpu(mdp, Vinitial, r, S, V, pi);
+    return ssp_lao_star_execute_cpu(mdp, Vinitial, policy);
 }
 
 
@@ -358,8 +357,7 @@ int ssp_lao_star_initialize_cpu(MDP *mdp, const float *Vinitial)
 }
 
 
-int ssp_lao_star_execute_cpu(MDP *mdp, const float *Vinitial, unsigned int &r, unsigned int *&S,
-    float *&V, unsigned int *&pi)
+int ssp_lao_star_execute_cpu(MDP *mdp, const float *Vinitial, MDPValueFunction *&policy)
 {
     int result;
 
@@ -368,7 +366,7 @@ int ssp_lao_star_execute_cpu(MDP *mdp, const float *Vinitial, unsigned int &r, u
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
             mdp->horizon < 1 || mdp->epsilon < 0.0f ||
             mdp->ne != 0 || mdp->expanded != nullptr ||
-            Vinitial == nullptr || S != nullptr || V != nullptr || pi != nullptr) {
+            Vinitial == nullptr || policy != nullptr) {
         fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -428,7 +426,7 @@ int ssp_lao_star_execute_cpu(MDP *mdp, const float *Vinitial, unsigned int &r, u
         }
     }
 
-    result = ssp_lao_star_get_policy_cpu(mdp, r, S, V, pi);
+    result = ssp_lao_star_get_policy_cpu(mdp, policy);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n", "Failed to get the policy.");
         return result;
@@ -476,15 +474,20 @@ int ssp_lao_star_uninitialize_cpu(MDP *mdp)
 }
 
 
-int ssp_lao_star_get_policy_cpu(MDP *mdp, unsigned int &r, unsigned int *&S, float *&V, unsigned int *&pi)
+int ssp_lao_star_get_policy_cpu(const MDP *mdp, MDPValueFunction *&policy)
 {
-    if (S != nullptr || V != nullptr || pi != nullptr) {
-        fprintf(stderr, "Error[ssp_lao_star_get_policy_cpu]: %s\n", "Invalid arguments. S, V, and pi must be undefined.");
+    if (policy != nullptr) {
+        fprintf(stderr, "Error[ssp_lao_star_get_policy_cpu]: %s\n", "Invalid arguments. The policy must be undefined.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
+    policy = new MDPValueFunction();
+
+    policy->n = mdp->n;
+    policy->m = mdp->m;
+
     // First, count the number of states that are valid following the policy.
-    r = 0;
+    policy->r = 0;
 
     for (unsigned int i = 0; i < mdp->ne; i++) {
         unsigned int s = mdp->expanded[i];
@@ -493,13 +496,13 @@ int ssp_lao_star_get_policy_cpu(MDP *mdp, unsigned int &r, unsigned int *&S, flo
         // following the optimal policy. Recall that some states might be expanded early on in the process,
         // but are quickly abandoned.
         if (!std::signbit(mdp->V[s]) || !std::signbit(mdp->VPrime[s])) {
-            r++;
+            policy->r++;
         }
     }
 
-    S = new unsigned int[r];
-    V = new float[r];
-    pi = new unsigned int[r];
+    policy->S = new unsigned int[policy->r];
+    policy->V = new float[policy->r];
+    policy->pi = new unsigned int[policy->r];
 
     // Determine which is the source for V based on the current horizon.
     float *Vsrc = nullptr;
@@ -522,9 +525,9 @@ int ssp_lao_star_get_policy_cpu(MDP *mdp, unsigned int &r, unsigned int *&S, flo
         // following the optimal policy. Recall that some states might be expanded early on in the process,
         // but are quickly abandoned.
         if (!std::signbit(mdp->V[s]) || !std::signbit(mdp->VPrime[s])) {
-            S[rCounter] = s;
-            V[rCounter] = Vsrc[s];
-            pi[rCounter] = mdp->pi[s];
+            policy->S[rCounter] = s;
+            policy->V[rCounter] = Vsrc[s];
+            policy->pi[rCounter] = mdp->pi[s];
 
             rCounter++;
         }
@@ -533,24 +536,4 @@ int ssp_lao_star_get_policy_cpu(MDP *mdp, unsigned int &r, unsigned int *&S, flo
     return NOVA_SUCCESS;
 }
 
-
-int ssp_lao_star_free_policy_cpu(MDP *mdp, unsigned int *&S, float *&V, unsigned int *&pi)
-{
-    if (S != nullptr) {
-        delete [] S;
-    }
-    S = nullptr;
-
-    if (V != nullptr) {
-        delete [] V;
-    }
-    V = nullptr;
-
-    if (pi != nullptr) {
-        delete [] pi;
-    }
-    pi = nullptr;
-
-    return NOVA_SUCCESS;
-}
 

@@ -23,7 +23,11 @@
 import ctypes as ct
 import platform
 import os.path
+import sys
 
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
+import nova_mdp_value_function as nmvf
+import mdp_value_function as mvf
 
 # Check if we need to create the nova variable. If so, import the correct library
 # file depending on the platform.
@@ -72,27 +76,19 @@ class NovaMDP(ct.Structure):
 
 
 _nova.mdp_vi_complete_cpu.argtypes = (ct.POINTER(NovaMDP),
-                                    ct.POINTER(ct.c_float),             # Vinitial
-                                    ct.POINTER(ct.POINTER(ct.c_float)), # V
-                                    ct.POINTER(ct.POINTER(ct.c_uint)))  # pi
+                                    ct.POINTER(ct.c_float),                         # Vinitial
+                                    ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))   # policy
 
 _nova.mdp_vi_complete_gpu.argtypes = (ct.POINTER(NovaMDP),
-                                    ct.c_uint,                          # numThreads
-                                    ct.POINTER(ct.c_float),             # Vinitial
-                                    ct.POINTER(ct.POINTER(ct.c_float)), # V
-                                    ct.POINTER(ct.POINTER(ct.c_uint)))  # pi
+                                    ct.c_uint,                                      # numThreads
+                                    ct.POINTER(ct.c_float),                         # Vinitial
+                                    ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))   # policy
 
 _nova.ssp_lao_star_complete_cpu.argtypes = (ct.POINTER(NovaMDP),
-                                    ct.POINTER(ct.c_float),             # Vinitial
-                                    ct.POINTER(ct.c_uint),              # r
-                                    ct.POINTER(ct.POINTER(ct.c_uint)),  # S
-                                    ct.POINTER(ct.POINTER(ct.c_float)), # V
-                                    ct.POINTER(ct.POINTER(ct.c_uint)))  # pi
+                                    ct.POINTER(ct.c_float),                         # Vinitial
+                                    ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))   # policy
 
 _nova.ssp_rtdp_complete_cpu.argtypes = (ct.POINTER(NovaMDP),
-                                    ct.POINTER(ct.c_float),             # Vinitial
-                                    ct.POINTER(ct.c_uint),              # r
-                                    ct.POINTER(ct.POINTER(ct.c_uint)),  # S
-                                    ct.POINTER(ct.POINTER(ct.c_float)), # V
-                                    ct.POINTER(ct.POINTER(ct.c_uint)))  # pi
+                                    ct.POINTER(ct.c_float),                         # Vinitial
+                                    ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))   # policy
 
