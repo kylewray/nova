@@ -32,6 +32,7 @@
 #include <time.h>
 #include <cmath>
 
+namespace nova {
 
 int pomdp_expand_construct_belief_cpu(const POMDP *pomdp, unsigned int i, float *b)
 {
@@ -438,4 +439,6 @@ int pomdp_expand_pema_cpu(const POMDP *pomdp, const POMDPAlphaVectors *policy,
 
     return NOVA_SUCCESS;
 }
+
+}; // namespace nova
 

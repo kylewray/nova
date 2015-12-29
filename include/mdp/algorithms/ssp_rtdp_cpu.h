@@ -29,6 +29,7 @@
 #include "mdp.h"
 #include "policies/mdp_value_function.h"
 
+namespace nova {
 
 /**
  *  Execute the entire RTDP process for the SSP MDP model specified until convergence. Uses the CPU.
@@ -90,6 +91,8 @@ extern "C" int ssp_rtdp_update_cpu(MDP *mdp);
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int ssp_rtdp_get_policy_cpu(const MDP *mdp, MDPValueFunction *&policy);
+
+};
 
 
 #endif // SSP_RTDP_CPU_H

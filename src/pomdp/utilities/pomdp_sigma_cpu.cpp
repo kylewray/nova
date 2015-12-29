@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <algorithm>
 
+namespace nova {
 
 bool pomdp_sigma_pair_comparator_cpu(const SigmaPair &bl, const SigmaPair &br)
 {
@@ -108,4 +109,6 @@ int pomdp_sigma_cpu(POMDP *pomdp, unsigned int rz, float *Bnew, int *Znew, float
 
     return NOVA_SUCCESS;
 }
+
+}; // namespace nova
 

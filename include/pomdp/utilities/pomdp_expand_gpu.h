@@ -28,6 +28,7 @@
 
 #include "pomdp.h"
 
+namespace nova {
 
 /**
  *  Expand the set of beliefs following random trajectories (e.g., Perseus' expansion). This assumes that
@@ -43,6 +44,8 @@
  */
 extern "C" int pomdp_expand_random_gpu(const POMDP *pomdp, unsigned int numThreads,
         unsigned int numDesiredBeliefPoints, unsigned int *maxNonZeroValues, float *Bnew);
+
+};
 
 
 #endif // POMDP_EXPAND_GPU_H

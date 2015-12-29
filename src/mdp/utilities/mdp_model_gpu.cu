@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 
+namespace nova {
 
 int mdp_initialize_successors_gpu(MDP *mdp)
 {
@@ -150,4 +151,6 @@ int mdp_uninitialize_rewards_gpu(MDP *mdp)
 
     return NOVA_SUCCESS;
 }
+
+}; // namespace nova
 

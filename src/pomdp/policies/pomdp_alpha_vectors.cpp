@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 
+namespace nova {
 
 int pomdp_alpha_vectors_value_and_action(const POMDPAlphaVectors *policy,
     const float *b, float &Vb, unsigned int &a)
@@ -70,4 +71,6 @@ int pomdp_alpha_vectors_free(POMDPAlphaVectors *policy)
 
     return NOVA_SUCCESS;
 }
+
+}; // namespace nova
 

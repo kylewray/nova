@@ -28,6 +28,7 @@
 
 #include "pomdp.h"
 
+namespace nova {
 
 /**
  *  Execute the entire BPI process for the infinite horizon POMDP model specified using the CPU.
@@ -77,6 +78,8 @@ extern "C" int pomdp_bpi_update_cpu(POMDP *pomdp);
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_bpi_get_policy_cpu(POMDP *pomdp, POMDPFSC *&fsc);
+
+};
 
  
 #endif // POMDP_PBVI_CPU_H

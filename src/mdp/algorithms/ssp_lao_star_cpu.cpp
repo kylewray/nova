@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <math.h>
 
+namespace nova {
 
 void ssp_lao_star_bellman_update_state_cpu(unsigned int n, unsigned int ns, unsigned int m, 
     const int *S, const float *T, const float *R, const float *V,
@@ -536,4 +537,5 @@ int ssp_lao_star_get_policy_cpu(const MDP *mdp, MDPValueFunction *&policy)
     return NOVA_SUCCESS;
 }
 
+}; // namespace nova
 

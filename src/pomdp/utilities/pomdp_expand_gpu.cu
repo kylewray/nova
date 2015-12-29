@@ -32,6 +32,7 @@
 #include <time.h>
 #include <cmath>
 
+namespace nova {
 
 int pomdp_expand_construct_belief_gpu(const POMDP *pomdp, unsigned int i, float *b)
 {
@@ -207,4 +208,5 @@ int pomdp_expand_random_gpu(const POMDP *pomdp, unsigned int numThreads,
     return NOVA_SUCCESS;
 }
 
+}; // namespace nova
 

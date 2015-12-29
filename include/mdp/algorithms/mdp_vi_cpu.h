@@ -29,6 +29,7 @@
 #include "mdp.h"
 #include "policies/mdp_value_function.h"
 
+namespace nova {
 
 /**
  *  Execute value iteration for the MDP model specified until convergence. Uses the CPU.
@@ -78,6 +79,8 @@ extern "C" int mdp_vi_update_cpu(MDP *mdp);
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int mdp_vi_get_policy_cpu(const MDP *mdp, MDPValueFunction *&policy);
+
+};
 
 
 #endif // MDP_VI_CPU_H

@@ -26,6 +26,8 @@
 #define MDP_H
 
 
+namespace nova {
+
 /*
  *  A structure for an MDP object within nova.
  *  @param  n               The number of states.
@@ -98,6 +100,8 @@ typedef struct NovaMDP {
 
     int *d_expanded;
 } MDP;
+
+};
 
 
 #endif // MDP_H

@@ -29,6 +29,7 @@
 #include "mdp.h"
 #include "policies/mdp_value_function.h"
 
+namespace nova {
 
 /**
  *  Execute value iteration for the MDP model specified until convergence. Uses the GPU (CUDA).
@@ -84,6 +85,8 @@ extern "C" int mdp_vi_update_gpu(MDP *mdp, unsigned int numThreads);
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int mdp_vi_get_policy_gpu(const MDP *mdp, MDPValueFunction *&policy);
+
+};
 
 
 #endif // MDP_VI_GPU_H

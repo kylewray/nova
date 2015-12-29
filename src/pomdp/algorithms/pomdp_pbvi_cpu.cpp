@@ -31,6 +31,7 @@
 #include <cstdlib>
 #include <time.h>
 
+namespace nova {
 
 void pomdp_pbvi_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
     unsigned int r, unsigned int rz, float gamma,
@@ -307,4 +308,5 @@ int pomdp_pbvi_get_policy_cpu(const POMDP *pomdp, POMDPAlphaVectors *&policy)
     return NOVA_SUCCESS;
 }
 
+}; // namespace nova
 

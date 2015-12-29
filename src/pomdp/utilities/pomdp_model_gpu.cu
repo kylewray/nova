@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 
+namespace nova {
 
 int pomdp_initialize_successors_gpu(POMDP *pomdp)
 {
@@ -274,4 +275,6 @@ int pomdp_uninitialize_belief_points_gpu(POMDP *pomdp)
 
     return NOVA_SUCCESS;
 }
+
+}; // namespace nova
 

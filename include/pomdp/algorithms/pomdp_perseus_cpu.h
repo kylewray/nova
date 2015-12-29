@@ -29,6 +29,7 @@
 #include "pomdp.h"
 #include "policies/pomdp_alpha_vectors.h"
 
+namespace nova {
 
 /**
  *  Execute the entire Perseus process for the infinite horizon POMDP model specified using the CPU.
@@ -80,6 +81,8 @@ extern "C" int pomdp_perseus_update_cpu(POMDP *pomdp);
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPAlphaVectors *&policy);
+
+};
 
 
 #endif // POMDP_PERSEUS_CPU_H

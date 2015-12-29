@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <cstring>
 
+namespace nova {
 
 void mdp_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, float gamma, 
                         const int *S, const float *T, const float *R, const float *V,
@@ -216,4 +217,5 @@ int mdp_vi_get_policy_cpu(const MDP *mdp, MDPValueFunction *&policy)
     return NOVA_SUCCESS;
 }
 
+}; // namespace nova
 

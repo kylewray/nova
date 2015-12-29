@@ -26,6 +26,8 @@
 #define MDP_VALUE_FUNCTION_H
 
 
+namespace nova {
+
 /*
  *  A structure for MDP value function policies within nova.
  *  @param  n   The number of states in the MDP.
@@ -52,6 +54,8 @@ typedef struct NovaMDPValueFunction {
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int mdp_value_function_free(MDPValueFunction *policy);
+
+};
 
 
 #endif // MDP_VALUE_FUNCTION_H

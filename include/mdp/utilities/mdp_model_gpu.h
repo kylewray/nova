@@ -28,6 +28,7 @@
 
 #include "mdp.h"
 
+namespace nova {
 
 /**
  *  Initialize CUDA by transferring all of the constant MDP model information to the device.
@@ -70,6 +71,8 @@ extern "C" int mdp_initialize_rewards_gpu(MDP *mdp);
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int mdp_uninitialize_rewards_gpu(MDP *mdp);
+
+};
 
 
 #endif // NOVA_MDP_MODEL_GPU_H

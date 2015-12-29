@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 
+namespace nova {
 
 __global__ void pomdp_pbvi_initialize_alphaBA_gpu(unsigned int n, unsigned int m,
     unsigned int r, const float *R, float *alphaBA)
@@ -541,4 +542,5 @@ int pomdp_pbvi_get_policy_gpu(const POMDP *pomdp, POMDPAlphaVectors *&policy)
     return NOVA_SUCCESS;
 }
 
+}; // namespace nova
 

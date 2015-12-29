@@ -31,6 +31,7 @@
 #include <cstdlib>
 #include <time.h>
 
+namespace nova {
 
 void pomdp_perseus_compute_b_dot_alpha_cpu(unsigned int rz, const int *Z, const float *B, unsigned int bIndex,
     const float *alpha, float *bDotAlpha)
@@ -470,4 +471,5 @@ int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPAlphaVectors *&policy)
     return NOVA_SUCCESS;
 }
 
+}; // namespace nova
 

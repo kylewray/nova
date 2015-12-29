@@ -26,6 +26,8 @@
 #define POMDP_ALPHA_VECTORS_H
 
 
+namespace nova {
+
 /*
  *  A structure for POMDP alpha-vector policies within nova.
  *  @param  n       The number of states in the POMDP.
@@ -59,6 +61,8 @@ extern "C" int pomdp_alpha_vectors_value_and_action(const POMDPAlphaVectors *pol
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_alpha_vectors_free(POMDPAlphaVectors *policy);
+
+};
 
 
 #endif // POMDP_ALPHA_VECTORS_H

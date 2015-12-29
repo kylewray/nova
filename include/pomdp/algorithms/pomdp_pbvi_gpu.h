@@ -29,6 +29,7 @@
 #include "pomdp.h"
 #include "policies/pomdp_alpha_vectors.h"
 
+namespace nova {
 
 /**
  *  Execute the entire PBVI process for the infinite horizon POMDP model specified using the GPU.
@@ -83,6 +84,8 @@ extern "C" int pomdp_pbvi_update_gpu(POMDP *pomdp, unsigned int numThreads);
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_pbvi_get_policy_gpu(const POMDP *pomdp, POMDPAlphaVectors *&policy);
+
+};
 
 
 #endif // POMDP_PBVI_GPU_H

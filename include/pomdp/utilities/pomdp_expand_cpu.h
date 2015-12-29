@@ -29,6 +29,7 @@
 #include "pomdp.h"
 #include "policies/pomdp_alpha_vectors.h"
 
+namespace nova {
 
 /**
  *  Expand the set of beliefs following random trajectories (e.g., Perseus' expansion). This assumes that
@@ -67,6 +68,8 @@ extern "C" int pomdp_expand_distinct_beliefs_cpu(const POMDP *pomdp, unsigned in
  */
 extern "C" int pomdp_expand_pema_cpu(const POMDP *pomdp, const POMDPAlphaVectors *policy,
         unsigned int *maxNonZeroValues, float *Bnew);
+
+};
 
 
 #endif // POMDP_EXPAND_CPU_H

@@ -30,6 +30,7 @@
 #include <cmath>
 #include <stdio.h>
 
+namespace nova {
 
 __global__ void mdp_bellman_update_gpu(unsigned int n, unsigned int ns, unsigned int m, float gamma,
         const int *S, const float *T, const float *R, const float *V, float *VPrime, unsigned int *pi)
@@ -333,4 +334,5 @@ int mdp_vi_get_policy_gpu(const MDP *mdp, MDPValueFunction *&policy)
     return NOVA_SUCCESS;
 }
 
+}; // namespace nova
 

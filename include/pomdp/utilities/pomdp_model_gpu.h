@@ -28,6 +28,7 @@
 
 #include "pomdp.h"
 
+namespace nova {
 
 /**
  *  Initialize CUDA by transferring all of the constant POMDP model information to the device.
@@ -112,6 +113,8 @@ extern "C" int pomdp_initialize_belief_points_gpu(POMDP *pomdp);
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_uninitialize_belief_points_gpu(POMDP *pomdp);
+
+};
 
 
 #endif // NOVA_POMDP_MODEL_GPU_H

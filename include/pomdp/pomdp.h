@@ -26,6 +26,8 @@
 #define POMDP_H
 
 
+namespace nova {
+
 /*
  *  A structure for a POMDP object within nova.
  *
@@ -120,6 +122,8 @@ typedef struct NovaPOMDP {
     unsigned int *d_piPrime;
     float *d_alphaBA;
 } POMDP;
+
+};
 
 
 #endif // POMDP_H

@@ -26,6 +26,8 @@
 #define POMDP_FSC_H
 
 
+namespace nova {
+
 /*
  *  A structure for POMDP Finite State Controller (FSC) policies within nova.
  *
@@ -50,6 +52,8 @@ typedef struct NovaPOMDPFSC {
     int *S;
     float *eta;
 } POMDPFSC;
+
+};
 
 
 #endif // POMDP_FSC_H

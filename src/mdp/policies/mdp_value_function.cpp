@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 
+namespace nova {
 
 int mdp_value_function_free(MDPValueFunction *policy)
 {
@@ -53,4 +54,5 @@ int mdp_value_function_free(MDPValueFunction *policy)
     return NOVA_SUCCESS;
 }
 
+}; // namespace nova
 

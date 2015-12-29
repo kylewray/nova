@@ -30,6 +30,8 @@
 
 #include <utility>
 
+namespace nova {
+
 /**
  *  Perform the sigma-approximation on the current set of beliefs and return a new set.
  *  @param  pomdp       The POMDP object.
@@ -51,6 +53,8 @@ typedef std::pair<float, int> SigmaPair;
  *  @return Returns true if left is greater than right, false otherwise.
  */
 bool pomdp_sigma_pair_comparator_cpu(const SigmaPair &bl, const SigmaPair &br);
+
+};
 
 
 #endif // POMDP_SIGMA_CPU_H
