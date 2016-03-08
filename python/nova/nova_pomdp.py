@@ -40,8 +40,12 @@ if platform.system() == "Windows":
     _nova = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                     "..", "..", "lib", "nova.dll"))
 else:
-    _nova = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                    "..", "..", "lib", "nova.so"))
+    # Linux lib name start with lib: this is just to keep backward compatibility
+    lib = os.path.join(os.path.dirname(os.path.realpath(__file__)),"..", "..", "lib", "nova.so")
+    if os.path.exists(lib):
+        _nova = ct.CDLL(lib)
+    else:
+        _nova = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),"..", "..", "lib", "libnova.so"))
 
 
 class NovaPOMDP(ct.Structure):
