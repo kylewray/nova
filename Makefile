@@ -5,8 +5,8 @@ all: nova
 
 nova: mdp_algorithms_cpu.o mdp_algorithms_gpu.o mdp_utilities_gpu.o mdp_policies.o pomdp_algorithms_cpu.o pomdp_utilities_cpu.o pomdp_algorithms_gpu.o pomdp_utilities_gpu.o pomdp_policies.o
 	mkdir -p lib
-	$(COMMAND) $(FLAGS) obj/*.o -o nova.so
-	mv nova.so lib
+	$(COMMAND) $(FLAGS) obj/*.o -o libnova.so
+	mv libnova.so lib
 
 mdp_algorithms_cpu.o: src/mdp/algorithms/*.cpp
 	mkdir -p obj

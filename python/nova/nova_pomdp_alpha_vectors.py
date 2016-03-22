@@ -33,10 +33,10 @@ import os.path
 _nova = None
 if platform.system() == "Windows":
     _nova = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                    "..", "..", "lib", "nova.dll"))
+                    "..", "..", "lib", "libnova.dll"))
 else:
     _nova = ct.CDLL(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                    "..", "..", "lib", "nova.so"))
+                    "..", "..", "lib", "libnova.so"))
 
 
 class NovaPOMDPAlphaVectors(ct.Structure):

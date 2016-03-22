@@ -144,7 +144,6 @@ class MDP(nm.NovaMDP):
         array_type_n_float = ct.c_float * self.n
         Vinitial = array_type_n_float(*Vinitial)
 
-
         # For informed search algorithms, define the heuristic, which is stored in V initially.
         if algorithm == 'lao*' and heuristic is not None:
             self.V = array_type_n_float(*np.array([float(heuristic[s]) for s in range(self.n)]))
