@@ -344,3 +344,17 @@ class POMDP(npm.NovaPOMDP):
 
         return result
 
+    def belief_update(self, b, a, o):
+        """ Perform a belief update, given belief, action, and observation.
+
+            Parameters:
+                b   --  The current belief (numpy n-array).
+                a   --  The action (index) taken.
+                o   --  The resulting observation (index).
+
+            Returns:
+                The new belief (numpy n-array).
+        """
+
+        bp = np.zeros([0.0 for s in range(self.n)])
+

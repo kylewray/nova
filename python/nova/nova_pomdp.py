@@ -172,6 +172,13 @@ _nova.pomdp_pbvi_get_policy_gpu.argtypes = (ct.POINTER(NovaPOMDP),
 # Functions from 'pomdp_perseus_gpu.h'.
 
 
+# Functions from 'pomdp_utilities_cpu.h'.
+_nova.pomdp_utilities_belief_update_cpu.argtypes = (ct.POINTER(NovaPOMDP),
+                                            ct.POINTER(ct.c_float),     # b
+                                            ct.c_uint,                  # a
+                                            ct.c_uint,                  # o
+                                            ct.POINTER(ct.c_float))     # bp
+
 # Functions from 'pomdp_expand_gpu.h'.
 _nova.pomdp_expand_random_gpu.argtypes = (ct.POINTER(NovaPOMDP),
                                             ct.c_uint,              # numThreads

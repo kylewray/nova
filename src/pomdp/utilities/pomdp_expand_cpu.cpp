@@ -23,6 +23,7 @@
 
 
 #include "utilities/pomdp_expand_cpu.h"
+#include "utilities/pomdp_utilities_cpu.h"
 #include "error_codes.h"
 #include "constants.h"
 
@@ -39,51 +40,13 @@ int pomdp_expand_construct_belief_cpu(const POMDP *pomdp, unsigned int i, float 
     for (unsigned int s = 0; s < pomdp->n; s++) {
         b[s] = 0.0f;
     }
+
     for (unsigned int j = 0; j < pomdp->rz; j++) {
         int s = pomdp->Z[i * pomdp->rz + j];
         if (s < 0) {
             break;
         }
         b[s] = pomdp->B[i * pomdp->rz + j];
-    }
-
-    return NOVA_SUCCESS;
-}
-
-
-int pomdp_expand_belief_update_cpu(const POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float *bp)
-{
-    for (unsigned int sp = 0; sp < pomdp->n; sp++) {
-        bp[sp] = 0.0f;
-    }
-
-    for (unsigned int s = 0; s < pomdp->n; s++) {
-        for (unsigned int i = 0; i < pomdp->ns; i++) {
-            int sp = pomdp->S[s * pomdp->m * pomdp->ns + a * pomdp->ns + i];
-            if (sp < 0) {
-                break;
-            }
-
-            bp[sp] += pomdp->T[s * pomdp->m * pomdp->ns + a * pomdp->ns + i] * b[s];
-        }
-    }
-
-    float normalizingConstant = 0.0f;
-
-    for (unsigned int sp = 0; sp < pomdp->n; sp++) {
-        bp[sp] *= pomdp->O[a * pomdp->n * pomdp->z + sp * pomdp->z + o];
-        normalizingConstant += bp[sp];
-    }
-
-    // If the normalizing constant is exceedingly small, within error tolerances, then this is
-    // very likely to be an invalid belief. In practice, this arises when there is a probabilistically
-    // impossible observation, given the POMDP.
-    if (std::fabs(normalizingConstant) < FLT_ERR_TOL) {
-        return NOVA_WARNING_INVALID_BELIEF;
-    }
-
-    for (unsigned int sp = 0; sp < pomdp->n; sp++) {
-        bp[sp] /= normalizingConstant;
     }
 
     return NOVA_SUCCESS;
@@ -179,7 +142,7 @@ int pomdp_expand_random_cpu(const POMDP *pomdp, unsigned int numDesiredBeliefPoi
 
             // Follow the belief update equation to compute b' for all state primes s'.
             float *bp = new float[pomdp->n];
-            pomdp_expand_belief_update_cpu(pomdp, b, a, o, bp);
+            pomdp_utilities_belief_update_cpu(pomdp, b, a, o, bp);
             memcpy(b, bp, pomdp->n * sizeof(float));
             delete [] bp;
 
@@ -222,7 +185,7 @@ int pomdp_expand_distinct_beliefs_cpu(const POMDP *pomdp, unsigned int *maxNonZe
             for (unsigned int o = 0; o < pomdp->z; o++) {
                 // Compute b'.
                 float *bp = new float[pomdp->n];
-                unsigned int result = pomdp_expand_belief_update_cpu(pomdp, b, a, o, bp);
+                unsigned int result = pomdp_utilities_belief_update_cpu(pomdp, b, a, o, bp);
 
                 // Since we are iterating over observations, we may examine an observation
                 // which is impossible given the current belief. This is based on the POMDP.
@@ -342,7 +305,7 @@ int pomdp_expand_pema_cpu(const POMDP *pomdp, const POMDPAlphaVectors *policy,
 
                 // With the current action and observation compute b'(b, a, o).
                 float *bp = new float[pomdp->n];
-                unsigned int result = pomdp_expand_belief_update_cpu(pomdp, b, a, o, bp);
+                unsigned int result = pomdp_utilities_belief_update_cpu(pomdp, b, a, o, bp);
 
                 // Since we are iterating over observations, we may examine an observation
                 // which is impossible given the current belief. This is based on the POMDP.
@@ -424,7 +387,7 @@ int pomdp_expand_pema_cpu(const POMDP *pomdp, const POMDPAlphaVectors *policy,
         // We are looking for the largest value possible.
         if (aStarValue > bStarEpsilonErrorBound) {
             // With the best action, compute b'(b, aStar, oStar[aStar]) from the initial b (from i).
-            pomdp_expand_belief_update_cpu(pomdp, b, aStar, oStar[aStar], &Bnew[0 * pomdp->n]);
+            pomdp_utilities_belief_update_cpu(pomdp, b, aStar, oStar[aStar], &Bnew[0 * pomdp->n]);
 
             bStarEpsilonErrorBound = aStarValue;
         }
