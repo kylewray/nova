@@ -356,5 +356,16 @@ class POMDP(npm.NovaPOMDP):
                 The new belief (numpy n-array).
         """
 
-        bp = np.zeros([0.0 for s in range(self.n)])
+        array_type_n_float = ct.c_float * (self.n)
+        b = array_type_n_float(*b.flatten())
+
+        array_type_n_float = ct.c_float * (self.n)
+        bp = array_type_n_float(*np.zeros([0.0 for s in range(self.n)]).flatten())
+
+        result = npm._nova.pomdp_utilities_belief_update_cpu(self, b, a, o, bp)
+        if result != 0:
+            print("Failed to perform a belief update on the CPU.")
+            raise Exception()
+
+        return np.array([bp[s] for s in range(self.n)])
 
