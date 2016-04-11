@@ -52,11 +52,10 @@ class MDP(nm.NovaMDP):
         self.ng = int(0)
         self.goals = ct.POINTER(ct.c_uint)()
         self.currentHorizon = int(0)
+        self.currentTrial = int(0)
         self.V = ct.POINTER(ct.c_float)()
         self.VPrime = ct.POINTER(ct.c_float)()
         self.pi = ct.POINTER(ct.c_uint)()
-        self.ne = int(0)
-        self.expanded = ct.POINTER(ct.c_int)()
         self.d_goals = ct.POINTER(ct.c_uint)()
         self.d_S = ct.POINTER(ct.c_int)()
         self.d_T = ct.POINTER(ct.c_float)()
@@ -64,7 +63,6 @@ class MDP(nm.NovaMDP):
         self.d_V = ct.POINTER(ct.c_float)()
         self.d_VPrime = ct.POINTER(ct.c_float)()
         self.d_pi = ct.POINTER(ct.c_uint)()
-        self.d_expanded = ct.POINTER(ct.c_int)()
 
         # Additional informative variables.
         self.Rmin = None

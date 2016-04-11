@@ -1,4 +1,4 @@
-COMMAND = nvcc
+COMMAND = /usr/local/cuda/bin/nvcc #nvcc
 FLAGS = -std=c++11 -shared -O3 -use_fast_math -Xcompiler -fPIC -Iinclude
 
 all: nova

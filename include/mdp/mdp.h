@@ -35,6 +35,7 @@ namespace nova {
  *  @param  m               The number of actions.
  *  @param  gamma           The discount factor in [0.0, 1.0).
  *  @param  horizon         The number of iterations to execute (i.e., horizon).
+ *  @param  trials          The number of trials to perform (e.g., for RTDP).
  *  @param  epsilon         The convergence criterion for SSP algorithms like LAO*.
  *  @param  s0              The optional goal state for an SSP.
  *  @param  ng              The optional number of goals.
@@ -46,11 +47,10 @@ namespace nova {
  *                          transition probability.
  *  @param  R               A mapping of state-action pairs (n-m array) to a reward.
  *  @param  currentHorizon  The current horizon updated after each iteration.
+ *  @param  currentTrial    The current trial (for algorithms such as RTDP).
  *  @param  V               The value of the states (n-array).
  *  @param  VPrime          The value of the states (n-array) copy.
  *  @param  pi              The action to take at each state (n-array).
- *  @param  ne              The number of expanded states (for SSP solvers like LAO*).
- *  @param  expanded        The state ordering (for SSP solvers like LAO*) of V, VPrime, and pi.
  *  @param  d_goals         Device-side pointer of goals.
  *  @param  d_S             Device-side pointer of S.
  *  @param  d_T             Device-side pointer of T.
@@ -58,7 +58,6 @@ namespace nova {
  *  @param  d_V             Device-side pointer of V.
  *  @param  d_VPrime        Device-side pointer of VPrime.
  *  @param  d_pi            Device-side pointer of pi.
- *  @param  d_expanded      Device-side pointer of ordering.
  */
 typedef struct NovaMDP {
     // Core Variables (User-Defined)
@@ -68,6 +67,7 @@ typedef struct NovaMDP {
 
     float gamma;
     unsigned int horizon;
+    unsigned int trials;
     float epsilon;
 
     unsigned int s0;
@@ -80,13 +80,11 @@ typedef struct NovaMDP {
 
     // Computation Variables (Utilized by Processes Only)
     unsigned int currentHorizon;
+    unsigned int currentTrial;
 
     float *V;
     float *VPrime;
     unsigned int *pi;
-
-    unsigned int ne;
-    int *expanded;
 
     unsigned int *d_goals;
 
@@ -97,8 +95,6 @@ typedef struct NovaMDP {
     float *d_V;
     float *d_VPrime;
     unsigned int *d_pi;
-
-    int *d_expanded;
 } MDP;
 
 };

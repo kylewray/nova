@@ -35,10 +35,10 @@
 namespace nova {
 
 void ssp_lao_star_bellman_update_state_cpu(unsigned int n, unsigned int ns, unsigned int m, 
-    const int *S, const float *T, const float *R, const float *V,
-    unsigned int s, float *VPrime, unsigned int *pi)
+    const int *S, const float *T, const float *R, unsigned int s,
+    float *V, unsigned int *pi)
 {
-    VPrime[s] = FLT_MAX;
+    float VsPrime = FLT_MAX;
 
     // Compute min_{a in A} Q(s, a). Recall, we are dealing with rewards R as positive costs.
     for (int a = 0; a < m; a++) {
@@ -56,265 +56,268 @@ void ssp_lao_star_bellman_update_state_cpu(unsigned int n, unsigned int ns, unsi
             Qsa += T[s * m * ns + a * ns + i] * std::fabs(V[sp]);
         }
 
-        if (a == 0 || Qsa < VPrime[s]) {
-            VPrime[s] = Qsa;
+        if (a == 0 || Qsa < VsPrime) {
+            VsPrime = Qsa;
             pi[s] = a;
         }
     }
+
+    V[s] = VsPrime;
 }
 
 
-void ssp_lao_star_reset_newly_expanded_states(unsigned int n, unsigned int m, unsigned int *pi)
+bool ssp_lao_star_is_expanded(const MDP *mdp, unsigned int s)
 {
-    for (unsigned int s = 0; s < n; s++) {
-        pi[s] = m;
+    return (mdp->pi[s] < mdp->m);
+}
+
+
+void ssp_lao_star_reset_newly_expanded_states(MDP *mdp)
+{
+    for (unsigned int s = 0; s < mdp->n; s++) {
+        mdp->pi[s] = mdp->m;
     }
 }
 
 
-void ssp_lao_star_reset_visited(unsigned int n, float *V, float *VPrime)
+bool ssp_lao_star_is_visited(const MDP *mdp, unsigned int s)
 {
-    for (unsigned int s = 0; s < n; s++) {
-        if (!std::signbit(V[s])) {
-            V[s] = -V[s];
-        }
+    return !std::signbit(mdp->V[s]);
+}
 
-        if (!std::signbit(VPrime[s])) {
-            VPrime[s] = -VPrime[s];
-        }
+
+void ssp_lao_star_reset_visited(MDP *mdp)
+{
+    for (unsigned int s = 0; s < mdp->n; s++) {
+//        if (ssp_lao_star_is_visited(mdp, s)) {
+            mdp->V[s] = -std::fabs(mdp->V[s]);
+//        }
     }
 }
 
 
-void ssp_lao_star_bellman_residual_cpu(unsigned int ne, int *expanded, float epsilon,
-    float *V, float *VPrime, bool *converged)
+void ssp_lao_star_mark_visited(const MDP *mdp, unsigned int s)
 {
-    float residual = 0.0f;
+    mdp->V[s] = std::fabs(mdp->V[s]);
+}
 
-    for (unsigned int i = 0; i < ne; i++) {
-        int s = expanded[i];
-        if (s < 0) {
+
+bool ssp_lao_star_is_goal(const MDP *mdp, unsigned int s)
+{
+    for (unsigned int i = 0; i < mdp->ng; i++) {
+        if (s == mdp->goals[i]) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+void ssp_lao_star_stack_create(const MDP *mdp, unsigned int &stackSize, unsigned int *&stack)
+{
+    stackSize = 0;
+    stack = new unsigned int[mdp->n];
+}
+
+
+void ssp_lao_star_stack_pop(const MDP *mdp, unsigned int &stackSize, unsigned int *stack, unsigned int &s)
+{
+    //s = stack[--stackSize];
+    s = stack[stackSize - 1];
+    stackSize--;
+}
+
+
+void ssp_lao_star_stack_push(const MDP *mdp, unsigned int &stackSize,
+    unsigned int *stack, unsigned int s)
+{
+    //stack[stackSize++] = s;
+    stack[stackSize] = s;
+    stackSize++;
+}
+
+
+void ssp_lao_star_stack_push_successors(const MDP *mdp, unsigned int &stackSize,
+    unsigned int *stack, unsigned int s)
+{
+    for (unsigned int i = 0; i < mdp->ns; i++) {
+        int sp = mdp->S[s * mdp->m * mdp->ns + mdp->pi[s] * mdp->ns + i];
+        if (sp < 0) {
             break;
         }
 
-        float sResidual = std::fabs(std::fabs(V[s]) - std::fabs(VPrime[s]));
-        residual = std::max(residual, sResidual);
-    }
-
-    if (residual < epsilon) {
-        *converged = true;
-    } else {
-        *converged = false;
+        // Only add it to the stack if we have not visited it yet. Putting this here
+        // will ensure our stack will never overflow.
+        if (!ssp_lao_star_is_visited(mdp, sp)) {
+            ssp_lao_star_stack_push(mdp, stackSize, stack, sp);
+        }
     }
 }
 
 
-int ssp_lao_star_expand_cpu(MDP *mdp, unsigned int *numNewlyExpandedStates)
+void ssp_lao_star_stack_destroy(const MDP *mdp, unsigned int &stackSize, unsigned int *&stack)
 {
-    *numNewlyExpandedStates = 0;
+    stackSize = 0;
+    delete [] stack;
+    stack = nullptr;
+}
+
+
+int ssp_lao_star_expand_cpu(MDP *mdp, unsigned int &numNewlyExpandedStates)
+{
+    numNewlyExpandedStates = 0;
 
     // First, reset the visited states.
-    ssp_lao_star_reset_visited(mdp->n, mdp->V, mdp->VPrime);
+    ssp_lao_star_reset_visited(mdp);
 
     // Create a fringe state list (stack) variable, with just state s0.
-    unsigned int nf = 1;
-    unsigned int *fringe = new unsigned int[mdp->n];
-    fringe[0] = mdp->s0;
+    unsigned int fringeStackSize = 0;
+    unsigned int *fringeStack = nullptr;
+    ssp_lao_star_stack_create(mdp, fringeStackSize, fringeStack);
+    ssp_lao_star_stack_push(mdp, fringeStackSize, fringeStack, mdp->s0);
+
+    // Create a traversal stack used for post order traversal Bellman updates.
+    unsigned int traversalStackSize = 0;
+    unsigned int *traversalStack = nullptr;
+    ssp_lao_star_stack_create(mdp, traversalStackSize, traversalStack);
 
     // Iterate until there are no more elements on the fringe.
-    while (nf != 0) {
+    while (fringeStackSize != 0) {
         // Pop the last element off the stack.
-        unsigned int s = fringe[nf - 1];
-        nf--;
+        unsigned int s = 0;
+        ssp_lao_star_stack_pop(mdp, fringeStackSize, fringeStack, s);
 
         // Check if this state has been visited. If so, continue.
-        if (!std::signbit(mdp->V[s]) || !std::signbit(mdp->VPrime[s])) {
+        if (ssp_lao_star_is_visited(mdp, s)) {
             continue;
         }
 
-        // Mark it as visited either way.
-        mdp->V[s] = fabs(mdp->V[s]);
-        mdp->VPrime[s] = fabs(mdp->VPrime[s]);
+        // Mark it as visited and push the state on the traversal stack for later updates.
+        ssp_lao_star_mark_visited(mdp, s);
+        ssp_lao_star_stack_push(mdp, traversalStackSize, traversalStack, s);
 
         // Check if this state is a goal. If so, continue.
-        bool isGoal = false;
-        for (unsigned int i = 0; i < mdp->ng; i++) {
-            if (s == mdp->goals[i]) {
-                isGoal = true;
-                break;
-            }
-        }
-        if (isGoal) {
+        if (ssp_lao_star_is_goal(mdp, s)) {
             continue;
         }
 
         // Only increment this if we truly have never seen this state before over any iteration of this part.
-        if (mdp->pi[s] == mdp->m) {
-            (*numNewlyExpandedStates)++;
+        if (!ssp_lao_star_is_expanded(mdp, s)) {
+            numNewlyExpandedStates++;
 
-            // You have expanded this node and will perform an update! Remember this in the order of expansion.
-            mdp->expanded[mdp->ne] = s;
-            mdp->ne++;
-
-            // This is a newly expanded state. Perform a Bellman update and mark it as visited in the process.
-            // Store this for both V and VPrime so that the updates align properly...
+            // This is a newly expanded state. Perform a Bellman update.
             ssp_lao_star_bellman_update_state_cpu(mdp->n, mdp->ns, mdp->m,
-                                                mdp->S, mdp->T, mdp->R, mdp->V,
-                                                s, mdp->VPrime, mdp->pi);
-            mdp->V[s] = mdp->VPrime[s];
+                                                mdp->S, mdp->T, mdp->R, s,
+                                                mdp->V, mdp->pi);
         } else {
             // Otherwise, add all of its children to the fringe, as long as they are not already there, and the
             // overall set of expanded states. This follows the best action computed so far.
-            for (unsigned int i = 0; i < mdp->ns; i++) {
-                int sp = mdp->S[s * mdp->m * mdp->ns + mdp->pi[s] * mdp->ns + i];
-                if (sp < 0) {
-                    break;
-                }
-
-                // Only add it to the fringe if we have not visited it yet. Putting this here
-                // will ensure our stack (fringe of size n) will never overflow.
-                if (std::signbit(mdp->V[sp]) && std::signbit(mdp->VPrime[sp])) {
-                    fringe[nf] = sp;
-                    nf++;
-                }
-            }
+            ssp_lao_star_stack_push_successors(mdp, fringeStackSize, fringeStack, s);
         }
     }
 
     // At the end, in post order traversal, perform Bellman updates.
-    for (int i = mdp->ne - 1; i >= 0; i--) {
-        unsigned int s = mdp->expanded[i];
+    while (traversalStackSize != 0) {
+        // Pop the node off of the traversal stack.
+        unsigned int s = 0;
+        ssp_lao_star_stack_pop(mdp, traversalStackSize, traversalStack, s);
 
-        // Only actually perform the update if this is a visited expanded node. Recall that dead ends can be expanded, but will
-        // eventually not be visited because the best action will be to avoid them.
-        if (!std::signbit(mdp->V[s]) || !std::signbit(mdp->VPrime[s])) {
-            if (mdp->currentHorizon % 2 == 0) {
-                ssp_lao_star_bellman_update_state_cpu(mdp->n, mdp->ns, mdp->m,
-                                                    mdp->S, mdp->T, mdp->R, mdp->V,
-                                                    s, mdp->VPrime, mdp->pi);
-            } else {
-                ssp_lao_star_bellman_update_state_cpu(mdp->n, mdp->ns, mdp->m,
-                                                    mdp->S, mdp->T, mdp->R, mdp->VPrime,
-                                                    s, mdp->V, mdp->pi);
-            }
-        } else {
-            if (mdp->currentHorizon % 2 == 0) {
-                mdp->VPrime[s] = mdp->V[s];
-            } else {
-                mdp->V[s] = mdp->VPrime[s];
-            }
-        }
+        // Perform a Bellman update on this state.
+        ssp_lao_star_bellman_update_state_cpu(mdp->n, mdp->ns, mdp->m,
+                                            mdp->S, mdp->T, mdp->R, s,
+                                            mdp->V, mdp->pi);
     }
 
     mdp->currentHorizon++;
 
-    delete [] fringe;
+    ssp_lao_star_stack_destroy(mdp, fringeStackSize, fringeStack);
+    ssp_lao_star_stack_destroy(mdp, traversalStackSize, traversalStack);
 }
 
-int ssp_lao_star_check_convergence_cpu(MDP *mdp, bool *converged, bool *nonExpandedTipStateFound)
+
+int ssp_lao_star_check_convergence_cpu(MDP *mdp, bool &converged, bool &nonExpandedTipStateFound)
 {
-    *converged = false;
-    *nonExpandedTipStateFound = false;
+    converged = false;
+    nonExpandedTipStateFound = false;
 
     // First, reset the visited states.
-    ssp_lao_star_reset_visited(mdp->n, mdp->V, mdp->VPrime);
+    ssp_lao_star_reset_visited(mdp);
 
     // Create a fringe state list (stack) variable, with just state s0.
-    unsigned int nf = 1;
-    unsigned int *fringe = new unsigned int[mdp->n];
-    fringe[0] = mdp->s0;
+    unsigned int fringeStackSize = 0;
+    unsigned int *fringeStack = nullptr;
+    ssp_lao_star_stack_create(mdp, fringeStackSize, fringeStack);
+    ssp_lao_star_stack_push(mdp, fringeStackSize, fringeStack, mdp->s0);
+
+    // Create a traversal stack used for post order traversal Bellman updates.
+    unsigned int traversalStackSize = 0;
+    unsigned int *traversalStack = nullptr;
+    ssp_lao_star_stack_create(mdp, traversalStackSize, traversalStack);
 
     // Iterate until there are no more elements on the fringe.
-    while (nf != 0) {
+    while (fringeStackSize != 0) {
         // Pop the last element off the stack.
-        unsigned int s = fringe[nf - 1];
-        nf--;
+        unsigned int s = 0;
+        ssp_lao_star_stack_pop(mdp, fringeStackSize, fringeStack, s);
 
         // Check if this state has been visited. If so, continue.
-        if (!std::signbit(mdp->V[s]) || !std::signbit(mdp->VPrime[s])) {
+        if (ssp_lao_star_is_visited(mdp, s)) {
             continue;
         }
+
+        // Mark it as visited and push the state on the traversal stack for later updates.
+        ssp_lao_star_mark_visited(mdp, s);
+        ssp_lao_star_stack_push(mdp, traversalStackSize, traversalStack, s);
 
         // Check if this state is a goal. If so, continue.
-        bool isGoal = false;
-        for (unsigned int i = 0; i < mdp->ng; i++) {
-            if (s == mdp->goals[i]) {
-                isGoal = true;
-                break;
-            }
-        }
-        if (isGoal) {
+        if (ssp_lao_star_is_goal(mdp, s)) {
             continue;
         }
 
-        // Mark it as visited if this is not a goal.
-        mdp->V[s] = fabs(mdp->V[s]);
-        mdp->VPrime[s] = fabs(mdp->VPrime[s]);
-
         // We have not converged if we truly have never seen this state before.
-        if (mdp->pi[s] == mdp->m) {
-            *nonExpandedTipStateFound = true;
+        if (!ssp_lao_star_is_expanded(mdp, s)) {
+            nonExpandedTipStateFound = true;
         } else {
             // Otherwise, add all of its children to the fringe, as long as they are not already there, and the
             // overall set of expanded states. This follows the best action computed so far.
-            for (unsigned int i = 0; i < mdp->ns; i++) {
-                int sp = mdp->S[s * mdp->m * mdp->ns + mdp->pi[s] * mdp->ns + i];
-                if (sp < 0) {
-                    break;
-                }
-
-                // Only add it to the fringe if we have not visited it yet. Putting this here
-                // will ensure our stack (fringe of size n) will never overflow.
-                if (std::signbit(mdp->V[sp]) && std::signbit(mdp->VPrime[sp])) {
-                    fringe[nf] = sp;
-                    nf++;
-                }
-            }
+            ssp_lao_star_stack_push_successors(mdp, fringeStackSize, fringeStack, s);
         }
     }
 
     // At the end, in post order traversal, perform Bellman updates. Record if the policy has changed.
     bool anActionHasChanged = false;
-    for (int i = mdp->ne - 1; i >= 0; i--) {
-        unsigned int s = mdp->expanded[i];
-        unsigned int a = mdp->pi[s];
+    float residual = 0.0f;
 
-        // Only actually perform the update if this is a visited expanded node. Recall that dead ends can be expanded, but will
-        // eventually not be visited because the best action will be to avoid them.
-        if (!std::signbit(mdp->V[s]) || !std::signbit(mdp->VPrime[s])) {
-            if (mdp->currentHorizon % 2 == 0) {
-                ssp_lao_star_bellman_update_state_cpu(mdp->n, mdp->ns, mdp->m,
-                                                    mdp->S, mdp->T, mdp->R, mdp->V,
-                                                    s, mdp->VPrime, mdp->pi);
-            } else {
-                ssp_lao_star_bellman_update_state_cpu(mdp->n, mdp->ns, mdp->m,
-                                                    mdp->S, mdp->T, mdp->R, mdp->VPrime,
-                                                    s, mdp->V, mdp->pi);
-            }
-        } else {
-            if (mdp->currentHorizon % 2 == 0) {
-                mdp->VPrime[s] = mdp->V[s];
-            } else {
-                mdp->V[s] = mdp->VPrime[s];
-            }
-        }
+    while (traversalStackSize != 0) {
+        // Pop the node off of the traversal stack.
+        unsigned int s = 0;
+        ssp_lao_star_stack_pop(mdp, traversalStackSize, traversalStack, s);
+
+        float Vs = mdp->V[s];
+        unsigned int pis = mdp->pi[s];
+
+        // Perform a Bellman update on this state.
+        ssp_lao_star_bellman_update_state_cpu(mdp->n, mdp->ns, mdp->m,
+                                            mdp->S, mdp->T, mdp->R, s,
+                                            mdp->V, mdp->pi);
+
+        // Compute the max residual.
+        residual = std::max(residual, std::fabs(std::fabs(mdp->V[s]) - std::fabs(Vs)));
 
         // If the action changed after an update, then we have not converged.
-        if (a != mdp->pi[s]) {
+        if (pis != mdp->pi[s]) {
             anActionHasChanged = true;
         }
     }
 
-    mdp->currentHorizon++;
-
-    // Compute the Bellman residual and determine if it converged or not. But, this only is checked if an action
-    // has not changed. If one did, then we have definitely not converged so don't bother checking.
-    if (anActionHasChanged == false) {
-        ssp_lao_star_bellman_residual_cpu(mdp->ne, mdp->expanded, mdp->epsilon,
-                                        mdp->V, mdp->VPrime, converged);
+    if (!anActionHasChanged && residual < mdp->epsilon) {
+        converged = true;
     }
 
-    delete [] fringe;
+    mdp->currentHorizon++;
+
+    ssp_lao_star_stack_destroy(mdp, fringeStackSize, fringeStack);
+    ssp_lao_star_stack_destroy(mdp, traversalStackSize, traversalStack);
 
     return NOVA_SUCCESS;
 }
@@ -337,21 +340,13 @@ int ssp_lao_star_initialize_cpu(MDP *mdp, const float *Vinitial)
 
     // Create the variables.
     mdp->V = new float[mdp->n];
-    mdp->VPrime = new float[mdp->n];
     mdp->pi = new unsigned int[mdp->n];
-
-    mdp->ne = 0;
-    mdp->expanded = new int[mdp->n];
 
     // Copy the data from the V provided, and set default values for pi.
     // Note that these values of V are the heuristics for each state.
-    // Also, the default values for the expanded states are -1, meaning
-    // no expanded state is defined for the index.
     memcpy(mdp->V, Vinitial, mdp->n * sizeof(float));
-    memcpy(mdp->VPrime, Vinitial, mdp->n * sizeof(float));
     for (unsigned int i = 0; i < mdp->n; i++) {
         mdp->pi[i] = 0;
-        mdp->expanded[i] = -1;
     }
 
     return NOVA_SUCCESS;
@@ -366,7 +361,6 @@ int ssp_lao_star_execute_cpu(MDP *mdp, const float *Vinitial, MDPValueFunction *
     if (mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
             mdp->horizon < 1 || mdp->epsilon < 0.0f ||
-            mdp->ne != 0 || mdp->expanded != nullptr ||
             Vinitial == nullptr || policy != nullptr) {
         fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
@@ -380,9 +374,9 @@ int ssp_lao_star_execute_cpu(MDP *mdp, const float *Vinitial, MDPValueFunction *
 
     // Note: We mark a state as *never* expanded if its policy has an invalid action (i.e., index m).
     // The "expanded" list is wiped every time we expand and preserves "all valid states for the final policy".
-    // Finally, the sign bit on V and VPrime mark if it was visited during each internal iteration of the expand
+    // Finally, the sign bit on V mark if it was visited during each internal iteration of the expand
     // function below. Confusing, but required for an efficient GPU version which will follow.
-    ssp_lao_star_reset_newly_expanded_states(mdp->n, mdp->m, mdp->pi);
+    ssp_lao_star_reset_newly_expanded_states(mdp);
 
     // We continue the process of expanding and testing convergence until convergence occurs.
     bool running = true;
@@ -391,38 +385,51 @@ int ssp_lao_star_execute_cpu(MDP *mdp, const float *Vinitial, MDPValueFunction *
         // This continues until you have: (1) expanded all states, and (2) have reached one of the goal states.
         unsigned int numNewlyExpandedStates = 1;
 
-        while (numNewlyExpandedStates != 0) {
-            // Perform DFS (greedy actions), but mark states as visited along the way too, so it doesn't revisit them.
-            // This performs a Bellman update in postorder traversal through the tree of expanded nodes.
-            result = ssp_lao_star_expand_cpu(mdp, &numNewlyExpandedStates);
+        while (mdp->currentHorizon < mdp->horizon && numNewlyExpandedStates != 0) {
+            // Perform DFS (greedy actions), but mark states as visited along the way too, so it doesn't
+            // revisit them. This performs a Bellman update in postorder traversal through the tree of
+            // visited (plus one-level of newly expanded) nodes.
+            result = ssp_lao_star_expand_cpu(mdp, numNewlyExpandedStates);
             if (result != NOVA_SUCCESS) {
-                fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n", "Failed to perform Bellman update on the CPU.");
+                fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n",
+                                "Failed to perform expand step of LAO* on the CPU.");
+
+                int resultPrime = ssp_lao_star_uninitialize_cpu(mdp);
+                if (resultPrime != NOVA_SUCCESS) {
+                    fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n",
+                                    "Failed to uninitialize the CPU variables.");
+                }
+
                 return result;
             }
         }
 
-        // Check Convergence Step: Run value iteration on expanded states until: (1) it converges (done), or (2) it has
-        // an optimal action has a possible successor that was not yet expanded (break and continue).
+        // Check Convergence Step: Run value iteration on expanded states until: (1) it converges (done),
+        // or (2) it has an optimal action has a possible successor that was not yet expanded (continue).
         bool converged = false;
         bool nonExpandedTipStateFound = false;
 
-        mdp->currentHorizon = 0;
-        while (mdp->currentHorizon < mdp->horizon && !converged) {
-            result = ssp_lao_star_check_convergence_cpu(mdp, &converged, &nonExpandedTipStateFound);
+        while (mdp->currentHorizon < mdp->horizon && !converged && !nonExpandedTipStateFound) {
+            // Check convergence by fixing the expanded nodes and running post-order traversal of Bellman
+            // update. If the policy changes, or we expand a new node, then we are not done. Otherwise,
+            // check if we are within residual. If so, we have converged!
+            result = ssp_lao_star_check_convergence_cpu(mdp, converged, nonExpandedTipStateFound);
             if (result != NOVA_SUCCESS) {
-                fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n", "Failed to perform Bellman update on the CPU.");
-                return result;
-            }
+                fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n",
+                                "Failed to perform check convergence step of LAO* on the CPU.");
 
-            // If we converged, then break. Or if during iteration we ever expanded a tip state that was not valid,
-            // then just stop here so we can add it during the expand step on the next pass through the outer loop.
-            if (converged || nonExpandedTipStateFound) {
-                break;
+                int resultPrime = ssp_lao_star_uninitialize_cpu(mdp);
+                if (resultPrime != NOVA_SUCCESS) {
+                    fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n",
+                                    "Failed to uninitialize the CPU variables.");
+                }
+
+                return result;
             }
         }
 
-        // If we converged (or simply ran out of time) and all expanded tip states were valid, then we are done.
-        if ((converged && !nonExpandedTipStateFound) || mdp->currentHorizon > mdp->horizon) {
+        // If we ran out of time, or converged without hitting a non-expanded state, then we are done.
+        if (mdp->currentHorizon >= mdp->horizon || (converged && !nonExpandedTipStateFound)) {
             running = false;
         }
     }
@@ -430,6 +437,13 @@ int ssp_lao_star_execute_cpu(MDP *mdp, const float *Vinitial, MDPValueFunction *
     result = ssp_lao_star_get_policy_cpu(mdp, policy);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n", "Failed to get the policy.");
+
+        int resultPrime = ssp_lao_star_uninitialize_cpu(mdp);
+        if (resultPrime != NOVA_SUCCESS) {
+            fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n",
+                            "Failed to uninitialize the CPU variables.");
+        }
+
         return result;
     }
 
@@ -447,24 +461,12 @@ int ssp_lao_star_uninitialize_cpu(MDP *mdp)
 {
     // Reset the current horizon and number of expanded states.
     mdp->currentHorizon = 0;
-    mdp->ne = 0;
 
-    // Free the expanded states set.
-    if (mdp->expanded != nullptr) {
-        delete [] mdp->expanded;
-    }
-    mdp->expanded = nullptr;
-
-    // Free the memory for V, VPrime, and pi.
+    // Free the memory for V and pi.
     if (mdp->V != nullptr) {
         delete [] mdp->V;
     }
     mdp->V = nullptr;
-
-    if (mdp->VPrime != nullptr) {
-        delete [] mdp->VPrime;
-    }
-    mdp->VPrime = nullptr;
 
     if (mdp->pi != nullptr) {
         delete [] mdp->pi;
@@ -478,7 +480,8 @@ int ssp_lao_star_uninitialize_cpu(MDP *mdp)
 int ssp_lao_star_get_policy_cpu(const MDP *mdp, MDPValueFunction *&policy)
 {
     if (policy != nullptr) {
-        fprintf(stderr, "Error[ssp_lao_star_get_policy_cpu]: %s\n", "Invalid arguments. The policy must be undefined.");
+        fprintf(stderr, "Error[ssp_lao_star_get_policy_cpu]: %s\n",
+                        "Invalid arguments. The policy must be undefined.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
@@ -490,13 +493,11 @@ int ssp_lao_star_get_policy_cpu(const MDP *mdp, MDPValueFunction *&policy)
     // First, count the number of states that are valid following the policy.
     policy->r = 0;
 
-    for (unsigned int i = 0; i < mdp->ne; i++) {
-        unsigned int s = mdp->expanded[i];
-
+    for (unsigned int s = 0; s < mdp->n; s++) {
         // Only include the visited states as part of the final policy. These states are all reachable states
         // following the optimal policy. Recall that some states might be expanded early on in the process,
         // but are quickly abandoned.
-        if (!std::signbit(mdp->V[s]) || !std::signbit(mdp->VPrime[s])) {
+        if (ssp_lao_star_is_visited(mdp, s)) {
             policy->r++;
         }
     }
@@ -505,32 +506,20 @@ int ssp_lao_star_get_policy_cpu(const MDP *mdp, MDPValueFunction *&policy)
     policy->V = new float[policy->r];
     policy->pi = new unsigned int[policy->r];
 
-    // Determine which is the source for V based on the current horizon.
-    float *Vsrc = nullptr;
-    if (mdp->currentHorizon % 2 == 0) {
-        Vsrc = mdp->VPrime;
-    } else {
-        Vsrc = mdp->V;
-    }
-
     // Copy the final (or intermediate) result, both V and pi. This assumes memory has been allocated
-    // for the variables provided. Importantly, only the values of the expanded states are copied.
-    // The non-expanded states are left alone. Also, recall that V and pi in the SSP MDP are following
-    // the order in which they were expanded.
-    unsigned int rCounter = 0;
+    // for the variables provided. Importantly, only the values of the visited states are copied.
+    // The non-visited states are left alone.
+    unsigned int r = 0;
 
-    for (unsigned int i = 0; i < mdp->ne; i++) {
-        unsigned int s = mdp->expanded[i];
-
+    for (unsigned int s = 0; s < mdp->n; s++) {
         // Only include the visited states as part of the final policy. These states are all reachable states
         // following the optimal policy. Recall that some states might be expanded early on in the process,
         // but are quickly abandoned.
-        if (!std::signbit(mdp->V[s]) || !std::signbit(mdp->VPrime[s])) {
-            policy->S[rCounter] = s;
-            policy->V[rCounter] = Vsrc[s];
-            policy->pi[rCounter] = mdp->pi[s];
-
-            rCounter++;
+        if (ssp_lao_star_is_visited(mdp, s)) {
+            policy->S[r] = s;
+            policy->V[r] = mdp->V[s];
+            policy->pi[r] = mdp->pi[s];
+            r++;
         }
     }
 

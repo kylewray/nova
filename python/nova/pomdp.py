@@ -357,10 +357,12 @@ class POMDP(npm.NovaPOMDP):
         """
 
         array_type_n_float = ct.c_float * (self.n)
-        b = array_type_n_float(*b.flatten())
 
-        array_type_n_float = ct.c_float * (self.n)
-        bp = array_type_n_float(*np.zeros([0.0 for s in range(self.n)]).flatten())
+        b = array_type_n_float(*b.flatten())
+        a = int(a)
+        o = int(o)
+
+        bp = array_type_n_float(*np.zeros(self.n).flatten())
 
         result = npm._nova.pomdp_utilities_belief_update_cpu(self, b, a, o, bp)
         if result != 0:
