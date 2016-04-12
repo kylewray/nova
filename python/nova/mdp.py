@@ -130,6 +130,10 @@ class MDP(nm.NovaMDP):
         result = nm._nova.mdp_initialize_successors_gpu(self)
         result += nm._nova.mdp_initialize_state_transitions_gpu(self)
         result += nm._nova.mdp_initialize_rewards_gpu(self)
+
+        if self.ng > 0:
+            result += nm._nova.mdp_initialize_goals_gpu(self)
+
         if result != 0:
             print("Failed to initialize the 'nova' library's GPU variables for the MDP.")
             raise Exception()
@@ -145,6 +149,10 @@ class MDP(nm.NovaMDP):
         result = nm._nova.mdp_uninitialize_successors_gpu(self)
         result += nm._nova.mdp_uninitialize_state_transitions_gpu(self)
         result += nm._nova.mdp_uninitialize_rewards_gpu(self)
+
+        if self.ng > 0:
+            result += nm._nova.mdp_uninitialize_goals_gpu(self)
+
         if result != 0:
             print("Failed to uninitialize the 'nova' library's GPU variables for the MDP.")
             raise Exception()

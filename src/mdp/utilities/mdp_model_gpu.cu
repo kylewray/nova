@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -148,6 +148,48 @@ int mdp_uninitialize_rewards_gpu(MDP *mdp)
         }
     }
     mdp->d_R = nullptr;
+
+    return NOVA_SUCCESS;
+}
+
+
+int mdp_initialize_goals_gpu(MDP *mdp)
+{
+    // Ensure the data is valid.
+    if (mdp->ng == 0 || mdp->goals == nullptr) {
+        fprintf(stderr, "Error[mdp_initialize_goals_gpu]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    // Allocate the memory on the device.
+    if (cudaMalloc(&mdp->d_goals, mdp->ng * sizeof(unsigned int)) != cudaSuccess) {
+        fprintf(stderr, "Error[mdp_initialize_goals_gpu]: %s\n",
+                "Failed to allocate device-side memory for the goals.");
+        return NOVA_ERROR_DEVICE_MALLOC;
+    }
+
+    // Copy the data from the host to the device.
+    if (cudaMemcpy(mdp->d_goals, mdp->goals, mdp->ng * sizeof(unsigned int),
+                   cudaMemcpyHostToDevice) != cudaSuccess) {
+        fprintf(stderr, "Error[mdp_initialize_goals_gpu]: %s\n",
+                "Failed to copy memory from host to device for the goals.");
+        return NOVA_ERROR_MEMCPY_TO_DEVICE;
+    }
+
+    return NOVA_SUCCESS;
+}
+
+
+int mdp_uninitialize_goals_gpu(MDP *mdp)
+{
+    if (mdp->d_goals != nullptr) {
+        if (cudaFree(mdp->d_goals) != cudaSuccess) {
+            fprintf(stderr, "Error[mdp_uninitialize_goals_gpu]: %s\n",
+                    "Failed to free device-side memory for the goals.");
+            return NOVA_ERROR_DEVICE_FREE;
+        }
+    }
+    mdp->d_goals = nullptr;
 
     return NOVA_SUCCESS;
 }

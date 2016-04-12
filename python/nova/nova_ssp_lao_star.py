@@ -27,6 +27,9 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 
+import mdp
+import mdp_value_function as mvf
+
 # Check if we need to create the nova variable. If so, import the correct library
 # file depending on the platform.
 #try:
@@ -41,37 +44,31 @@ else:
                     "..", "..", "lib", "libnova.so"))
 
 
-class NovaMDP(ct.Structure):
-    """ The C struct MDP object. """
+class NovaSSPLAOStarCPU(ct.Structure):
+    """ The C struct SSPLAOStarCPU object. """
 
-    _fields_ = [("n", ct.c_uint),
-                ("ns", ct.c_uint),
-                ("m", ct.c_uint),
-                ("gamma", ct.c_float),
-                ("horizon", ct.c_uint),
-                ("epsilon", ct.c_float),
-                ("s0", ct.c_uint),
-                ("ng", ct.c_uint),
-                ("goals", ct.POINTER(ct.c_uint)),
-                ("S", ct.POINTER(ct.c_int)),
-                ("T", ct.POINTER(ct.c_float)),
-                ("R", ct.POINTER(ct.c_float)),
-                ("d_goals", ct.POINTER(ct.c_uint)),
-                ("d_S", ct.POINTER(ct.c_int)),
-                ("d_T", ct.POINTER(ct.c_float)),
-                ("d_R", ct.POINTER(ct.c_float)),
+    _fields_ = [("Vinitial", ct.POINTER(ct.c_float)),
+                ("currentHorizon", ct.c_uint),
+                ("V", ct.POINTER(ct.c_float)),
+                ("pi", ct.POINTER(ct.c_uint)),
                 ]
 
 
-_nova.mdp_initialize_successors_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
-_nova.mdp_uninitialize_successors_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
+_nova.ssp_lao_star_initialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
+                                              ct.POINTER(NovaSSPLAOStarCPU))
 
-_nova.mdp_initialize_state_transitions_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
-_nova.mdp_uninitialize_state_transitions_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
+_nova.ssp_lao_star_execute_cpu.argtypes = (ct.POINTER(mdp.MDP),
+                                           ct.POINTER(NovaSSPLAOStarCPU),
+                                           ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))
 
-_nova.mdp_initialize_rewards_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
-_nova.mdp_uninitialize_rewards_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
+_nova.ssp_lao_star_uninitialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
+                                                ct.POINTER(NovaSSPLAOStarCPU))
 
-_nova.mdp_initialize_goals_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
-_nova.mdp_uninitialize_goals_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
+#_nova.ssp_lao_star_update_cpu.argtypes = (ct.POINTER(mdp.MDP),
+#                                          ct.POINTER(NovaSSPLAOStarCPU))
+
+_nova.ssp_lao_star_get_policy_cpu.argtypes = (ct.POINTER(mdp.MDP),
+                                              ct.POINTER(NovaSSPLAOStarCPU),
+                                              ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))
+
 

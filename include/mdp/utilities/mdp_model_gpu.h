@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -71,6 +71,20 @@ extern "C" int mdp_initialize_rewards_gpu(MDP *mdp);
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int mdp_uninitialize_rewards_gpu(MDP *mdp);
+
+/**
+ *  Initialize CUDA goals object.
+ *  @param  mdp   The MDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int mdp_initialize_goals_gpu(MDP *mdp);
+
+/**
+ *  Uninitialize CUDA goals object.
+ *  @param  mdp   The MDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int mdp_uninitialize_goals_gpu(MDP *mdp);
 
 };
 

@@ -68,6 +68,10 @@ _nova.mdp_vi_uninitialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
 _nova.mdp_vi_update_cpu.argtypes = (ct.POINTER(mdp.MDP),
                                     ct.POINTER(NovaMDPValueIterationCPU))
 
+_nova.mdp_vi_get_policy_cpu.argtypes = (ct.POINTER(mdp.MDP),
+                                        ct.POINTER(NovaMDPValueIterationCPU),
+                                        ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))
+
 
 class NovaMDPValueIterationGPU(ct.Structure):
     """ The C struct MDPValueIterationGPU object. """
@@ -93,4 +97,8 @@ _nova.mdp_vi_uninitialize_gpu.argtypes = (ct.POINTER(mdp.MDP),
 
 _nova.mdp_vi_update_gpu.argtypes = (ct.POINTER(mdp.MDP),
                                     ct.POINTER(NovaMDPValueIterationGPU))
+
+_nova.mdp_vi_get_policy_gpu.argtypes = (ct.POINTER(mdp.MDP),
+                                        ct.POINTER(NovaMDPValueIterationCPU),
+                                        ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))
 

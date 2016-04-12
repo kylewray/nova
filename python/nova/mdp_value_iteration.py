@@ -79,7 +79,7 @@ class MDPValueIterationCPU(nmvi.NovaMDPValueIterationCPU):
 
         result = nmvi._nova.mdp_vi_uninitialize_cpu(self.mdpPtr, self)
         if result != 0:
-            print("Failed to free the value function.")
+            print("Failed to free the value iteration (CPU) algorithm.")
             raise Exception()
 
     def solve(self):
@@ -168,7 +168,7 @@ class MDPValueIterationGPU(nmvi.NovaMDPValueIterationGPU):
 
         result = nmvi._nova.mdp_vi_uninitialize_gpu(self.mdpPtr, self)
         if result != 0:
-            print("Failed to free the value function.")
+            print("Failed to free the value iteration (GPU) algorithm.")
             raise Exception()
 
     def solve(self):

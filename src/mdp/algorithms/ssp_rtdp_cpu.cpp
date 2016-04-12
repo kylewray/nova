@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -38,7 +38,7 @@ void ssp_rtdp_bellman_update_state_cpu(unsigned int n, unsigned int ns, unsigned
                             const int *S, const float *T, const float *R,
                             unsigned int s, float *V, unsigned int *pi)
 {
-    float VsPrime = FLT_MAX;
+    float Vprime = FLT_MAX;
 
     // Compute min_{a in A} Q(s, a). Recall, we are dealing with rewards R as positive costs.
     for (int a = 0; a < m; a++) {
@@ -56,23 +56,24 @@ void ssp_rtdp_bellman_update_state_cpu(unsigned int n, unsigned int ns, unsigned
             Qsa += T[s * m * ns + a * ns + i] * V[sp];
         }
 
-        if (a == 0 || Qsa < VsPrime) {
-            VsPrime = Qsa;
+        if (a == 0 || Qsa < Vprime) {
+            Vprime = Qsa;
             pi[s] = a;
         }
     }
 
-    V[s] = VsPrime;
+    V[s] = Vprime;
 }
 
 
-bool ssp_rtdp_is_expanded(const MDP *mdp, unsigned int s)
+bool ssp_rtdp_is_expanded(const MDP *mdp, SSPRTDPCPU *rtdp, unsigned int s)
 {
-    return (mdp->pi[s] < mdp->m);
+    return (rtdp->pi[s] < mdp->m);
 }
 
 
-void ssp_rtdp_random_successor(const MDP *mdp, unsigned int s, unsigned int a, unsigned int &sp)
+void ssp_rtdp_random_successor(const MDP *mdp, SSPRTDPCPU *rtdp,
+    unsigned int s, unsigned int a, unsigned int &sp)
 {
     sp = mdp->S[s * mdp->m * mdp->ns + a * mdp->ns + 0];
 
@@ -95,7 +96,7 @@ void ssp_rtdp_random_successor(const MDP *mdp, unsigned int s, unsigned int a, u
 }
 
 
-bool ssp_rtdp_is_goal(const MDP *mdp, unsigned int s)
+bool ssp_rtdp_is_goal(const MDP *mdp, SSPRTDPCPU *rtdp, unsigned int s)
 {
     for (unsigned int i = 0; i < mdp->ng; i++) {
         if (s == mdp->goals[i]) {
@@ -107,7 +108,7 @@ bool ssp_rtdp_is_goal(const MDP *mdp, unsigned int s)
 }
 
 
-bool ssp_rtdp_is_dead_end(const MDP *mdp, unsigned int s)
+bool ssp_rtdp_is_dead_end(const MDP *mdp, SSPRTDPCPU *rtdp, unsigned int s)
 {
     for (unsigned int a = 0; a < mdp->m; a++) {
         unsigned int sp = mdp->S[s * mdp->m * mdp->ns + a * mdp->ns + 0];
@@ -123,65 +124,56 @@ bool ssp_rtdp_is_dead_end(const MDP *mdp, unsigned int s)
 }
 
 
-int ssp_rtdp_complete_cpu(MDP *mdp, const float *Vinitial, MDPValueFunction *&policy)
+int ssp_rtdp_initialize_cpu(const MDP *mdp, SSPRTDPCPU *rtdp)
 {
-    // Note: This 'wrapper' function is provided in order to maintain 
-    // the same structure as the GPU version. In the GPU version,
-    // 'complete' performs the initilization and uninitialization of
-    // the MDP object on the device as well. Here, we do not need that.
-    return ssp_rtdp_execute_cpu(mdp, Vinitial, policy);
-}
-
-
-int ssp_rtdp_initialize_cpu(MDP *mdp, const float *Vinitial)
-{
-    // Reset the current horizon.
-    mdp->currentHorizon = 0;
+    // Reset the current trial and horizon.
+    rtdp->currentTrial = 0;
+    rtdp->currentHorizon = 0;
 
     // Create the variables.
-    mdp->V = new float[mdp->n];
-    mdp->pi = new unsigned int[mdp->n];
+    rtdp->V = new float[mdp->n];
+    rtdp->pi = new unsigned int[mdp->n];
 
     // Copy the data from the V provided, and set default values for pi.
     // Note that these values of V are the heuristics for each state.
     // Also, we use pi to determine expanded states. If pi has value m,
     // then it is not expanded. Else if it is a valid action in
     // {0, ..., m-1}, then it is expanded.
-    memcpy(mdp->V, Vinitial, mdp->n * sizeof(float));
+    memcpy(rtdp->V, rtdp->Vinitial, mdp->n * sizeof(float));
     for (unsigned int i = 0; i < mdp->n; i++) {
-        mdp->pi[i] = mdp->m;
+        rtdp->pi[i] = mdp->m;
     }
 
     return NOVA_SUCCESS;
 }
 
 
-int ssp_rtdp_execute_cpu(MDP *mdp, const float *Vinitial, MDPValueFunction *&policy)
+int ssp_rtdp_execute_cpu(const MDP *mdp, SSPRTDPCPU *rtdp, MDPValueFunction *&policy)
 {
     int result;
 
     // First, ensure data is valid.
-    if (mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
+    if (mdp == nullptr || mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
             mdp->horizon < 1 || mdp->epsilon < 0.0f ||
-            Vinitial == nullptr || policy != nullptr) {
+            rtdp == nullptr || rtdp->Vinitial == nullptr || policy != nullptr) {
         fprintf(stderr, "Error[ssp_rtdp_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    result = ssp_rtdp_initialize_cpu(mdp, Vinitial);
+    result = ssp_rtdp_initialize_cpu(mdp, rtdp);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[ssp_rtdp_execute_cpu]: %s\n", "Failed to initialize the CPU variables.");
         return result;
     }
 
     // Iterate until you have done the desired number of trials.
-    for (mdp->currentTrial = 0; mdp->currentTrial < mdp->trials; mdp->currentTrial++) {
-        result = ssp_rtdp_update_cpu(mdp);
+    for (rtdp->currentTrial = 0; rtdp->currentTrial < rtdp->trials; rtdp->currentTrial++) {
+        result = ssp_rtdp_update_cpu(mdp, rtdp);
         if (result != NOVA_SUCCESS) {
             fprintf(stderr, "Error[ssp_rtdp_execute_cpu]: %s\n", "Failed to perform trial of RTDP on the CPU.");
 
-            unsigned int resultPrime = ssp_rtdp_uninitialize_cpu(mdp);
+            unsigned int resultPrime = ssp_rtdp_uninitialize_cpu(mdp, rtdp);
             if (resultPrime != NOVA_SUCCESS) {
                 fprintf(stderr, "Error[ssp_rtdp_execute_cpu]: %s\n",
                                 "Failed to uninitialize the CPU variables.");
@@ -191,11 +183,11 @@ int ssp_rtdp_execute_cpu(MDP *mdp, const float *Vinitial, MDPValueFunction *&pol
         }
     }
 
-    result = ssp_rtdp_get_policy_cpu(mdp, policy);
+    result = ssp_rtdp_get_policy_cpu(mdp, rtdp, policy);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[ssp_rtdp_execute_cpu]: %s\n", "Failed to get the policy.");
 
-        unsigned int resultPrime = ssp_rtdp_uninitialize_cpu(mdp);
+        unsigned int resultPrime = ssp_rtdp_uninitialize_cpu(mdp, rtdp);
         if (resultPrime != NOVA_SUCCESS) {
             fprintf(stderr, "Error[ssp_rtdp_execute_cpu]: %s\n",
                             "Failed to uninitialize the CPU variables.");
@@ -204,7 +196,7 @@ int ssp_rtdp_execute_cpu(MDP *mdp, const float *Vinitial, MDPValueFunction *&pol
         return result;
     }
 
-    result = ssp_rtdp_uninitialize_cpu(mdp);
+    result = ssp_rtdp_uninitialize_cpu(mdp, rtdp);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[ssp_rtdp_execute_cpu]: %s\n", "Failed to uninitialize the CPU variables.");
         return result;
@@ -214,70 +206,70 @@ int ssp_rtdp_execute_cpu(MDP *mdp, const float *Vinitial, MDPValueFunction *&pol
 }
 
 
-int ssp_rtdp_update_cpu(MDP *mdp)
+int ssp_rtdp_update_cpu(const MDP *mdp, SSPRTDPCPU *rtdp)
 {
     unsigned int s = mdp->s0;
-    bool isGoal = ssp_rtdp_is_goal(mdp, s);
+    bool isGoal = ssp_rtdp_is_goal(mdp, rtdp, s);
     bool isDeadEnd = false; //ssp_rtdp_is_dead_end(mdp, s);
 
-    mdp->currentHorizon = 0;
+    rtdp->currentHorizon = 0;
 
-    while (!isGoal && !isDeadEnd && mdp->currentHorizon < mdp->horizon) {
+    while (!isGoal && !isDeadEnd && rtdp->currentHorizon < mdp->horizon) {
         // Take a greedy action and update the value of this state.
         ssp_rtdp_bellman_update_state_cpu(mdp->n, mdp->ns, mdp->m,
                                             mdp->S, mdp->T, mdp->R,
-                                            s, mdp->V, mdp->pi);
+                                            s, rtdp->V, rtdp->pi);
 
         // This is the greedy action.
-        unsigned int a = mdp->pi[s];
+        unsigned int a = rtdp->pi[s];
 
         // Randomly explore the state space using the action.
         unsigned int sp = 0;
-        ssp_rtdp_random_successor(mdp, s, a, sp);
+        ssp_rtdp_random_successor(mdp, rtdp, s, a, sp);
 
         // Transition to the next state.
         s = sp;
 
         // Check if this is a goal or an explicit dead end. If so, then we will stop.
-        isGoal = ssp_rtdp_is_goal(mdp, s);
-        isDeadEnd = ssp_rtdp_is_dead_end(mdp, s);
+        isGoal = ssp_rtdp_is_goal(mdp, rtdp, s);
+        isDeadEnd = ssp_rtdp_is_dead_end(mdp, rtdp, s);
 
         if (isGoal) {
-            mdp->V[s] = 0.0f;
+            rtdp->V[s] = 0.0f;
         }
         if (isDeadEnd) {
-            mdp->V[s] = FLT_MAX;
+            rtdp->V[s] = FLT_MAX;
         }
 
-        mdp->currentHorizon++;
+        rtdp->currentHorizon++;
     }
 
     return NOVA_SUCCESS;
 }
 
 
-int ssp_rtdp_uninitialize_cpu(MDP *mdp)
+int ssp_rtdp_uninitialize_cpu(const MDP *mdp, SSPRTDPCPU *rtdp)
 {
     // Reset the current horizon and number of trials.
-    mdp->currentHorizon = 0;
-    mdp->currentTrial = 0;
+    rtdp->currentHorizon = 0;
+    rtdp->currentTrial = 0;
 
     // Free the memory for V and pi.
-    if (mdp->V != nullptr) {
-        delete [] mdp->V;
+    if (rtdp->V != nullptr) {
+        delete [] rtdp->V;
     }
-    mdp->V = nullptr;
+    rtdp->V = nullptr;
 
-    if (mdp->pi != nullptr) {
-        delete [] mdp->pi;
+    if (rtdp->pi != nullptr) {
+        delete [] rtdp->pi;
     }
-    mdp->pi = nullptr;
+    rtdp->pi = nullptr;
 
     return NOVA_SUCCESS;
 }
 
 
-int ssp_rtdp_get_policy_cpu(const MDP *mdp, MDPValueFunction *&policy)
+int ssp_rtdp_get_policy_cpu(const MDP *mdp, SSPRTDPCPU *rtdp, MDPValueFunction *&policy)
 {
     if (policy != nullptr) {
         fprintf(stderr, "Error[ssp_rtdp_get_policy_cpu]: %s\n",
@@ -295,7 +287,7 @@ int ssp_rtdp_get_policy_cpu(const MDP *mdp, MDPValueFunction *&policy)
 
     for (unsigned int s = 0; s < mdp->n; s++) {
         // Only include the expanded (visited) states as part of the final policy.
-        if (ssp_rtdp_is_expanded(mdp, s)) {
+        if (ssp_rtdp_is_expanded(mdp, rtdp, s)) {
             policy->r++;
         }
     }
@@ -308,10 +300,10 @@ int ssp_rtdp_get_policy_cpu(const MDP *mdp, MDPValueFunction *&policy)
     unsigned int r = 0;
 
     for (unsigned int s = 0; s < mdp->n; s++) {
-        if (ssp_rtdp_is_expanded(mdp, s)) {
+        if (ssp_rtdp_is_expanded(mdp, rtdp, s)) {
             policy->S[r] = s;
-            policy->V[r] = mdp->V[s];
-            policy->pi[r] = mdp->pi[s];
+            policy->V[r] = rtdp->V[s];
+            policy->pi[r] = rtdp->pi[s];
             r++;
         }
     }

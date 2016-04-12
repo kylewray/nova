@@ -31,23 +31,25 @@ sys.path.append(os.path.join(thisFilePath, "..", "..", "..", "python"))
 
 from nova.mdp import *
 from nova.mdp_value_iteration import *
+from nova.ssp_lao_star import *
+from nova.ssp_rtdp import *
 
 
 trials = [
          {'name': "VI CPU", 'filename': "domains/grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 4, 'h': 3},
          {'name': "VI GPU", 'filename': "domains/grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 4, 'h': 3},
-         #{'name': "LAO* CPU", 'filename': "domains/grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 4, 'h': 3},
-         #{'name': "RTDP CPU", 'filename': "domains/grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "rtdp", 'process': "cpu", 'w': 4, 'h': 3},
+         {'name': "LAO* CPU", 'filename': "domains/grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 4, 'h': 3},
+         {'name': "RTDP CPU", 'filename': "domains/grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "rtdp", 'process': "cpu", 'w': 4, 'h': 3},
 
          {'name': "VI CPU (Another)", 'filename': "domains/another_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 10, 'h': 10},
          {'name': "VI GPU (Another)", 'filename': "domains/another_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 10, 'h': 10},
-         #{'name': "LAO* CPU (Another)", 'filename': "domains/another_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 10, 'h': 10},
-         #{'name': "RTDP CPU (Another)", 'filename': "domains/another_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "rtdp", 'process': "cpu", 'w': 10, 'h': 10},
+         {'name': "LAO* CPU (Another)", 'filename': "domains/another_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 10, 'h': 10},
+         {'name': "RTDP CPU (Another)", 'filename': "domains/another_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "rtdp", 'process': "cpu", 'w': 10, 'h': 10},
 
          {'name': "VI CPU (Intense)", 'filename': "domains/intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 50, 'h': 50},
          {'name': "VI GPU (Intense)", 'filename': "domains/intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 50, 'h': 50},
-         #{'name': "LAO* CPU (Intense)", 'filename': "domains/intense_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 50, 'h': 50},
-         #{'name': "RTDP CPU (Intense)", 'filename': "domains/intense_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "rtdp", 'process': "cpu", 'w': 50, 'h': 50},
+         {'name': "LAO* CPU (Intense)", 'filename': "domains/intense_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 50, 'h': 50},
+         {'name': "RTDP CPU (Intense)", 'filename': "domains/intense_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "rtdp", 'process': "cpu", 'w': 50, 'h': 50},
 
          #{'name': "VI CPU (Massive)", 'filename': "domains/massive_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 75, 'h': 75},
          #{'name': "VI GPU (Massive)", 'filename': "domains/massive_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 75, 'h': 75},
@@ -63,15 +65,8 @@ for trial in trials:
     gridWorld = MDP()
     gridWorld.load(gridWorldFile, filetype=trial['filetype'])
 
-    if trial['algorithm'] == "vi":
-        gridWorld.horizon = 10000
-        gridWorld.epsilon = 0.001
-    elif trial['algorithm'] == "lao*":
-        gridWorld.horizon = 10000
-        gridWorld.epsilon = 0.001
-    elif trial['algorithm'] == "rtdp":
-        gridWorld.horizon = 10000
-        gridWorld.trials = 10000
+    gridWorld.horizon = 10000
+    gridWorld.epsilon = 0.001
 
     if trial['process'] == "gpu":
         gridWorld.initialize_gpu()
@@ -86,6 +81,11 @@ for trial in trials:
         algorithm = MDPValueIterationCPU(gridWorld)
     elif trial['algorithm'] == "vi" and trial['process'] == "gpu":
         algorithm = MDPValueIterationGPU(gridWorld)
+    elif trial['algorithm'] == "lao*" and trial['process'] == "cpu":
+        algorithm = SSPLAOStarCPU(gridWorld)
+    elif trial['algorithm'] == "rtdp" and trial['process'] == "cpu":
+        algorithm = SSPRTDPCPU(gridWorld)
+        algorithm.trials = 10000
 
     policy = algorithm.solve()
 
