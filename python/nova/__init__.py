@@ -20,7 +20,10 @@
     CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-__all__ = ["nova_mdp", "mdp", "nova_mdp_value_function", "mdp_value_function",
-            "nova_pomdp", "pomdp", "nova_pomdp_alpha_vectors", "pomdp_alpha_vectors",
-            "file_loader"]
+__all__ = ["nova_mdp", "mdp",
+           "nova_mdp_value_iteration", "mdp_value_iteration",
+           "nova_mdp_value_function", "mdp_value_function",
+           "nova_pomdp", "pomdp",
+           "nova_pomdp_alpha_vectors", "pomdp_alpha_vectors",
+           "file_loader"]
 

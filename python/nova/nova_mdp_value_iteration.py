@@ -1,6 +1,6 @@
 """ The MIT License (MIT)
 
-    Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+    Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
 
     Permission is hereby granted, free of charge, to any person obtaining a copy of
     this software and associated documentation files (the "Software"), to deal in
@@ -27,6 +27,9 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 
+import mdp
+import mdp_value_function as mvf
+
 # Check if we need to create the nova variable. If so, import the correct library
 # file depending on the platform.
 #try:
@@ -41,43 +44,53 @@ else:
                     "..", "..", "lib", "libnova.so"))
 
 
-class NovaMDP(ct.Structure):
-    """ The C struct MDP object. """
+class NovaMDPValueIterationCPU(ct.Structure):
+    """ The C struct MDPValueIterationCPU object. """
 
-    _fields_ = [("n", ct.c_uint),
-                ("ns", ct.c_uint),
-                ("m", ct.c_uint),
-                ("gamma", ct.c_float),
-                ("horizon", ct.c_uint),
-                ("trials", ct.c_uint),
-                ("epsilon", ct.c_float),
-                ("s0", ct.c_uint),
-                ("ng", ct.c_uint),
-                ("goals", ct.POINTER(ct.c_uint)),
-                ("S", ct.POINTER(ct.c_int)),
-                ("T", ct.POINTER(ct.c_float)),
-                ("R", ct.POINTER(ct.c_float)),
+    _fields_ = [("Vinitial", ct.POINTER(ct.c_float)),
                 ("currentHorizon", ct.c_uint),
-                ("currentTrial", ct.c_uint),
                 ("V", ct.POINTER(ct.c_float)),
-                ("VPrime", ct.POINTER(ct.c_float)),
+                ("Vprime", ct.POINTER(ct.c_float)),
                 ("pi", ct.POINTER(ct.c_uint)),
-                ("d_goals", ct.POINTER(ct.c_uint)),
-                ("d_S", ct.POINTER(ct.c_int)),
-                ("d_T", ct.POINTER(ct.c_float)),
-                ("d_R", ct.POINTER(ct.c_float)),
+                ]
+
+
+_nova.mdp_vi_initialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
+                                    ct.POINTER(NovaMDPValueIterationCPU))
+
+_nova.mdp_vi_execute_cpu.argtypes = (ct.POINTER(mdp.MDP),
+                                    ct.POINTER(NovaMDPValueIterationCPU),
+                                    ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))
+
+_nova.mdp_vi_uninitialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
+                                    ct.POINTER(NovaMDPValueIterationCPU))
+
+_nova.mdp_vi_update_cpu.argtypes = (ct.POINTER(mdp.MDP),
+                                    ct.POINTER(NovaMDPValueIterationCPU))
+
+
+class NovaMDPValueIterationGPU(ct.Structure):
+    """ The C struct MDPValueIterationGPU object. """
+
+    _fields_ = [("Vinitial", ct.POINTER(ct.c_float)),
+                ("numThreads", ct.c_uint),
+                ("currentHorizon", ct.c_uint),
                 ("d_V", ct.POINTER(ct.c_float)),
-                ("d_VPrime", ct.POINTER(ct.c_float)),
+                ("d_Vprime", ct.POINTER(ct.c_float)),
                 ("d_pi", ct.POINTER(ct.c_uint)),
                 ]
 
 
-_nova.mdp_initialize_successors_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
-_nova.mdp_uninitialize_successors_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
+_nova.mdp_vi_initialize_gpu.argtypes = (ct.POINTER(mdp.MDP),
+                                    ct.POINTER(NovaMDPValueIterationGPU))
 
-_nova.mdp_initialize_state_transitions_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
-_nova.mdp_uninitialize_state_transitions_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
+_nova.mdp_vi_execute_gpu.argtypes = (ct.POINTER(mdp.MDP),
+                                    ct.POINTER(NovaMDPValueIterationGPU),
+                                    ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))
 
-_nova.mdp_initialize_rewards_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
-_nova.mdp_uninitialize_rewards_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
+_nova.mdp_vi_uninitialize_gpu.argtypes = (ct.POINTER(mdp.MDP),
+                                    ct.POINTER(NovaMDPValueIterationGPU))
+
+_nova.mdp_vi_update_gpu.argtypes = (ct.POINTER(mdp.MDP),
+                                    ct.POINTER(NovaMDPValueIterationGPU))
 

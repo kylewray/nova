@@ -32,59 +32,67 @@
 namespace nova {
 
 /**
- *  Execute value iteration for the MDP model specified until convergence. Uses the GPU (CUDA).
- *  @param  mdp         The MDP object.
- *  @param  numThreads  The number of CUDA threads per block. Use 128, 256, or 512
- *                      (multiples of 32).
- *  @param  Vinitial    The initial value function, mapping states (n-array) to floats.
- *  @param  policy      The resulting value function policy. This will be created and modified.
- *  @return Returns zero upon success, non-zero otherwise.
+ *  The necessary variables to perform value iteration on an MDP within nova.
+ *  @param  Vinitial        The initial value function, mapping states (n-array) to floats.
+ *  @param  numThreads      The number of CUDA threads per block. Use multiples of 32.
+ *  @param  currentHorizon  The current horizon updated after each iteration.
+ *  @param  d_V             The value of the states (n-array), a device-side pointer.
+ *  @param  d_Vprime        The value of the states (n-array) copy, a device-side pointer.
+ *  @param  d_pi            The action to take at each state (n-array), a device-side pointer.
  */
-extern "C" int mdp_vi_complete_gpu(MDP *mdp, unsigned int numThreads, const float *Vinitial,
-        MDPValueFunction *&policy);
+typedef struct NovaMDPValueIterationGPU {
+    float *Vinitial;
+    unsigned int numThreads;
+
+    unsigned int currentHorizon;
+
+    float *d_V;
+    float *d_Vprime;
+    unsigned int *d_pi;
+} MDPValueIterationGPU;
 
 /**
  *  Step 1/3: The initialization step of VI. This sets up the V and pi variables.
  *  @param  mdp         The MDP object.
- *  @param  Vinitial    The initial value function, mapping states (n-array) to floats.
+ *  @param  vi          The MDPValueIterationGPU object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int mdp_vi_initialize_gpu(MDP *mdp, const float *Vinitial);
+extern "C" int mdp_vi_initialize_gpu(const MDP *mdp, MDPValueIterationGPU *vi);
 
 /**
  *  Step 2/3: Execute VI for the MDP model specified.
  *  @param  mdp         The MDP object.
- *  @param  numThreads  The number of CUDA threads per block. Use multiples of 32.
- *  @param  Vinitial    The initial value function, mapping states (n-array) to floats.
+ *  @param  vi          The MDPValueIterationGPU object containing algorithm variables.
  *  @param  policy      The resulting value function policy. This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int mdp_vi_execute_gpu(MDP *mdp, unsigned int numThreads, const float *Vinitial,
-        MDPValueFunction *&policy);
+extern "C" int mdp_vi_execute_gpu(const MDP *mdp, MDPValueIterationGPU *vi, MDPValueFunction *&policy);
 
 /**
  *  Step 3/3: The uninitialization step of VI. This sets up the V and pi variables.
- *  @param  mdp     The MDP object.
+ *  @param  mdp         The MDP object.
+ *  @param  vi          The MDPValueIterationGPU object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int mdp_vi_uninitialize_gpu(MDP *mdp);
+extern "C" int mdp_vi_uninitialize_gpu(const MDP *mdp, MDPValueIterationGPU *vi);
 
 /**
  *  The update step of VI. This applies the VI procedure once.
- *  @param  mdp             The MDP object.
- *  @param  numThreads      The number of CUDA threads per block. Use multiples of 32.
+ *  @param  mdp         The MDP object.
+ *  @param  vi          The MDPValueIterationGPU object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int mdp_vi_update_gpu(MDP *mdp, unsigned int numThreads);
+extern "C" int mdp_vi_update_gpu(const MDP *mdp, MDPValueIterationGPU *vi);
 
 /**
  *  The get resultant policy step of VI. This retrieves the values of states (V) and
  *  the corresponding actions at each state (pi).
- *  @param  mdp     The MDP object.
- *  @param  policy  The resulting value function policy. This will be created and modified.
+ *  @param  mdp         The MDP object.
+ *  @param  vi          The MDPValueIterationGPU object containing algorithm variables.
+ *  @param  policy      The resulting value function policy. This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int mdp_vi_get_policy_gpu(const MDP *mdp, MDPValueFunction *&policy);
+extern "C" int mdp_vi_get_policy_gpu(const MDP *mdp, MDPValueIterationGPU *vi, MDPValueFunction *&policy);
 
 };
 

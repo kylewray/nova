@@ -28,7 +28,7 @@
 
 namespace nova {
 
-/*
+/**
  *  A structure for an MDP object within nova.
  *  @param  n               The number of states.
  *  @param  ns              The maximum number of successor states.

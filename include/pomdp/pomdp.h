@@ -28,7 +28,7 @@
 
 namespace nova {
 
-/*
+/**
  *  A structure for a POMDP object within nova.
  *
  *  Only define the variables n through B. All others are nullptr by default, and are

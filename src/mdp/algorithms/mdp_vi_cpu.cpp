@@ -31,40 +31,29 @@
 
 namespace nova {
 
-void mdp_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, float gamma, 
-                        const int *S, const float *T, const float *R, const float *V,
-                        float *VPrime, unsigned int *pi)
+void bellman_update(unsigned int n, unsigned int ns, unsigned int m, float gamma,
+        const int *S, const float *T, const float *R, const float *V,
+        float *Vprime, unsigned int *pi)
 {
-    // The intermediate Q(s, a) value.
-    float Qsa;
-
-    // The index within S and T (i.e., in n*s*ns).
-    int sIndex;
-
-    // The true successor state index (in 0 to n-1), resolved using S.
-    int spIndex;
-
     for (unsigned int s = 0; s < n; s++) {
-        VPrime[s] = -FLT_MAX;
+        Vprime[s] = -FLT_MAX;
 
         // Compute max_{a in A} Q(s, a).
         for (int a = 0; a < m; a++) {
             // Compute Q(s, a) for this action.
-            Qsa = R[s * m + a];
+            float Qsa = R[s * m + a];
 
-            for (int sp = 0; sp < ns; sp++) {
-                sIndex = s * m * ns + a * ns + sp;
-
-                spIndex = S[sIndex];
-                if (spIndex < 0) {
+            for (int i = 0; i < ns; i++) {
+                int sp = S[s * m * ns + a * ns + i];
+                if (sp < 0) {
                     break;
                 }
 
-                Qsa += gamma * T[sIndex] * V[spIndex];
+                Qsa += gamma * T[s * m * ns + a * ns + i] * V[sp];
             }
 
-            if (a == 0 || Qsa > VPrime[s]) {
-                VPrime[s] = Qsa;
+            if (a == 0 || Qsa > Vprime[s]) {
+                Vprime[s] = Qsa;
                 pi[s] = a;
             }
         }
@@ -72,51 +61,41 @@ void mdp_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, flo
 }
 
 
-int mdp_vi_complete_cpu(MDP *mdp, const float *Vinitial, MDPValueFunction *&policy)
-{
-    // Note: This 'wrapper' function is provided in order to maintain 
-    // the same structure as the GPU version. In the GPU version,
-    // 'complete' performs the initilization and uninitialization of
-    // the MDP object on the device as well. Here, we do not need that.
-    return mdp_vi_execute_cpu(mdp, Vinitial, policy);
-}
-
-
-int mdp_vi_initialize_cpu(MDP *mdp, const float *Vinitial)
+int mdp_vi_initialize_cpu(const MDP *mdp, MDPValueIterationCPU *vi)
 {
     // Reset the current horizon.
-    mdp->currentHorizon = 0;
+    vi->currentHorizon = 0;
 
     // Create the variables.
-    mdp->V = new float[mdp->n];
-    mdp->VPrime = new float[mdp->n];
-    mdp->pi = new unsigned int[mdp->n];
+    vi->V = new float[mdp->n];
+    vi->Vprime = new float[mdp->n];
+    vi->pi = new unsigned int[mdp->n];
 
     // Copy the data from the V provided, and set default values for pi.
-    memcpy(mdp->V, Vinitial, mdp->n * sizeof(float));
-    memcpy(mdp->VPrime, Vinitial, mdp->n * sizeof(float));
+    memcpy(vi->V, vi->Vinitial, mdp->n * sizeof(float));
+    memcpy(vi->Vprime, vi->Vinitial, mdp->n * sizeof(float));
     for (unsigned int i = 0; i < mdp->n; i++) {
-        mdp->pi[i] = 0;
+        vi->pi[i] = 0;
     }
 
     return NOVA_SUCCESS;
 }
 
 
-int mdp_vi_execute_cpu(MDP *mdp, const float *Vinitial, MDPValueFunction *&policy)
+int mdp_vi_execute_cpu(const MDP *mdp, MDPValueIterationCPU *vi, MDPValueFunction *&policy)
 {
     int result;
 
     // First, ensure data is valid.
-    if (mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
+    if (mdp == nullptr || mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
             mdp->gamma < 0.0f || mdp->gamma > 1.0f || mdp->horizon < 1 ||
-            Vinitial == nullptr || policy != nullptr) {
+            vi == nullptr || vi->Vinitial == nullptr || policy != nullptr) {
         fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    result = mdp_vi_initialize_cpu(mdp, Vinitial);
+    result = mdp_vi_initialize_cpu(mdp, vi);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Failed to initialize the CPU variables.");
         return result;
@@ -124,21 +103,21 @@ int mdp_vi_execute_cpu(MDP *mdp, const float *Vinitial, MDPValueFunction *&polic
 
     // We iterate over all time steps up to the horizon. Initialize set the currentHorizon to 0,
     // and the update increments it.
-    while (mdp->currentHorizon < mdp->horizon) {
-        result = mdp_vi_update_cpu(mdp);
+    while (vi->currentHorizon < mdp->horizon) {
+        result = mdp_vi_update_cpu(mdp, vi);
         if (result != NOVA_SUCCESS) {
             fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Failed to perform Bellman update on the CPU.");
             return result;
         }
     }
 
-    result = mdp_vi_get_policy_cpu(mdp, policy);
+    result = mdp_vi_get_policy_cpu(mdp, vi, policy);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Failed to get the policy.");
         return result;
     }
 
-    result = mdp_vi_uninitialize_cpu(mdp);
+    result = mdp_vi_uninitialize_cpu(mdp, vi);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Failed to uninitialize the CPU variables.");
         return result;
@@ -148,50 +127,50 @@ int mdp_vi_execute_cpu(MDP *mdp, const float *Vinitial, MDPValueFunction *&polic
 }
 
 
-int mdp_vi_uninitialize_cpu(MDP *mdp)
+int mdp_vi_uninitialize_cpu(const MDP *mdp, MDPValueIterationCPU *vi)
 {
     // Reset the current horizon.
-    mdp->currentHorizon = 0;
+    vi->currentHorizon = 0;
 
-    // Free the memory for V, VPrime, and pi.
-    if (mdp->V != nullptr) {
-        delete [] mdp->V;
+    // Free the memory for V, Vprime, and pi.
+    if (vi->V != nullptr) {
+        delete [] vi->V;
     }
-    mdp->V = nullptr;
+    vi->V = nullptr;
 
-    if (mdp->VPrime != nullptr) {
-        delete [] mdp->VPrime;
+    if (vi->Vprime != nullptr) {
+        delete [] vi->Vprime;
     }
-    mdp->VPrime = nullptr;
+    vi->Vprime = nullptr;
 
-    if (mdp->pi != nullptr) {
-        delete [] mdp->pi;
+    if (vi->pi != nullptr) {
+        delete [] vi->pi;
     }
-    mdp->pi = nullptr;
+    vi->pi = nullptr;
 
     return NOVA_SUCCESS;
 }
 
 
-int mdp_vi_update_cpu(MDP *mdp)
+int mdp_vi_update_cpu(const MDP *mdp, MDPValueIterationCPU *vi)
 {
-    // We oscillate between V and VPrime depending on the step.
-    if (mdp->currentHorizon % 2 == 0) {
-        mdp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, mdp->V, mdp->VPrime, mdp->pi);
+    if (vi->currentHorizon % 2 == 0) {
+        bellman_update(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, vi->V, vi->Vprime, vi->pi);
     } else {
-        mdp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, mdp->VPrime, mdp->V, mdp->pi);
+        bellman_update(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, vi->Vprime, vi->V, vi->pi);
     }
 
-    mdp->currentHorizon++;
+    vi->currentHorizon++;
 
     return NOVA_SUCCESS;
 }
 
 
-int mdp_vi_get_policy_cpu(const MDP *mdp, MDPValueFunction *&policy)
+int mdp_vi_get_policy_cpu(const MDP *mdp, MDPValueIterationCPU *vi, MDPValueFunction *&policy)
 {
     if (policy != nullptr) {
-        fprintf(stderr, "Error[mdp_vi_get_policy_cpu]: %s\n", "Invalid arguments. The policy must be undefined.");
+        fprintf(stderr, "Error[mdp_vi_get_policy_cpu]: %s\n",
+                        "Invalid arguments. The policy must be undefined.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
@@ -207,12 +186,12 @@ int mdp_vi_get_policy_cpu(const MDP *mdp, MDPValueFunction *&policy)
 
     // Copy the final (or intermediate) result, both V and pi. This assumes memory has been allocated
     // for the variables provided.
-    if (mdp->currentHorizon % 2 == 0) {
-        memcpy(policy->V, mdp->V, mdp->n * sizeof(float));
+    if (vi->currentHorizon % 2 == 0) {
+        memcpy(policy->V, vi->V, mdp->n * sizeof(float));
     } else {
-        memcpy(policy->V, mdp->VPrime, mdp->n * sizeof(float));
+        memcpy(policy->V, vi->Vprime, mdp->n * sizeof(float));
     }
-    memcpy(policy->pi, mdp->pi, mdp->n * sizeof(float));
+    memcpy(policy->pi, vi->pi, mdp->n * sizeof(float));
 
     return NOVA_SUCCESS;
 }

@@ -1,6 +1,6 @@
 """ The MIT License (MIT)
 
-    Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+    Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
 
     Permission is hereby granted, free of charge, to any person obtaining a copy of
     this software and associated documentation files (the "Software"), to deal in
@@ -28,25 +28,26 @@ import itertools as it
 thisFilePath = os.path.dirname(os.path.realpath(__file__))
 
 sys.path.append(os.path.join(thisFilePath, "..", "..", "..", "python"))
+
 from nova.mdp import *
-from nova.pomdp import *
+from nova.mdp_value_iteration import *
 
 
 trials = [
-         #{'name': "VI CPU", 'filename': "domains/grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 4, 'h': 3},
-         #{'name': "VI GPU", 'filename': "domains/grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 4, 'h': 3},
+         {'name': "VI CPU", 'filename': "domains/grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 4, 'h': 3},
+         {'name': "VI GPU", 'filename': "domains/grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 4, 'h': 3},
          #{'name': "LAO* CPU", 'filename': "domains/grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 4, 'h': 3},
-         {'name': "RTDP CPU", 'filename': "domains/grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "rtdp", 'process': "cpu", 'w': 4, 'h': 3},
+         #{'name': "RTDP CPU", 'filename': "domains/grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "rtdp", 'process': "cpu", 'w': 4, 'h': 3},
 
-         #{'name': "VI CPU (Another)", 'filename': "domains/another_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 10, 'h': 10},
-         #{'name': "VI GPU (Another)", 'filename': "domains/another_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 10, 'h': 10},
+         {'name': "VI CPU (Another)", 'filename': "domains/another_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 10, 'h': 10},
+         {'name': "VI GPU (Another)", 'filename': "domains/another_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 10, 'h': 10},
          #{'name': "LAO* CPU (Another)", 'filename': "domains/another_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 10, 'h': 10},
-         {'name': "RTDP CPU (Another)", 'filename': "domains/another_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "rtdp", 'process': "cpu", 'w': 10, 'h': 10},
+         #{'name': "RTDP CPU (Another)", 'filename': "domains/another_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "rtdp", 'process': "cpu", 'w': 10, 'h': 10},
 
-         #{'name': "VI CPU (Intense)", 'filename': "domains/intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 50, 'h': 50},
-         #{'name': "VI GPU (Intense)", 'filename': "domains/intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 50, 'h': 50},
+         {'name': "VI CPU (Intense)", 'filename': "domains/intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 50, 'h': 50},
+         {'name': "VI GPU (Intense)", 'filename': "domains/intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 50, 'h': 50},
          #{'name': "LAO* CPU (Intense)", 'filename': "domains/intense_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 50, 'h': 50},
-         {'name': "RTDP CPU (Intense)", 'filename': "domains/intense_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "rtdp", 'process': "cpu", 'w': 50, 'h': 50},
+         #{'name': "RTDP CPU (Intense)", 'filename': "domains/intense_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "rtdp", 'process': "cpu", 'w': 50, 'h': 50},
 
          #{'name': "VI CPU (Massive)", 'filename': "domains/massive_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 75, 'h': 75},
          #{'name': "VI GPU (Massive)", 'filename': "domains/massive_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 75, 'h': 75},
@@ -72,19 +73,28 @@ for trial in trials:
         gridWorld.horizon = 10000
         gridWorld.trials = 10000
 
+    if trial['process'] == "gpu":
+        gridWorld.initialize_gpu()
+
     # The heuristic (admissible) is the manhattan distance to the goal, which is always the upper right corner.
     #h = np.array([abs(y) + abs(trial['w'] - 1 - x) for y, x in it.product(range(trial['h']), range(trial['w']))] + [0.0]).flatten()
-    h = np.array([0.0 for s in range(gridWorld.n)])
+    #h = np.array([0.0 for s in range(gridWorld.n)])
 
-    policy, timing = gridWorld.solve(algorithm=trial['algorithm'], process=trial['process'], heuristic=h)
+    #policy, timing = gridWorld.solve(algorithm=trial['algorithm'], process=trial['process'], heuristic=h)
+
+    if trial['algorithm'] == "vi" and trial['process'] == "cpu":
+        algorithm = MDPValueIterationCPU(gridWorld)
+    elif trial['algorithm'] == "vi" and trial['process'] == "gpu":
+        algorithm = MDPValueIterationGPU(gridWorld)
+
+    policy = algorithm.solve()
 
     prettyActions = ["L", "U", "R", "D"]
 
     if policy.r == 0:
         for y in range(trial['h']):
             for x in range(trial['w']):
-                print(str(policy.pi[y * trial['w'] + x]) + " ", end='')
-                #print(prettyActions[policy.pi[y * trial['w'] + x]] + " ", end='')
+                print(prettyActions[policy.pi[y * trial['w'] + x]] + " ", end='')
             print()
     else:
         S = [policy.S[i] for i in range(policy.r)]
