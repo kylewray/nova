@@ -1,6 +1,6 @@
 """ The MIT License (MIT)
 
-    Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+    Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
 
     Permission is hereby granted, free of charge, to any person obtaining a copy of
     this software and associated documentation files (the "Software"), to deal in
@@ -26,7 +26,10 @@ import sys
 thisFilePath = os.path.dirname(os.path.realpath(__file__))
 
 sys.path.append(os.path.join(thisFilePath, "..", "..", "..", "..", "python"))
+
 from nova.pomdp import *
+from nova.pomdp_pbvi import *
+from nova.pomdp_perseus import *
 
 from pylab import *
 
@@ -41,9 +44,9 @@ files = [
         {'name': "tiger", 'filename': "domains/tiger_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4},
         #{'name': "shuttle", 'filename': "domains/shuttle_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4},
         #{'name': "paint", 'filename': "domains/paint_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4},
-        #{'name': "grid-4x3", 'filename': "domains/4x3_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 5},
+        {'name': "grid-4x3", 'filename': "domains/4x3_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 5},
         #{'name': "tiger-grid", 'filename': "domains/tiger_grid.pomdp", 'filetype': "cassandra",'numExpandSteps': 6},
-        #{'name': "aloha-10", 'filename': "domains/aloha_10.pomdp", 'filetype': "cassandra", 'numExpandSteps': 6},
+        {'name': "aloha-10", 'filename': "domains/aloha_10.pomdp", 'filetype': "cassandra", 'numExpandSteps': 6},
         #{'name': "hallway2", 'filename': "domains/hallway2.pomdp", 'filetype': "cassandra", 'numExpandSteps': 7},
         #{'name': "aloha-30", 'filename': "domains/aloha_30.pomdp", 'filetype': "cassandra", 'numExpandSteps': 7},
         #{'name': "tag", 'filename': "domains/tag.pomdp", 'filetype': "cassandra", 'numExpandSteps': 8},
@@ -93,7 +96,19 @@ for f in files:
                 # too small for the larger domains.
                 pomdp.expand(method='random', numBeliefsToAdd=(pow(2, f['numExpandSteps']) - 1))
 
-                policy, timing = pomdp.solve(process=p, algorithm=fixedAlgorithm)
+                if p == "gpu":
+                    pomdp.initialize_gpu()
+
+                if fixedAlgorithm == "pbvi" and p == "cpu":
+                    algorithm = POMDPPBVICPU(pomdp)
+                elif fixedAlgorithm == "pbvi" and p == "gpu":
+                    algorithm = POMDPPBVIGPU(pomdp)
+                elif fixedAlgorithm == "perseus" and p == "cpu":
+                    algorithm = POMDPPerseusCPU(pomdp)
+
+                timing = (time.time(), time.clock())
+                policy = algorithm.solve()
+                timing = (time.time() - timing[0], time.clock() - timing[1])
 
                 #print(pomdp)
                 #print(policy)

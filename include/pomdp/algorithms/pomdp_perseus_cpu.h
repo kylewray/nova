@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -32,55 +32,79 @@
 namespace nova {
 
 /**
- *  Execute the entire Perseus process for the infinite horizon POMDP model specified using the CPU.
- *  @param  pomdp           The POMDP object.
- *  @param  initialGamma    The initial set of alpha vectors (r-n array).
- *  @param  policy          The resultant set of alpha-vectors. This will be created and modified.
- *  @return Returns zero upon success, non-zero otherwise.
+ *  The necessary variables to perform Perseus on a POMDP within nova.
+ *  @param  GammaInitial    The initial values for alpha-vectors (r-n-array).
+ *  @param  currentHorizon  The current horizon updated after each iteration.
+ *  @param  rGamma          The actual number of belief points s.t. rGamma <= r.
+ *  @param  rGammaPrime     The actual number of belief points s.t. rGammaPrime <= r.
+ *  @param  rTilde          The number of beliefs that still exist in the set BTilde.
+ *  @param  BTilde          The beliefs that still have not improved in value after an update.
+ *  @param  Gamma           The value of the states (n-array).
+ *  @param  GammaPrime      The value of the states (n-array) copy.
+ *  @param  pi              The action to take at each state (n-array).
+ *  @param  pi              The action to take at each state (n-array) copy.
  */
-extern "C" int pomdp_perseus_complete_cpu(POMDP *pomdp, const float *initialGamma,
-        POMDPAlphaVectors *&policy);
+typedef struct NovaPOMDPPerseusCPU {
+    float *GammaInitial;
+
+    unsigned int currentHorizon;
+
+    unsigned int rGamma;
+    unsigned int rGammaPrime;
+
+    unsigned int rTilde;
+    unsigned int *BTilde;
+
+    float *Gamma;
+    float *GammaPrime;
+    unsigned int *pi;
+    unsigned int *piPrime;
+} POMDPPerseusCPU;
 
 /**
  *  Step 1/3: The initialization step of Perseus. This sets up the Gamma and pi variables.
- *  @param  pomdp           The POMDP object.
- *  @param  initialGamma    The initial set of alpha vectors (r-n array).
+ *  @param  pomdp       The POMDP object.
+ *  @param  per         The POMDPPerseusCPU object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_perseus_initialize_cpu(POMDP *pomdp, const float *initialGamma);
+extern "C" int pomdp_perseus_initialize_cpu(const POMDP *pomdp, POMDPPerseusCPU *per);
 
 /**
  *  Step 2/3: Execute Perseus for the infinite horizon POMDP model specified.
- *  @param  pomdp           The POMDP object.
- *  @param  initialGamma    The initial set of alpha vectors (r-n array).
- *  @param  policy          The resultant set of alpha-vectors. This will be created and modified.
+ *  @param  pomdp       The POMDP object.
+ *  @param  per         The POMDPPerseusCPU object containing algorithm variables.
+ *  @param  policy      The resultant set of alpha-vectors. This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_perseus_execute_cpu(POMDP *pomdp, const float *initialGamma,
+extern "C" int pomdp_perseus_execute_cpu(const POMDP *pomdp, POMDPPerseusCPU *per,
         POMDPAlphaVectors *&policy);
 
 /**
  *  Step 3/3: The uninitialization step of Perseus. This sets up the Gamma and pi variables.
- *  @param  pomdp   The POMDP object.
+ *  @param  pomdp       The POMDP object.
+ *  @param  per         The POMDPPerseusCPU object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_perseus_uninitialize_cpu(POMDP *pomdp);
+extern "C" int pomdp_perseus_uninitialize_cpu(const POMDP *pomdp, POMDPPerseusCPU *per);
 
 /**
  *  The update step of Perseus. This applies the Perseus procedure once.
- *  @param  pomdp   The POMDP object.
+ *  @param  pomdp       The POMDP object.
+ *  @param  per         The POMDPPerseusCPU object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_perseus_update_cpu(POMDP *pomdp);
+extern "C" int pomdp_perseus_update_cpu(const POMDP *pomdp, POMDPPerseusCPU *per);
 
 /**
  *  The get resultant policy step of Perseus. This retrieves the alpha-vectors (Gamma) and
  *  corresponding actions (pi).
- *  @param  pomdp   The POMDP object.
- *  @param  policy  The resultant set of alpha-vectors. This will be created and modified.
+ *  @param  pomdp       The POMDP object.
+ *  @param  per         The POMDPPerseusCPU object containing algorithm variables.
+ *  @param  policy      The resultant set of alpha-vectors. This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPAlphaVectors *&policy);
+extern "C" int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPPerseusCPU *per,
+        POMDPAlphaVectors *&policy);
 
 };
 

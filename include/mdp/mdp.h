@@ -51,7 +51,6 @@ namespace nova {
  *  @param  d_R             Device-side pointer of R.
  */
 typedef struct NovaMDP {
-    // Core Variables (User-Defined)
     unsigned int n;
     unsigned int ns;
     unsigned int m;

@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -179,71 +179,62 @@ void pomdp_perseus_update_step_cpu(unsigned int n, unsigned int ns, unsigned int
 }
 
 
-int pomdp_perseus_complete_cpu(POMDP *pomdp, const float *initialGamma, POMDPAlphaVectors *&policy)
-{
-    // Note: This 'wrapper' function is provided in order to maintain the same structure
-    // as the GPU version. In the GPU version, 'complete' performs the initialization
-    // and uninitialization of the POMDP object on the device as well. Here, we do not
-    // need that.
-    return pomdp_perseus_execute_cpu(pomdp, initialGamma, policy);
-}
-
-
-int pomdp_perseus_initialize_cpu(POMDP *pomdp, const float *initialGamma)
+int pomdp_perseus_initialize_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
 {
     // Reset the current horizon.
-    pomdp->currentHorizon = 0;
+    per->currentHorizon = 0;
 
     // Create the variables.
-    pomdp->Gamma = new float[pomdp->r *pomdp->n];
-    pomdp->GammaPrime = new float[pomdp->r * pomdp->n];
-    pomdp->pi = new unsigned int[pomdp->r];
-    pomdp->piPrime = new unsigned int[pomdp->r];
+    per->Gamma = new float[pomdp->r *pomdp->n];
+    per->GammaPrime = new float[pomdp->r * pomdp->n];
+    per->pi = new unsigned int[pomdp->r];
+    per->piPrime = new unsigned int[pomdp->r];
 
     // Copy the data form the Gamma provided, and set the default values for pi.
-    memcpy(pomdp->Gamma, initialGamma, pomdp->r * pomdp->n * sizeof(float));
-    memcpy(pomdp->GammaPrime, initialGamma, pomdp->r * pomdp->n * sizeof(float));
+    memcpy(per->Gamma, per->GammaInitial, pomdp->r * pomdp->n * sizeof(float));
+    memcpy(per->GammaPrime, per->GammaInitial, pomdp->r * pomdp->n * sizeof(float));
     for (unsigned int i = 0; i < pomdp->r; i++) {
-        pomdp->pi[i] = 0;
-        pomdp->piPrime[i] = 0;
+        per->pi[i] = 0;
+        per->piPrime[i] = 0;
     }
 
     // For Perseus, we might have a lot fewer alpha-vectors. The actual number is
     // given by rGamma and rGammaPrime. Initially, the set V_n and V_n' are empty,
     // which is equivalent to setting 0.
-    pomdp->rGamma = 0;
-    pomdp->rGammaPrime = 0;
+    per->rGamma = 0;
+    per->rGammaPrime = 0;
 
     // Finally, we have BTilde, which stores the indexes of the relevant belief points
     // that require updating at each step. Convergence occurs when this set is empty.
     // Initially, BTilde = B.
-    pomdp->rTilde = pomdp->r;
-    pomdp->BTilde = new unsigned int[pomdp->r];
+    per->rTilde = pomdp->r;
+    per->BTilde = new unsigned int[pomdp->r];
 
     for (unsigned int i = 0; i < pomdp->r; i++) {
-        pomdp->BTilde[i] = i;
+        per->BTilde[i] = i;
     }
 
     return NOVA_SUCCESS;
 }
 
 
-int pomdp_perseus_execute_cpu(POMDP *pomdp, const float *initialGamma, POMDPAlphaVectors *&policy)
+int pomdp_perseus_execute_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDPAlphaVectors *&policy)
 {
     // The result from calling other functions.
     int result;
 
     // Ensure the data is valid.
-    if (pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 || pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
+            pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
             pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
             pomdp->Z == nullptr || pomdp->B == nullptr ||
             pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
-            initialGamma == nullptr || policy != nullptr) {
+            per == nullptr || per->GammaInitial == nullptr || policy != nullptr) {
         fprintf(stderr, "Error[pomdp_perseus_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    result = pomdp_perseus_initialize_cpu(pomdp, initialGamma);
+    result = pomdp_perseus_initialize_cpu(pomdp, per);
     if (result != NOVA_SUCCESS) {
         return result;
     }
@@ -251,25 +242,25 @@ int pomdp_perseus_execute_cpu(POMDP *pomdp, const float *initialGamma, POMDPAlph
     // For each of the updates, run Perseus. The update function checks for convergence and will terminate
     // the loop early (if BTilde is empty). Also, note that the currentHorizon is initialized to zero above,
     // and is updated in the update function below.
-    while (pomdp->currentHorizon < pomdp->horizon) {
+    while (per->currentHorizon < pomdp->horizon) {
         //printf("Perseus (CPU Version) -- Iteration %i of %i\n", pomdp->currentHorizon, pomdp->horizon);
 
         result = NOVA_SUCCESS;
 
         while (result != NOVA_CONVERGED) {
-            result = pomdp_perseus_update_cpu(pomdp);
+            result = pomdp_perseus_update_cpu(pomdp, per);
             if (result != NOVA_CONVERGED && result != NOVA_SUCCESS) {
                 return result;
             }
         }
     }
 
-    result = pomdp_perseus_get_policy_cpu(pomdp, policy);
+    result = pomdp_perseus_get_policy_cpu(pomdp, per, policy);
     if (result != NOVA_SUCCESS) {
         return result;
     }
 
-    result = pomdp_perseus_uninitialize_cpu(pomdp);
+    result = pomdp_perseus_uninitialize_cpu(pomdp, per);
     if (result != NOVA_SUCCESS) {
         return result;
     }
@@ -278,46 +269,46 @@ int pomdp_perseus_execute_cpu(POMDP *pomdp, const float *initialGamma, POMDPAlph
 }
 
 
-int pomdp_perseus_uninitialize_cpu(POMDP *pomdp)
+int pomdp_perseus_uninitialize_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
 {
     // Reset the current horizon.
-    pomdp->currentHorizon = 0;
+    per->currentHorizon = 0;
 
     // Free the memory for Gamma, GammaPrime, and pi.
-    if (pomdp->Gamma != nullptr) {
-        delete [] pomdp->Gamma;
+    if (per->Gamma != nullptr) {
+        delete [] per->Gamma;
     }
-    pomdp->Gamma = nullptr;
-    pomdp->rGamma = 0;
+    per->Gamma = nullptr;
+    per->rGamma = 0;
 
-    if (pomdp->GammaPrime != nullptr) {
-        delete [] pomdp->GammaPrime;
+    if (per->GammaPrime != nullptr) {
+        delete [] per->GammaPrime;
     }
-    pomdp->GammaPrime = nullptr;
-    pomdp->rGammaPrime = 0;
+    per->GammaPrime = nullptr;
+    per->rGammaPrime = 0;
 
-    if (pomdp->pi != nullptr) {
-        delete [] pomdp->pi;
+    if (per->pi != nullptr) {
+        delete [] per->pi;
     }
-    pomdp->pi = nullptr;
+    per->pi = nullptr;
 
-    if (pomdp->piPrime != nullptr) {
-        delete [] pomdp->piPrime;
+    if (per->piPrime != nullptr) {
+        delete [] per->piPrime;
     }
-    pomdp->piPrime = nullptr;
+    per->piPrime = nullptr;
 
     // Free the memory of BTilde and reset rTilde.
-    if (pomdp->BTilde != nullptr) {
-        delete [] pomdp->BTilde;
+    if (per->BTilde != nullptr) {
+        delete [] per->BTilde;
     }
-    pomdp->BTilde = nullptr;
-    pomdp->rTilde = 0;
+    per->BTilde = nullptr;
+    per->rTilde = 0;
 
     return NOVA_SUCCESS;
 }
 
 
-int pomdp_perseus_update_cpu(POMDP *pomdp)
+int pomdp_perseus_update_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
 {
     // For convenience, define a variable pointing to the proper Gamma and rGamma variables.
     // Note: Gamma == V_n and GammPrime == V_{n+1} from the paper.
@@ -328,25 +319,25 @@ int pomdp_perseus_update_cpu(POMDP *pomdp)
     unsigned int *pi = nullptr;
     unsigned int *piPrime = nullptr;
 
-    if (pomdp->currentHorizon % 2 == 0) {
-        Gamma = pomdp->Gamma;
-        GammaPrime = pomdp->GammaPrime;
-        rGamma = &pomdp->rGamma;
-        rGammaPrime = &pomdp->rGammaPrime;
-        pi = pomdp->pi;
-        piPrime = pomdp->piPrime;
+    if (per->currentHorizon % 2 == 0) {
+        Gamma = per->Gamma;
+        GammaPrime = per->GammaPrime;
+        rGamma = &per->rGamma;
+        rGammaPrime = &per->rGammaPrime;
+        pi = per->pi;
+        piPrime = per->piPrime;
     } else {
-        Gamma = pomdp->GammaPrime;
-        GammaPrime = pomdp->Gamma;
-        rGamma = &pomdp->rGammaPrime;
-        rGammaPrime = &pomdp->rGamma;
-        pi = pomdp->piPrime;
-        piPrime = pomdp->pi;
+        Gamma = per->GammaPrime;
+        GammaPrime = per->Gamma;
+        rGamma = &per->rGammaPrime;
+        rGammaPrime = &per->rGamma;
+        pi = per->piPrime;
+        piPrime = per->pi;
     }
 
     // Sample a belief point at random from BTilde.
-    unsigned int bTildeIndex = (unsigned int)((float)rand() / (float)RAND_MAX * (float)(pomdp->rTilde));
-    unsigned int bIndex = pomdp->BTilde[bTildeIndex];
+    unsigned int bTildeIndex = (unsigned int)((float)rand() / (float)RAND_MAX * (float)(per->rTilde));
+    unsigned int bIndex = per->BTilde[bTildeIndex];
 
     // Perform one Bellman update to compute the optimal alpha-vector and action for this belief point (bIndex).
     float *alpha = new float[pomdp->n];
@@ -392,7 +383,7 @@ int pomdp_perseus_update_cpu(POMDP *pomdp)
     // alpha-vector was added in the if-else statement above. Trivially, we are guaranteed to have removed
     // belief bIndex, and this set strictly shrinks in size. Ideally, many more beliefs had values which
     // improved, so it should shrink quite rapidly, especially for the first few iterations.
-    pomdp->rTilde = 0;
+    per->rTilde = 0;
 
     for (unsigned int i = 0; i < pomdp->r; i++) {
         unsigned int action = 0;
@@ -404,15 +395,15 @@ int pomdp_perseus_update_cpu(POMDP *pomdp)
         pomdp_perseus_compute_Vb_cpu(pomdp->n, pomdp->rz,  pomdp->Z, pomdp->B, i, GammaPrime, *rGammaPrime, &Vnp1b, &action);
 
         if (Vnp1b < Vnb) {
-            pomdp->BTilde[pomdp->rTilde] = i;
-            pomdp->rTilde++;
+            per->BTilde[per->rTilde] = i;
+            per->rTilde++;
         }
     }
 
     // Check for convergence (if BTilde is empty).
-    if (pomdp->rTilde == 0) {
+    if (per->rTilde == 0) {
         // We performed one complete step of Perseus for this horizon!
-        pomdp->currentHorizon++;
+        per->currentHorizon++;
 
         // Note #1: The way this code is written puts the reset here. In the original paper, it is
         // at the beginning of the next horizon's set of iterations.
@@ -425,9 +416,9 @@ int pomdp_perseus_update_cpu(POMDP *pomdp)
         *rGamma = 0;
 
         // Reset BTilde to B.
-        pomdp->rTilde = pomdp->r;
+        per->rTilde = pomdp->r;
         for (unsigned int i = 0; i < pomdp->r; i++) {
-            pomdp->BTilde[i] = i;
+            per->BTilde[i] = i;
         }
 
         return NOVA_CONVERGED;
@@ -437,7 +428,7 @@ int pomdp_perseus_update_cpu(POMDP *pomdp)
 }
 
 
-int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPAlphaVectors *&policy)
+int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDPAlphaVectors *&policy)
 {
     if (policy != nullptr) {
         fprintf(stderr, "Error[pomdp_perseus_get_policy_cpu]: %s\n", "Invalid arguments. Policy must be undefined.");
@@ -450,22 +441,22 @@ int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPAlphaVectors *&policy)
     policy->m = pomdp->m;
 
     // Copy the final (or intermediate) result of Gamma and pi to the variables.
-    if (pomdp->currentHorizon % 2 == 0) {
-        policy->r = pomdp->rGamma;
+    if (per->currentHorizon % 2 == 0) {
+        policy->r = per->rGamma;
 
-        policy->Gamma = new float[pomdp->rGamma * pomdp->n];
-        policy->pi = new unsigned int[pomdp->rGamma];
+        policy->Gamma = new float[per->rGamma * pomdp->n];
+        policy->pi = new unsigned int[per->rGamma];
 
-        memcpy(policy->Gamma, pomdp->Gamma, pomdp->rGamma * pomdp->n * sizeof(float));
-        memcpy(policy->pi, pomdp->pi, pomdp->rGamma * sizeof(unsigned int));
+        memcpy(policy->Gamma, per->Gamma, per->rGamma * pomdp->n * sizeof(float));
+        memcpy(policy->pi, per->pi, per->rGamma * sizeof(unsigned int));
     } else {
-        policy->r = pomdp->rGammaPrime;
+        policy->r = per->rGammaPrime;
 
-        policy->Gamma = new float[pomdp->rGammaPrime * pomdp->n];
-        policy->pi = new unsigned int[pomdp->rGammaPrime];
+        policy->Gamma = new float[per->rGammaPrime * pomdp->n];
+        policy->pi = new unsigned int[per->rGammaPrime];
 
-        memcpy(policy->Gamma, pomdp->GammaPrime, pomdp->rGammaPrime * pomdp->n * sizeof(float));
-        memcpy(policy->pi, pomdp->piPrime, pomdp->rGammaPrime * sizeof(unsigned int));
+        memcpy(policy->Gamma, per->GammaPrime, per->rGammaPrime * pomdp->n * sizeof(float));
+        memcpy(policy->pi, per->piPrime, per->rGammaPrime * sizeof(unsigned int));
     }
 
     return NOVA_SUCCESS;

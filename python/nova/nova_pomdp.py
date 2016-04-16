@@ -61,57 +61,13 @@ class NovaPOMDP(ct.Structure):
                 ("R", ct.POINTER(ct.c_float)),
                 ("Z", ct.POINTER(ct.c_int)),
                 ("B", ct.POINTER(ct.c_float)),
-                ("currentHorizon", ct.c_uint),
-                ("rGamma", ct.c_uint),
-                ("rGammaPrime", ct.c_uint),
-                ("BTilde", ct.POINTER(ct.c_uint)),
-                ("rTilde", ct.c_uint),
-                ("Gamma", ct.POINTER(ct.c_float)),
-                ("GammaPrime", ct.POINTER(ct.c_float)),
-                ("pi", ct.POINTER(ct.c_uint)),
-                ("piPrime", ct.POINTER(ct.c_uint)),
                 ("d_S", ct.POINTER(ct.c_int)),
                 ("d_T", ct.POINTER(ct.c_float)),
                 ("d_O", ct.POINTER(ct.c_float)),
                 ("d_R", ct.POINTER(ct.c_float)),
                 ("d_Z", ct.POINTER(ct.c_int)),
                 ("d_B", ct.POINTER(ct.c_float)),
-                ("d_Gamma", ct.POINTER(ct.c_float)),
-                ("d_GammaPrime", ct.POINTER(ct.c_float)),
-                ("d_pi", ct.POINTER(ct.c_uint)),
-                ("d_piPrime", ct.POINTER(ct.c_uint)),
-                ("d_alphaBA", ct.POINTER(ct.c_float)),
                 ]
-
-
-# Functions from 'pomdp_pbvi_cpu.h'.
-_nova.pomdp_pbvi_complete_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                        ct.POINTER(ct.c_float),                 # initialGamma
-                                        ct.POINTER(ct.POINTER(pav.POMDPAlphaVectors)))  # policy
-_nova.pomdp_pbvi_initialize_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                            ct.POINTER(ct.c_float))    # initialGamma
-_nova.pomdp_pbvi_execute_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                        ct.POINTER(ct.c_float),                 # initialGamma
-                                        ct.POINTER(ct.POINTER(pav.POMDPAlphaVectors)))  # policy
-_nova.pomdp_pbvi_uninitialize_cpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
-_nova.pomdp_pbvi_update_cpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
-_nova.pomdp_pbvi_get_policy_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                        ct.POINTER(ct.POINTER(pav.POMDPAlphaVectors)))  # policy
-
-
-# Functions from 'pomdp_perseus_cpu.h'.
-_nova.pomdp_perseus_complete_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                            ct.POINTER(ct.c_float),                         # initialGamma
-                                            ct.POINTER(ct.POINTER(pav.POMDPAlphaVectors)))  # policy
-_nova.pomdp_perseus_initialize_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                                ct.POINTER(ct.c_float))    # initialGamma
-_nova.pomdp_perseus_execute_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                            ct.POINTER(ct.c_float),                         # initialGamma
-                                            ct.POINTER(ct.POINTER(pav.POMDPAlphaVectors)))  # policy
-_nova.pomdp_perseus_uninitialize_cpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
-_nova.pomdp_perseus_update_cpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
-_nova.pomdp_perseus_get_policy_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                            ct.POINTER(ct.POINTER(pav.POMDPAlphaVectors)))  # policy
 
 
 # Functions from 'pomdp_expand_cpu.h'.
@@ -149,27 +105,6 @@ _nova.pomdp_initialize_nonzero_beliefs_gpu.argtypes = tuple([ct.POINTER(NovaPOMD
 _nova.pomdp_uninitialize_nonzero_beliefs_gpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
 _nova.pomdp_initialize_belief_points_gpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
 _nova.pomdp_uninitialize_belief_points_gpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
-
-
-# Functions from 'pomdp_pbvi_gpu.h'.
-_nova.pomdp_pbvi_complete_gpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                        ct.c_uint,                              # numThreads
-                                        ct.POINTER(ct.c_float),                 # initialGamma
-                                        ct.POINTER(ct.POINTER(pav.POMDPAlphaVectors)))  # policy
-_nova.pomdp_pbvi_initialize_gpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                            ct.POINTER(ct.c_float))    # initialGamma
-_nova.pomdp_pbvi_execute_gpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                        ct.c_uint,                              # numThreads
-                                        ct.POINTER(ct.c_float),                 # initialGamma
-                                        ct.POINTER(ct.POINTER(pav.POMDPAlphaVectors)))  # policy
-_nova.pomdp_pbvi_uninitialize_gpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
-_nova.pomdp_pbvi_update_gpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                        ct.c_uint)              # numThreads
-_nova.pomdp_pbvi_get_policy_gpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                            ct.POINTER(ct.POINTER(pav.POMDPAlphaVectors)))  # policy
-
-
-# Functions from 'pomdp_perseus_gpu.h'.
 
 
 # Functions from 'pomdp_utilities_cpu.h'.

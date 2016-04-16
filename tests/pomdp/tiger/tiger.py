@@ -27,8 +27,10 @@ import pylab
 thisFilePath = os.path.dirname(os.path.realpath(__file__))
 
 sys.path.append(os.path.join(thisFilePath, "..", "..", "..", "python"))
-from nova.mdp import *
+
 from nova.pomdp import *
+from nova.pomdp_pbvi import *
+from nova.pomdp_perseus import*
 
 
 files = [
@@ -62,20 +64,32 @@ for f in files:
     if f['expand'] == "random":
         # Note: 1 + 250 = 251 belief points.
         tiger.expand(method=f['expand'], numBeliefsToAdd=250)
-        print(tiger)
+        #print(tiger)
     elif f['expand'] == "distinct_beliefs":
         # Note: 2^3 = 8 belief points.
         for i in range(3):
             tiger.expand(method=f['expand'])
-        print(tiger)
+        #print(tiger)
     elif f['expand'] == "pema":
         # Note: 1 + 4 = 5 belief points.
         for i in range(4):
-            tiger.expand(method=f['expand'])
-            print(tiger)
+            tiger.expand(method=f['expand'], pemaAlgorithm=POMDPPerseusCPU(tiger))
+            #print(tiger)
 
-    policy, timing = tiger.solve(process=f['process'], algorithm=f['algorithm'])
-    print(policy)
+    if f['process'] == "gpu":
+        tiger.initialize_gpu()
+
+    if f['algorithm'] == "pbvi" and f['process'] == "cpu":
+        algorithm = POMDPPBVICPU(tiger)
+    elif f['algorithm'] == "pbvi" and f['process'] == "gpu":
+        algorithm = POMDPPBVIGPU(tiger)
+    elif f['algorithm'] == "perseus" and f['process'] == "cpu":
+        algorithm = POMDPPerseusCPU(tiger)
+
+    policy = algorithm.solve()
+
+    #policy, timing = tiger.solve(process=f['process'], algorithm=f['algorithm'])
+    #print(policy)
 
     pylab.hold(True)
     pylab.title("Alpha-Vectors for Tiger Problem (Expand: %s)" % (f['expand']))

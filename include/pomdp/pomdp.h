@@ -30,19 +30,12 @@ namespace nova {
 
 /**
  *  A structure for a POMDP object within nova.
- *
- *  Only define the variables n through B. All others are nullptr by default, and are
- *  cleaned up by calling the relevant uninitialize functions. The generic uninitialize_pomdp
- *  function will free everything, instead of having to manage all other variables yourself.
- *
  *  @param  n               The number of states.
  *  @param  ns              The maximum number of successor states possible.
  *  @param  m               The number of actions, in total, that are possible.
  *  @param  z               The number of observations.
  *  @param  r               The number of belief points.
  *  @param  rz              The maximum number of non-zero belief states.
- *  @param  rGamma          The actual number of belief points s.t. rGamma <= r (Perseus).
- *  @param  rGammaPrime     The actual number of belief points s.t. rGammaPrime <= r (Perseus).
  *  @param  gamma           The discount factor in [0.0, 1.0).
  *  @param  horizon         The number of iterations to execute (i.e., horizon).
  *  @param  S               A mapping of state-action-successor triples (n-m-ns array) to a state
@@ -58,23 +51,14 @@ namespace nova {
  *                          states with a non-zero belief value (terminating any loops).
  *  @param  B               A mapping of belief-non-zero-state pairs (r-rz array) consisting of r
  *                          sets of rz-vector belief distributions.
- *  @param  currentHorizon  The current horizon updated after each iteration.
- *  @param  Gamma           The resultant policy's alpha-vectors (r-n array). CPU version only.
- *  @param  GammaPrime      The resultant policy's alpha-vectors (r-n array). CPU version only.
- *  @param  pi              The resultant policy's actions (r array). CPU version only.
  *  @param  d_S             Device-side pointer of S. GPU version only.
  *  @param  d_T             Device-side pointer of T. GPU version only.
  *  @param  d_O             Device-side pointer of O. GPU version only.
  *  @param  d_R             Device-side pointer of R. GPU version only.
  *  @param  d_Z             Device-side pointer of Z. GPU version only.
  *  @param  d_B             Device-side pointer of B. GPU version only.
- *  @param  d_Gamma         Device-side pointer of Gamma. GPU version only.
- *  @param  d_GammaPrime    Device-side pointer of Gamma. GPU version only.
- *  @param  d_pi            Device-side pointer of pi. GPU version only.
- *  @param  d_alphaBA       Device-side pointer; intermediate alpha-vectors. GPU version only.
  */
 typedef struct NovaPOMDP {
-    // Core Variables (User-Defined)
     unsigned int n;
     unsigned int ns;
     unsigned int m;
@@ -92,35 +76,12 @@ typedef struct NovaPOMDP {
     int *Z;
     float *B;
 
-    // Computation Variables (Utilized by Processes Only)
-    unsigned int currentHorizon;
-
-    unsigned int rGamma;
-    unsigned int rGammaPrime;
-    unsigned int *BTilde;
-    unsigned int rTilde;
-
-    float *Gamma;
-    float *GammaPrime;
-    unsigned int *pi;
-    unsigned int *piPrime;
-
-    //unsigned int nFSC;
-    //float *psiFSC;
-    //float *etaFSC;
-
     int *d_S;
     float *d_T;
     float *d_O;
     float *d_R;
     int *d_Z;
     float *d_B;
-
-    float *d_Gamma;
-    float *d_GammaPrime;
-    unsigned int *d_pi;
-    unsigned int *d_piPrime;
-    float *d_alphaBA;
 } POMDP;
 
 };

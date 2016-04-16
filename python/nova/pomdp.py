@@ -1,6 +1,6 @@
 """ The MIT License (MIT)
 
-    Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+    Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
 
     Permission is hereby granted, free of charge, to any person obtaining a copy of
     this software and associated documentation files (the "Software"), to deal in
@@ -49,28 +49,37 @@ class POMDP(npm.NovaPOMDP):
         """ The constructor for the POMDP class. """
 
         # Assign a nullptr for the device-side pointers. These will be set if the GPU is utilized.
-        self.currentHorizon = int(0)
-        self.BTilde = ct.POINTER(ct.c_uint)()
-        self.Gamma = ct.POINTER(ct.c_float)()
-        self.GammaPrime = ct.POINTER(ct.c_float)()
-        self.pi = ct.POINTER(ct.c_uint)()
-        self.piPrime = ct.POINTER(ct.c_uint)()
+        self.n = int(0)
+        self.ns = int(0)
+        self.m = int(0)
+        self.z = int(0)
+        self.r = int(0)
+        self.rz = int(0)
+        self.gamma = float(0.9)
+        self.horizon = int(1)
+        self.S = ct.POINTER(ct.c_int)()
+        self.T = ct.POINTER(ct.c_float)()
+        self.O = ct.POINTER(ct.c_float)()
+        self.R = ct.POINTER(ct.c_float)()
+        self.Z = ct.POINTER(ct.c_int)()
+        self.B = ct.POINTER(ct.c_float)()
         self.d_S = ct.POINTER(ct.c_int)()
         self.d_T = ct.POINTER(ct.c_float)()
         self.d_O = ct.POINTER(ct.c_float)()
         self.d_R = ct.POINTER(ct.c_float)()
         self.d_Z = ct.POINTER(ct.c_int)()
         self.d_B = ct.POINTER(ct.c_float)()
-        self.d_Gamma = ct.POINTER(ct.c_float)()
-        self.d_GammaPrime = ct.POINTER(ct.c_float)()
-        self.d_pi = ct.POINTER(ct.c_uint)()
-        self.d_piPrime = ct.POINTER(ct.c_uint)()
-        self.d_alphaBA = ct.POINTER(ct.c_float)()
 
-        # Additional informative variables.
+        # Additional useful variables not in the structure.
         self.Rmin = None
         self.Rmax = None
-        self.epsilon = 0.01
+
+        self.gpuIsInitialized = False
+
+    def __del__(self):
+        """ The deconstructor for the POMDP class. """
+
+        self.uninitialize_gpu()
 
     def load(self, filename, filetype='cassandra', scalarize=lambda x: x[0]):
         """ Load a POMDP file given the filename and optionally the file type.
@@ -101,7 +110,6 @@ class POMDP(npm.NovaPOMDP):
 
         self.gamma = fileLoader.gamma
         self.horizon = fileLoader.horizon
-        self.epsilon = fileLoader.epsilon
 
         self.Rmin = fileLoader.Rmin
         self.Rmax = fileLoader.Rmax
@@ -120,7 +128,43 @@ class POMDP(npm.NovaPOMDP):
         self.Z = array_type_rrz_int(*fileLoader.Z.flatten())
         self.B = array_type_rrz_float(*fileLoader.B.flatten())
 
-    def expand(self, method='random', numBeliefsToAdd=1000, Gamma=None):
+    def initialize_gpu(self):
+        """ Initialize the GPU variables. This only needs to be called if GPU algorithms are used. """
+
+        if self.gpuIsInitialized:
+            return
+
+        result = npm._nova.pomdp_initialize_successors_gpu(self)
+        result += npm._nova.pomdp_initialize_state_transitions_gpu(self)
+        result += npm._nova.pomdp_initialize_observation_transitions_gpu(self)
+        result += npm._nova.pomdp_initialize_rewards_gpu(self)
+        result += npm._nova.pomdp_initialize_nonzero_beliefs_gpu(self)
+        result += npm._nova.pomdp_initialize_belief_points_gpu(self)
+        if result != 0:
+            print("Failed to initialize the 'nova' library's GPU variables for the POMDP.")
+            raise Exception()
+
+        self.gpuIsInitialized = True
+
+    def uninitialize_gpu(self):
+        """ Uninitialize the GPU variables. This only needs to be called if GPU algorithms are used. """
+
+        if not self.gpuIsInitialized:
+            return
+
+        result = npm._nova.pomdp_uninitialize_successors_gpu(self)
+        result += npm._nova.pomdp_uninitialize_state_transitions_gpu(self)
+        result += npm._nova.pomdp_uninitialize_observation_transitions_gpu(self)
+        result += npm._nova.pomdp_uninitialize_rewards_gpu(self)
+        result += npm._nova.pomdp_uninitialize_nonzero_beliefs_gpu(self)
+        result += npm._nova.pomdp_uninitialize_belief_points_gpu(self)
+        if result != 0:
+            print("Failed to initialize the 'nova' library's GPU variables for the POMDP.")
+            raise Exception()
+
+        self.gpuIsInitialized = False
+
+    def expand(self, method='random', numBeliefsToAdd=1000, pemaPolicy=None, pemaAlgorithm=None):
         """ Expand the belief points by, for example, PBVI's original method, PEMA, or Perseus' random method.
 
             Parameters:
@@ -131,8 +175,9 @@ class POMDP(npm.NovaPOMDP):
                                             'pema'              Point-based Error Minimization Algorithm (PEMA).
                 numBeliefsToAdd     --  Optionally define the number of belief points to add. Used by the
                                         'random'. Default is 1000.
-                Gamma               --  Optionally define the alpha-vectors of the soultion (r-n array). Used by the
-                                        'pema' method. Default is None, which will automatically solve the POMDP.
+                pemaPolicy          --  Optionally use any policy object for PEMA. Default is None.
+                pemaAlgorithm       --  Optionally use any POMDP algorithm object for PEMA. Only used if
+                                        the pemaPolicy is None. Default is None.
         """
 
         if method not in ["random", "distinct_beliefs", "pema"]:
@@ -156,10 +201,9 @@ class POMDP(npm.NovaPOMDP):
         elif method == "distinct_beliefs":
             npm._nova.pomdp_expand_distinct_beliefs_cpu(self, maxNonZeroValues, Bnew)
         elif method == "pema":
-            if Gamma is None:
-                policy, timings = self.solve()
-
-            npm._nova.pomdp_expand_pema_cpu(self, ct.byref(policy), maxNonZeroValues, Bnew)
+            if pemaPolicy is None:
+                pemaPolicy = pemaAlgorithm.solve()
+            npm._nova.pomdp_expand_pema_cpu(self, ct.byref(pemaPolicy), maxNonZeroValues, Bnew)
 
         # Reconstruct the compressed Z and B.
         rPrime = int(self.r + numBeliefsToAdd)
