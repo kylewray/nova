@@ -1,8 +1,14 @@
-COMMAND = /usr/local/cuda/bin/nvcc #nvcc
-FLAGS = -std=c++11 -shared -O3 -use_fast_math -Xcompiler -fPIC -Iinclude
+COMMAND = nvcc #/usr/local/cuda/bin/nvcc #nvcc
+FLAGS = -std=c++11 -O3 -use_fast_math -Xcompiler -fPIC -Iinclude -shared
 
-TEST_COMMAND = gcc
-TEST_FLAGS = -std=c++11 -O3 -use_fast_math -fPIC -Iinclude -fprofile-arcs -ftest-coverage
+TEST_COMMAND = g++
+TEST_FLAGS = -std=c++11 -O3 -use_fast_math -fPIC -Iinclude
+#TEST_FLAGS = -std=c++11 -O3 -use_fast_math -fPIC -fprofile-arcs -ftest-coverage -Iinclude   # Code Coverage
+TEST_NOVA_FLAGS = -Llib -lnova
+TEST_GTEST_FLAGS = -lgtest -pthread
+
+TEST_EXECUTE_COMMAND = valgrind --leak-check=yes
+
 
 all: nova
 
@@ -63,33 +69,34 @@ pomdp_policies.o: src/pomdp/policies/*.cpp
 	mv *.o obj
 
 tests: test_mdp test_pomdp
-	./bin/test_mdp
-	mv *.gcda bin
-	gcov -o bin tests/mdp/unit/*.cpp
-	./bin/test_pomdp
-	mv *.gcda bin
-	gcov -o bin tests/pomdp/unit/*.cpp
-	mv *.gcov bin
+	export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:`pwd`/lib
+	$(TEST_EXECUTE_COMMAND) ./bin/test_mdp
+	#mv *.gcda bin   					# Code Coverage
+	#gcov -o bin tests/mdp/unit/*.cpp   # Code Coverage
+	$(TEST_EXECUTE_COMMAND) ./bin/test_pomdp
+	#mv *.gcda bin                       # Code Coverage
+	#gcov -o bin tests/pomdp/unit/*.cpp  # Code Coverage
+	#mv *.gcov bin                       # Code Coverage
 
 test_mdp:
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -o test_mdp tests/mdp/unit/*.cpp
+	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -o test_mdp tests/mdp/unit/*.cpp $(TEST_NOVA_FLAGS) $(TEST_GTEST_FLAGS)
 	chmod +x test_mdp
 	mkdir -p bin
 	mv test_mdp bin
-	mv *.gc* bin
+	#mv *.gc* bin 			# Code Coverage
 
 test_pomdp:
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -o test_pomdp tests/pomdp/unit/*.cpp
+	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -o test_pomdp tests/pomdp/unit/*.cpp $(TEST_NOVA_FLAGS) $(TEST_GTEST_FLAGS)
 	chmod +x test_pomdp
 	mkdir -p bin
 	mv test_pomdp bin
-	mv *.gc* bin
+	#mv *.gc* bin 			# Code Coverage
 
 clean:
 	rm -rf bin
 	rm -rf lib
 	rm -rf obj
-	rm *.gcda
-	rm *.gcno
-	rm *.gcov
+	#rm *.gcda   # Code Coverage
+	#rm *.gcno   # Code Coverage
+	#rm *.gcov   # Code Coverage
 

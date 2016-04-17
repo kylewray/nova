@@ -24,15 +24,57 @@
 
 #include "algorithms/mdp_vi_cpu.h"
 
-#include <stdio.h>
-#include <cstring>
+#include <gtest/gtest.h>
 
 #include "error_codes.h"
 #include "constants.h"
 
 
+TEST(MDPVICPU, handlesInitialization)
+{
+    nova::MDP mdp;
+    mdp.n = 2;
+
+    nova::MDPVICPU vi;
+    vi.Vinitial = new float[2];
+    vi.Vinitial[0] = -1.0f;
+    vi.Vinitial[1] = 1.0f;
+
+    int result = 0;
+
+    result = nova::mdp_vi_initialize_cpu(&mdp, &vi);
+
+    ASSERT_EQ(result, NOVA_SUCCESS);
+    EXPECT_EQ(vi.currentHorizon, 0);
+
+    ASSERT_NE(vi.V, nullptr);
+    EXPECT_EQ(vi.V[0], -1.0f);
+    EXPECT_EQ(vi.V[1], 1.0f);
+
+    ASSERT_NE(vi.Vprime, nullptr);
+    EXPECT_EQ(vi.Vprime[0], -1.0f);
+    EXPECT_EQ(vi.Vprime[1], 1.0f);
+
+    ASSERT_NE(vi.pi, nullptr);
+    EXPECT_EQ(vi.pi[0], 0);
+    EXPECT_EQ(vi.pi[1], 0);
+
+    result = nova::mdp_vi_uninitialize_cpu(&mdp, &vi);
+
+    ASSERT_EQ(result, NOVA_SUCCESS);
+
+    EXPECT_EQ(vi.currentHorizon, 0);
+    EXPECT_EQ(vi.V, nullptr);
+    EXPECT_EQ(vi.Vprime, nullptr);
+    EXPECT_EQ(vi.pi, nullptr);
+
+    delete [] vi.Vinitial;
+}
+
+
 int main(int argc, char **argv)
 {
-    return 0;
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
 

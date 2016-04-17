@@ -85,7 +85,7 @@ __global__ void mdp_vi_bellman_update_gpu(unsigned int n, unsigned int ns, unsig
 }
 
 
-int mdp_vi_initialize_gpu(const MDP *mdp, MDPValueIterationGPU *vi)
+int mdp_vi_initialize_gpu(const MDP *mdp, MDPVIGPU *vi)
 {
     // Reset the current horizon.
     vi->currentHorizon = 0;
@@ -124,7 +124,7 @@ int mdp_vi_initialize_gpu(const MDP *mdp, MDPValueIterationGPU *vi)
 }
 
 
-int mdp_vi_execute_gpu(const MDP *mdp, MDPValueIterationGPU *vi, MDPValueFunction *&policy)
+int mdp_vi_execute_gpu(const MDP *mdp, MDPVIGPU *vi, MDPValueFunction *&policy)
 {
     // The result from calling other functions.
     int result;
@@ -176,7 +176,7 @@ int mdp_vi_execute_gpu(const MDP *mdp, MDPValueIterationGPU *vi, MDPValueFunctio
 }
 
 
-int mdp_vi_uninitialize_gpu(const MDP *mdp, MDPValueIterationGPU *vi)
+int mdp_vi_uninitialize_gpu(const MDP *mdp, MDPVIGPU *vi)
 {
     int result;
 
@@ -216,7 +216,7 @@ int mdp_vi_uninitialize_gpu(const MDP *mdp, MDPValueIterationGPU *vi)
 }
 
 
-int mdp_vi_update_gpu(const MDP *mdp, MDPValueIterationGPU *vi)
+int mdp_vi_update_gpu(const MDP *mdp, MDPVIGPU *vi)
 {
     unsigned int numBlocks;
 
@@ -257,7 +257,7 @@ int mdp_vi_update_gpu(const MDP *mdp, MDPValueIterationGPU *vi)
 }
 
 
-int mdp_vi_get_policy_gpu(const MDP *mdp, MDPValueIterationGPU *vi, MDPValueFunction *&policy)
+int mdp_vi_get_policy_gpu(const MDP *mdp, MDPVIGPU *vi, MDPValueFunction *&policy)
 {
     if (policy != nullptr) {
         fprintf(stderr, "Error[mdp_vi_get_policy_gpu]: %s\n",

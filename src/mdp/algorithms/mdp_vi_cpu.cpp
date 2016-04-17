@@ -61,7 +61,7 @@ void mdp_vi_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, 
 }
 
 
-int mdp_vi_initialize_cpu(const MDP *mdp, MDPValueIterationCPU *vi)
+int mdp_vi_initialize_cpu(const MDP *mdp, MDPVICPU *vi)
 {
     // Reset the current horizon.
     vi->currentHorizon = 0;
@@ -82,7 +82,7 @@ int mdp_vi_initialize_cpu(const MDP *mdp, MDPValueIterationCPU *vi)
 }
 
 
-int mdp_vi_execute_cpu(const MDP *mdp, MDPValueIterationCPU *vi, MDPValueFunction *&policy)
+int mdp_vi_execute_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *&policy)
 {
     int result;
 
@@ -127,7 +127,7 @@ int mdp_vi_execute_cpu(const MDP *mdp, MDPValueIterationCPU *vi, MDPValueFunctio
 }
 
 
-int mdp_vi_uninitialize_cpu(const MDP *mdp, MDPValueIterationCPU *vi)
+int mdp_vi_uninitialize_cpu(const MDP *mdp, MDPVICPU *vi)
 {
     // Reset the current horizon.
     vi->currentHorizon = 0;
@@ -152,7 +152,7 @@ int mdp_vi_uninitialize_cpu(const MDP *mdp, MDPValueIterationCPU *vi)
 }
 
 
-int mdp_vi_update_cpu(const MDP *mdp, MDPValueIterationCPU *vi)
+int mdp_vi_update_cpu(const MDP *mdp, MDPVICPU *vi)
 {
     if (vi->currentHorizon % 2 == 0) {
         mdp_vi_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, vi->V, vi->Vprime, vi->pi);
@@ -166,7 +166,7 @@ int mdp_vi_update_cpu(const MDP *mdp, MDPValueIterationCPU *vi)
 }
 
 
-int mdp_vi_get_policy_cpu(const MDP *mdp, MDPValueIterationCPU *vi, MDPValueFunction *&policy)
+int mdp_vi_get_policy_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *&policy)
 {
     if (policy != nullptr) {
         fprintf(stderr, "Error[mdp_vi_get_policy_cpu]: %s\n",
