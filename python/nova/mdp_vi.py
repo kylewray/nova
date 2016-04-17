@@ -32,7 +32,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import mdp
 import mdp_value_function as mvf
 
-import nova_mdp_value_iteration as nmvi
+import nova_mdp_vi as nmvi
 
 
 class MDPValueIterationCPU(nmvi.NovaMDPValueIterationCPU):

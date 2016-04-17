@@ -31,7 +31,7 @@
 
 namespace nova {
 
-void bellman_update(unsigned int n, unsigned int ns, unsigned int m, float gamma,
+void mdp_vi_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, float gamma,
         const int *S, const float *T, const float *R, const float *V,
         float *Vprime, unsigned int *pi)
 {
@@ -155,9 +155,9 @@ int mdp_vi_uninitialize_cpu(const MDP *mdp, MDPValueIterationCPU *vi)
 int mdp_vi_update_cpu(const MDP *mdp, MDPValueIterationCPU *vi)
 {
     if (vi->currentHorizon % 2 == 0) {
-        bellman_update(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, vi->V, vi->Vprime, vi->pi);
+        mdp_vi_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, vi->V, vi->Vprime, vi->pi);
     } else {
-        bellman_update(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, vi->Vprime, vi->V, vi->pi);
+        mdp_vi_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, vi->Vprime, vi->V, vi->pi);
     }
 
     vi->currentHorizon++;

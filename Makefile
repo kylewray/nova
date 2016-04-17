@@ -1,6 +1,9 @@
 COMMAND = /usr/local/cuda/bin/nvcc #nvcc
 FLAGS = -std=c++11 -shared -O3 -use_fast_math -Xcompiler -fPIC -Iinclude
 
+TEST_COMMAND = gcc
+TEST_FLAGS = -std=c++11 -O3 -use_fast_math -fPIC -Iinclude -fprofile-arcs -ftest-coverage
+
 all: nova
 
 nova: mdp_algorithms_cpu.o mdp_algorithms_gpu.o mdp_utilities_gpu.o mdp_policies.o pomdp_algorithms_cpu.o pomdp_utilities_cpu.o pomdp_algorithms_gpu.o pomdp_utilities_gpu.o pomdp_policies.o
@@ -59,7 +62,34 @@ pomdp_policies.o: src/pomdp/policies/*.cpp
 	$(COMMAND) $(FLAGS) -Iinclude/pomdp -c src/pomdp/policies/*.cpp
 	mv *.o obj
 
+tests: test_mdp test_pomdp
+	./bin/test_mdp
+	mv *.gcda bin
+	gcov -o bin tests/mdp/unit/*.cpp
+	./bin/test_pomdp
+	mv *.gcda bin
+	gcov -o bin tests/pomdp/unit/*.cpp
+	mv *.gcov bin
+
+test_mdp:
+	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -o test_mdp tests/mdp/unit/*.cpp
+	chmod +x test_mdp
+	mkdir -p bin
+	mv test_mdp bin
+	mv *.gc* bin
+
+test_pomdp:
+	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -o test_pomdp tests/pomdp/unit/*.cpp
+	chmod +x test_pomdp
+	mkdir -p bin
+	mv test_pomdp bin
+	mv *.gc* bin
+
 clean:
+	rm -rf bin
 	rm -rf lib
 	rm -rf obj
+	rm *.gcda
+	rm *.gcno
+	rm *.gcov
 

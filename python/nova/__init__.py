@@ -21,9 +21,13 @@
 """
 
 __all__ = ["nova_mdp", "mdp",
-           "nova_mdp_value_iteration", "mdp_value_iteration",
+           "nova_mdp_vi", "mdp_vi",
+           "nova_ssp_lao_star", "mdp_ssp_lao_star",
+           "nova_ssp_rtdp", "mdp_ssp_rtdp",
            "nova_mdp_value_function", "mdp_value_function",
            "nova_pomdp", "pomdp",
+           "nova_pomdp_pbvi", "pomdp_pbvi",
+           "nova_pomdp_perseus", "pomdp_perseus",
            "nova_pomdp_alpha_vectors", "pomdp_alpha_vectors",
            "file_loader"]
 
