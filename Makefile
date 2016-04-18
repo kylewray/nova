@@ -18,7 +18,7 @@ TEST_EXECUTE_COMMAND = valgrind --leak-check=yes
 
 all: nova
 
-nova: mdp_algorithms_cpu.o mdp_algorithms_gpu.o mdp_utilities_gpu.o mdp_policies.o pomdp_algorithms_cpu.o pomdp_utilities_cpu.o pomdp_algorithms_gpu.o pomdp_utilities_gpu.o pomdp_policies.o
+nova: mdp_algorithms_cpu.o mdp_algorithms_gpu.o mdp_utilities_cpu.o mdp_utilities_gpu.o mdp_policies.o pomdp_algorithms_cpu.o pomdp_utilities_cpu.o pomdp_algorithms_gpu.o pomdp_utilities_gpu.o pomdp_policies.o
 	mkdir -p lib
 	$(COMMAND) $(FLAGS) obj/*.o -o libnova.so
 	mv libnova.so lib
@@ -28,15 +28,14 @@ mdp_algorithms_cpu.o: src/mdp/algorithms/*.cpp
 	$(COMMAND) $(FLAGS) -Iinclude/mdp -c src/mdp/algorithms/*.cpp
 	mv *.o obj
 
-# Note: Don't forget to add it to 'nova' line above.
-#mdp_utilities_cpu.o: src/mdp/utilities/*.cpp
-#	mkdir -p obj
-#	$(COMMAND) $(FLAGS) -Iinclude/mdp -c src/mdp/utilities/*.cpp
-#	mv *.o obj
-
 mdp_algorithms_gpu.o: src/mdp/algorithms/*.cu
 	mkdir -p obj
 	$(CUDA_COMMAND) $(CUDA_FLAGS) -Iinclude/mdp -c src/mdp/algorithms/*.cu
+	mv *.o obj
+
+mdp_utilities_cpu.o: src/mdp/utilities/*.cpp
+	mkdir -p obj
+	$(COMMAND) $(FLAGS) -Iinclude/mdp -c src/mdp/utilities/*.cpp
 	mv *.o obj
 
 mdp_utilities_gpu.o: src/mdp/utilities/*.cu
@@ -54,14 +53,14 @@ pomdp_algorithms_cpu.o: src/pomdp/algorithms/*.cpp
 	$(COMMAND) $(FLAGS) -Iinclude/pomdp -c src/pomdp/algorithms/*.cpp
 	mv *.o obj
 
-pomdp_utilities_cpu.o: src/pomdp/utilities/*.cpp
-	mkdir -p obj
-	$(COMMAND) $(FLAGS) -Iinclude/pomdp -c src/pomdp/utilities/*.cpp
-	mv *.o obj
-
 pomdp_algorithms_gpu.o: src/pomdp/algorithms/*.cu
 	mkdir -p obj
 	$(CUDA_COMMAND) $(CUDA_FLAGS) -Iinclude/pomdp -c src/pomdp/algorithms/*.cu
+	mv *.o obj
+
+pomdp_utilities_cpu.o: src/pomdp/utilities/*.cpp
+	mkdir -p obj
+	$(COMMAND) $(FLAGS) -Iinclude/pomdp -c src/pomdp/utilities/*.cpp
 	mv *.o obj
 
 pomdp_utilities_gpu.o: src/pomdp/utilities/*.cu

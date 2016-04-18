@@ -23,14 +23,15 @@
 
 
 #include "utilities/pomdp_expand_gpu.h"
-#include "error_codes.h"
-#include "constants.h"
 
 #include <stdio.h>
 #include <cstring>
 #include <cstdlib>
 #include <time.h>
 #include <cmath>
+
+#include "error_codes.h"
+#include "constants.h"
 
 namespace nova {
 

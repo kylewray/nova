@@ -21,15 +21,17 @@
  *  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "utilities/pomdp_utilities_cpu.h"
-#include "constants.h"
-#include "error_codes.h"
+#include "utilities/pomdp_model_cpu.h"
 
+#include <stdio.h>
 #include <cmath>
+
+#include "error_codes.h"
+#include "constants.h"
 
 namespace nova {
 
-int pomdp_utilities_belief_update_cpu(const POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float *bp)
+int pomdp_belief_update_cpu(const POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float *bp)
 {
     for (unsigned int sp = 0; sp < pomdp->n; sp++) {
         bp[sp] = 0.0f;
@@ -63,6 +65,56 @@ int pomdp_utilities_belief_update_cpu(const POMDP *pomdp, const float *b, unsign
     for (unsigned int sp = 0; sp < pomdp->n; sp++) {
         bp[sp] /= normalizingConstant;
     }
+
+    return NOVA_SUCCESS;
+}
+
+
+int pomdp_uninitialize_cpu(POMDP *pomdp)
+{
+    if (pomdp == nullptr) {
+        fprintf(stderr, "Error[pomdp_uninitialize_cpu]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    pomdp->n = 0;
+    pomdp->ns = 0;
+    pomdp->m = 0;
+    pomdp->z = 0;
+    pomdp->r = 0;
+    pomdp->rz = 0;
+    pomdp->gamma = 0.0f;
+    pomdp->horizon = 0;
+
+    if (pomdp->S != nullptr) {
+        delete [] pomdp->S;
+    }
+    pomdp->S = nullptr;
+
+    if (pomdp->T != nullptr) {
+        delete [] pomdp->T;
+    }
+    pomdp->T = nullptr;
+
+    if (pomdp->O != nullptr) {
+        delete [] pomdp->O;
+    }
+    pomdp->O = nullptr;
+
+    if (pomdp->R != nullptr) {
+        delete [] pomdp->R;
+    }
+    pomdp->R = nullptr;
+
+    if (pomdp->Z != nullptr) {
+        delete [] pomdp->Z;
+    }
+    pomdp->Z = nullptr;
+
+    if (pomdp->B != nullptr) {
+        delete [] pomdp->B;
+    }
+    pomdp->B = nullptr;
 
     return NOVA_SUCCESS;
 }

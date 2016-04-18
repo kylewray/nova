@@ -33,10 +33,10 @@ namespace nova {
 
 void mdp_vi_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, float gamma,
         const int *S, const float *T, const float *R, const float *V,
-        float *Vprime, unsigned int *pi)
+        float *VPrime, unsigned int *pi)
 {
     for (unsigned int s = 0; s < n; s++) {
-        Vprime[s] = -FLT_MAX;
+        VPrime[s] = -FLT_MAX;
 
         // Compute max_{a in A} Q(s, a).
         for (int a = 0; a < m; a++) {
@@ -52,8 +52,8 @@ void mdp_vi_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, 
                 Qsa += gamma * T[s * m * ns + a * ns + i] * V[sp];
             }
 
-            if (a == 0 || Qsa > Vprime[s]) {
-                Vprime[s] = Qsa;
+            if (a == 0 || Qsa > VPrime[s]) {
+                VPrime[s] = Qsa;
                 pi[s] = a;
             }
         }
@@ -63,19 +63,33 @@ void mdp_vi_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, 
 
 int mdp_vi_initialize_cpu(const MDP *mdp, MDPVICPU *vi)
 {
+    if (mdp == nullptr || mdp->n == 0 || vi == nullptr) {
+        fprintf(stderr, "Error[mdp_vi_initialize_cpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     // Reset the current horizon.
     vi->currentHorizon = 0;
 
     // Create the variables.
     vi->V = new float[mdp->n];
-    vi->Vprime = new float[mdp->n];
+    vi->VPrime = new float[mdp->n];
     vi->pi = new unsigned int[mdp->n];
 
     // Copy the data from the V provided, and set default values for pi.
-    memcpy(vi->V, vi->Vinitial, mdp->n * sizeof(float));
-    memcpy(vi->Vprime, vi->Vinitial, mdp->n * sizeof(float));
-    for (unsigned int i = 0; i < mdp->n; i++) {
-        vi->pi[i] = 0;
+    // If undefined, then assign 0 for V.
+    if (vi->VInitial != nullptr) {
+        memcpy(vi->V, vi->VInitial, mdp->n * sizeof(float));
+        memcpy(vi->VPrime, vi->VInitial, mdp->n * sizeof(float));
+        for (unsigned int i = 0; i < mdp->n; i++) {
+            vi->pi[i] = 0;
+        }
+    } else {
+        for (unsigned int i = 0; i < mdp->n; i++) {
+            vi->V[i] = 0.0f;
+            vi->VPrime[i] = 0.0f;
+            vi->pi[i] = 0;
+        }
     }
 
     return NOVA_SUCCESS;
@@ -90,7 +104,7 @@ int mdp_vi_execute_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *&policy)
     if (mdp == nullptr || mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
             mdp->gamma < 0.0f || mdp->gamma > 1.0f || mdp->horizon < 1 ||
-            vi == nullptr || vi->Vinitial == nullptr || policy != nullptr) {
+            vi == nullptr || policy != nullptr) {
         fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -129,19 +143,24 @@ int mdp_vi_execute_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *&policy)
 
 int mdp_vi_uninitialize_cpu(const MDP *mdp, MDPVICPU *vi)
 {
+    if (mdp == nullptr || vi == nullptr) {
+        fprintf(stderr, "Error[mdp_vi_uninitialize_cpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     // Reset the current horizon.
     vi->currentHorizon = 0;
 
-    // Free the memory for V, Vprime, and pi.
+    // Free the memory for V, VPrime, and pi.
     if (vi->V != nullptr) {
         delete [] vi->V;
     }
     vi->V = nullptr;
 
-    if (vi->Vprime != nullptr) {
-        delete [] vi->Vprime;
+    if (vi->VPrime != nullptr) {
+        delete [] vi->VPrime;
     }
-    vi->Vprime = nullptr;
+    vi->VPrime = nullptr;
 
     if (vi->pi != nullptr) {
         delete [] vi->pi;
@@ -155,9 +174,9 @@ int mdp_vi_uninitialize_cpu(const MDP *mdp, MDPVICPU *vi)
 int mdp_vi_update_cpu(const MDP *mdp, MDPVICPU *vi)
 {
     if (vi->currentHorizon % 2 == 0) {
-        mdp_vi_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, vi->V, vi->Vprime, vi->pi);
+        mdp_vi_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, vi->V, vi->VPrime, vi->pi);
     } else {
-        mdp_vi_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, vi->Vprime, vi->V, vi->pi);
+        mdp_vi_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, vi->VPrime, vi->V, vi->pi);
     }
 
     vi->currentHorizon++;
@@ -168,7 +187,7 @@ int mdp_vi_update_cpu(const MDP *mdp, MDPVICPU *vi)
 
 int mdp_vi_get_policy_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *&policy)
 {
-    if (policy != nullptr) {
+    if (mdp == nullptr || vi == nullptr || policy != nullptr) {
         fprintf(stderr, "Error[mdp_vi_get_policy_cpu]: %s\n",
                         "Invalid arguments. The policy must be undefined.");
         return NOVA_ERROR_INVALID_DATA;
@@ -189,7 +208,7 @@ int mdp_vi_get_policy_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *&polic
     if (vi->currentHorizon % 2 == 0) {
         memcpy(policy->V, vi->V, mdp->n * sizeof(float));
     } else {
-        memcpy(policy->V, vi->Vprime, mdp->n * sizeof(float));
+        memcpy(policy->V, vi->VPrime, mdp->n * sizeof(float));
     }
     memcpy(policy->pi, vi->pi, mdp->n * sizeof(float));
 

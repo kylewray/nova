@@ -33,19 +33,19 @@ namespace nova {
 
 /**
  *  The necessary variables to perform value iteration on an MDP within nova.
- *  @param  Vinitial        The initial value function, mapping states (n-array) to floats.
+ *  @param  VInitial        The initial value function, mapping states (n-array) to floats.
  *  @param  currentHorizon  The current horizon updated after each iteration.
  *  @param  V               The value of the states (n-array).
- *  @param  Vprime          The value of the states (n-array) copy.
+ *  @param  VPrime          The value of the states (n-array) copy.
  *  @param  pi              The action to take at each state (n-array).
  */
 typedef struct NovaMDPVICPU {
-    float *Vinitial;
+    float *VInitial;
 
     unsigned int currentHorizon;
 
     float *V;
-    float *Vprime;
+    float *VPrime;
     unsigned int *pi;
 } MDPVICPU;
 

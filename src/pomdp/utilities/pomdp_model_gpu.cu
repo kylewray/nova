@@ -23,16 +23,18 @@
 
 
 #include "utilities/pomdp_model_gpu.h"
-#include "error_codes.h"
 
 #include <stdio.h>
+
+#include "error_codes.h"
+#include "constants.h"
 
 namespace nova {
 
 int pomdp_initialize_successors_gpu(POMDP *pomdp)
 {
     // Ensure the data is valid.
-    if (pomdp->n == 0 || pomdp->m == 0 || pomdp->ns == 0 || pomdp->S == nullptr) {
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->m == 0 || pomdp->ns == 0 || pomdp->S == nullptr) {
         fprintf(stderr, "Error[pomdp_initialize_successors_gpu]: %s\n", "Invalid input.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -58,6 +60,11 @@ int pomdp_initialize_successors_gpu(POMDP *pomdp)
 
 int pomdp_uninitialize_successors_gpu(POMDP *pomdp)
 {
+    if (pomdp == nullptr) {
+        fprintf(stderr, "Error[pomdp_uninitialize_successors_gpu]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     if (pomdp->d_S != nullptr) {
         if (cudaFree(pomdp->d_S) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_uninitialize_successors_gpu]: %s\n",
@@ -74,7 +81,7 @@ int pomdp_uninitialize_successors_gpu(POMDP *pomdp)
 int pomdp_initialize_state_transitions_gpu(POMDP *pomdp)
 {
     // Ensure the data is valid.
-    if (pomdp->n == 0 || pomdp->m == 0 || pomdp->ns == 0 || pomdp->T == nullptr) {
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->m == 0 || pomdp->ns == 0 || pomdp->T == nullptr) {
         fprintf(stderr, "Error[pomdp_initialize_state_transitions_gpu]: %s\n", "Invalid input.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -99,6 +106,11 @@ int pomdp_initialize_state_transitions_gpu(POMDP *pomdp)
 
 int pomdp_uninitialize_state_transitions_gpu(POMDP *pomdp)
 {
+    if (pomdp == nullptr) {
+        fprintf(stderr, "Error[pomdp_uninitialize_state_transitions_gpu]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     if (pomdp->d_T != nullptr) {
         if (cudaFree(pomdp->d_T) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_uninitialize_state_transitions_gpu]: %s\n",
@@ -115,7 +127,7 @@ int pomdp_uninitialize_state_transitions_gpu(POMDP *pomdp)
 int pomdp_initialize_observation_transitions_gpu(POMDP *pomdp)
 {
     // Ensure the data is valid.
-    if (pomdp->n == 0 || pomdp->m == 0 || pomdp->z == 0 || pomdp->O == nullptr) {
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->m == 0 || pomdp->z == 0 || pomdp->O == nullptr) {
         fprintf(stderr, "Error[pomdp_initialize_observation_transitions_gpu]: %s\n", "Invalid input.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -140,6 +152,11 @@ int pomdp_initialize_observation_transitions_gpu(POMDP *pomdp)
 
 int pomdp_uninitialize_observation_transitions_gpu(POMDP *pomdp)
 {
+    if (pomdp == nullptr) {
+        fprintf(stderr, "Error[pomdp_uninitialize_observation_transitions_gpu]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     if (pomdp->d_O != nullptr) {
         if (cudaFree(pomdp->d_O) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_uninitialize_observation_transitions_gpu]: %s\n",
@@ -156,7 +173,7 @@ int pomdp_uninitialize_observation_transitions_gpu(POMDP *pomdp)
 int pomdp_initialize_rewards_gpu(POMDP *pomdp)
 {
     // Ensure the data is valid.
-    if (pomdp->n == 0 || pomdp->m == 0 || pomdp->R == nullptr) {
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->m == 0 || pomdp->R == nullptr) {
         fprintf(stderr, "Error[pomdp_initialize_rewards_gpu]: %s\n", "Invalid input.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -181,6 +198,11 @@ int pomdp_initialize_rewards_gpu(POMDP *pomdp)
 
 int pomdp_uninitialize_rewards_gpu(POMDP *pomdp)
 {
+    if (pomdp == nullptr) {
+        fprintf(stderr, "Error[pomdp_uninitialize_rewards_gpu]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     if (pomdp->d_R != nullptr) {
         if (cudaFree(pomdp->d_R) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_uninitialize_rewards_gpu]: %s\n",
@@ -197,7 +219,7 @@ int pomdp_uninitialize_rewards_gpu(POMDP *pomdp)
 int pomdp_initialize_nonzero_beliefs_gpu(POMDP *pomdp)
 {
     // Ensure the data is valid.
-    if (pomdp->r == 0 || pomdp->rz == 0 || pomdp->Z == nullptr) {
+    if (pomdp == nullptr || pomdp->r == 0 || pomdp->rz == 0 || pomdp->Z == nullptr) {
         fprintf(stderr, "Error[pomdp_initialize_nonzero_beliefs_gpu]: %s\n", "Invalid input.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -223,6 +245,11 @@ int pomdp_initialize_nonzero_beliefs_gpu(POMDP *pomdp)
 
 int pomdp_uninitialize_nonzero_beliefs_gpu(POMDP *pomdp)
 {
+    if (pomdp == nullptr) {
+        fprintf(stderr, "Error[pomdp_uninitialize_nonzero_beliefs_gpu]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     if (pomdp->d_Z != nullptr) {
         if (cudaFree(pomdp->d_Z) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_uninitialize_nonzero_beliefs_gpu]: %s\n",
@@ -239,7 +266,7 @@ int pomdp_uninitialize_nonzero_beliefs_gpu(POMDP *pomdp)
 int pomdp_initialize_belief_points_gpu(POMDP *pomdp)
 {
     // Ensure the data is valid.
-    if (pomdp->r == 0 || pomdp->rz == 0 || pomdp->B == nullptr) {
+    if (pomdp == nullptr || pomdp->r == 0 || pomdp->rz == 0 || pomdp->B == nullptr) {
         fprintf(stderr, "Error[pomdp_initialize_belief_points_gpu]: %s\n", "Invalid input.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -264,6 +291,11 @@ int pomdp_initialize_belief_points_gpu(POMDP *pomdp)
 
 int pomdp_uninitialize_belief_points_gpu(POMDP *pomdp)
 {
+    if (pomdp == nullptr) {
+        fprintf(stderr, "Error[pomdp_uninitialize_belief_points_gpu]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     if (pomdp->d_B != nullptr) {
         if (cudaFree(pomdp->d_B) != cudaSuccess) {
             fprintf(stderr, "Error[pomdp_uninitialize_belief_points_gpu]: %s\n",

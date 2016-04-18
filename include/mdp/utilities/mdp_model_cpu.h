@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -22,42 +22,23 @@
  */
 
 
-#include "policies/mdp_value_function.h"
-#include "error_codes.h"
-#include "constants.h"
+#ifndef NOVA_MDP_MODEL_CPU_H
+#define NOVA_MDP_MODEL_CPU_H
 
-#include <stdio.h>
+
+#include "mdp.h"
 
 namespace nova {
 
-int mdp_value_function_uninitialize(MDPValueFunction *policy)
-{
-    if (policy == nullptr) {
-        fprintf(stderr, "Error[mdp_value_function_uninitialize]: %s\n", "Invalid input.");
-        return NOVA_ERROR_INVALID_DATA;
-    }
+/**
+ *  Free the memory for *only* the MDP's internal arrays.
+ *  @param  mdp     The MDP object. Arrays within will be freed.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int mdp_uninitialize_cpu(MDP *mdp);
 
-    policy->n = 0;
-    policy->m = 0;
-    policy->r = 0;
+};
 
-    if (policy->S != nullptr) {
-        delete [] policy->S;
-    }
-    policy->S = nullptr;
 
-    if (policy->V != nullptr) {
-        delete [] policy->V;
-    }
-    policy->V = nullptr;
-
-    if (policy->pi != nullptr) {
-        delete [] policy->pi;
-    }
-    policy->pi = nullptr;
-
-    return NOVA_SUCCESS;
-}
-
-}; // namespace nova
+#endif // NOVA_MDP_MODEL_CPU_H
 

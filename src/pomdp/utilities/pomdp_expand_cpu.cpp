@@ -23,15 +23,16 @@
 
 
 #include "utilities/pomdp_expand_cpu.h"
-#include "utilities/pomdp_utilities_cpu.h"
-#include "error_codes.h"
-#include "constants.h"
 
 #include <stdio.h>
 #include <cstring>
 #include <cstdlib>
 #include <time.h>
 #include <cmath>
+
+#include "utilities/pomdp_model_cpu.h"
+#include "error_codes.h"
+#include "constants.h"
 
 namespace nova {
 
@@ -142,7 +143,7 @@ int pomdp_expand_random_cpu(const POMDP *pomdp, unsigned int numDesiredBeliefPoi
 
             // Follow the belief update equation to compute b' for all state primes s'.
             float *bp = new float[pomdp->n];
-            pomdp_utilities_belief_update_cpu(pomdp, b, a, o, bp);
+            pomdp_belief_update_cpu(pomdp, b, a, o, bp);
             memcpy(b, bp, pomdp->n * sizeof(float));
             delete [] bp;
 
@@ -185,7 +186,7 @@ int pomdp_expand_distinct_beliefs_cpu(const POMDP *pomdp, unsigned int *maxNonZe
             for (unsigned int o = 0; o < pomdp->z; o++) {
                 // Compute b'.
                 float *bp = new float[pomdp->n];
-                unsigned int result = pomdp_utilities_belief_update_cpu(pomdp, b, a, o, bp);
+                unsigned int result = pomdp_belief_update_cpu(pomdp, b, a, o, bp);
 
                 // Since we are iterating over observations, we may examine an observation
                 // which is impossible given the current belief. This is based on the POMDP.
@@ -305,7 +306,7 @@ int pomdp_expand_pema_cpu(const POMDP *pomdp, const POMDPAlphaVectors *policy,
 
                 // With the current action and observation compute b'(b, a, o).
                 float *bp = new float[pomdp->n];
-                unsigned int result = pomdp_utilities_belief_update_cpu(pomdp, b, a, o, bp);
+                unsigned int result = pomdp_belief_update_cpu(pomdp, b, a, o, bp);
 
                 // Since we are iterating over observations, we may examine an observation
                 // which is impossible given the current belief. This is based on the POMDP.
@@ -387,7 +388,7 @@ int pomdp_expand_pema_cpu(const POMDP *pomdp, const POMDPAlphaVectors *policy,
         // We are looking for the largest value possible.
         if (aStarValue > bStarEpsilonErrorBound) {
             // With the best action, compute b'(b, aStar, oStar[aStar]) from the initial b (from i).
-            pomdp_utilities_belief_update_cpu(pomdp, b, aStar, oStar[aStar], &Bnew[0 * pomdp->n]);
+            pomdp_belief_update_cpu(pomdp, b, aStar, oStar[aStar], &Bnew[0 * pomdp->n]);
 
             bStarEpsilonErrorBound = aStarValue;
         }

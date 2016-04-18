@@ -51,7 +51,7 @@ class MDPValueFunction(nmvf.NovaMDPValueFunction):
     def __del__(self):
         """ Free the memory of the policy when this object is deleted. """
 
-        result = nmvf._nova.mdp_value_function_free(self)
+        result = nmvf._nova.mdp_value_function_uninitialize(self)
         if result != 0:
             print("Failed to free the value function.")
             raise Exception()

@@ -70,6 +70,15 @@ class NovaPOMDP(ct.Structure):
                 ]
 
 
+# Functions from 'pomdp_model_cpu.h'.
+_nova.pomdp_belief_update_cpu.argtypes = (ct.POINTER(NovaPOMDP),
+                                            ct.POINTER(ct.c_float),     # b
+                                            ct.c_uint,                  # a
+                                            ct.c_uint,                  # o
+                                            ct.POINTER(ct.c_float))     # bp
+_nova.pomdp_uninitialize_cpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
+
+
 # Functions from 'pomdp_expand_cpu.h'.
 _nova.pomdp_expand_random_cpu.argtypes = (ct.POINTER(NovaPOMDP),
                                             ct.c_uint,              # numDesiredBeliefPoints
@@ -106,13 +115,6 @@ _nova.pomdp_uninitialize_nonzero_beliefs_gpu.argtypes = tuple([ct.POINTER(NovaPO
 _nova.pomdp_initialize_belief_points_gpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
 _nova.pomdp_uninitialize_belief_points_gpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
 
-
-# Functions from 'pomdp_utilities_cpu.h'.
-_nova.pomdp_utilities_belief_update_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                            ct.POINTER(ct.c_float),     # b
-                                            ct.c_uint,                  # a
-                                            ct.c_uint,                  # o
-                                            ct.POINTER(ct.c_float))     # bp
 
 # Functions from 'pomdp_expand_gpu.h'.
 _nova.pomdp_expand_random_gpu.argtypes = (ct.POINTER(NovaPOMDP),

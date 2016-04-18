@@ -22,28 +22,55 @@
  */
 
 
-#ifndef POMDP_UTILITIES_CPU_H
-#define POMDP_UTILITIES_CPU_H
+#include "utilities/mdp_model_cpu.h"
 
+#include <stdio.h>
+#include <cstring>
 
-#include "pomdp.h"
+#include "error_codes.h"
+#include "constants.h"
+
 
 namespace nova {
 
-/**
- *  Perform a belief update.
- *  @param  pomdp       The POMDP object.
- *  @param  b           The current belief (n-array).
- *  @param  a           The action taken (index).
- *  @param  o           The observation made (index).
- *  @param  bp          The resulting new belief.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-extern "C" int pomdp_utilities_belief_update_cpu(const POMDP *pomdp, const float *b,
-        unsigned int a, unsigned int o, float *bp);
+int mdp_uninitialize_cpu(MDP *mdp)
+{
+    if (mdp == nullptr) {
+        fprintf(stderr, "Error[mdp_uninitialize_cpu]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
 
-};
+    mdp->n = 0;
+    mdp->ns = 0;
+    mdp->m = 0;
+    mdp->gamma = 0.0f;
+    mdp->horizon = 0;
+    mdp->epsilon = 0.0f;
+    mdp->s0 = 0;
+    mdp->ng = 0;
 
+    if (mdp->goals != nullptr) {
+        delete [] mdp->goals;
+    }
+    mdp->goals = nullptr;
 
-#endif // POMDP_UTILITIES_CPU_H
+    if (mdp->S != nullptr) {
+        delete [] mdp->S;
+    }
+    mdp->S = nullptr;
+
+    if (mdp->T != nullptr) {
+        delete [] mdp->T;
+    }
+    mdp->T = nullptr;
+
+    if (mdp->R != nullptr) {
+        delete [] mdp->R;
+    }
+    mdp->R = nullptr;
+
+    return NOVA_SUCCESS;
+}
+
+}; // namespace nova
 

@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -22,42 +22,35 @@
  */
 
 
-#include "policies/mdp_value_function.h"
-#include "error_codes.h"
-#include "constants.h"
+#ifndef POMDP_UTILITIES_CPU_H
+#define POMDP_UTILITIES_CPU_H
 
-#include <stdio.h>
+
+#include "pomdp.h"
 
 namespace nova {
 
-int mdp_value_function_uninitialize(MDPValueFunction *policy)
-{
-    if (policy == nullptr) {
-        fprintf(stderr, "Error[mdp_value_function_uninitialize]: %s\n", "Invalid input.");
-        return NOVA_ERROR_INVALID_DATA;
-    }
+/**
+ *  Perform a belief update.
+ *  @param  pomdp       The POMDP object.
+ *  @param  b           The current belief (n-array).
+ *  @param  a           The action taken (index).
+ *  @param  o           The observation made (index).
+ *  @param  bp          The resulting new belief.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int pomdp_belief_update_cpu(const POMDP *pomdp, const float *b,
+        unsigned int a, unsigned int o, float *bp);
 
-    policy->n = 0;
-    policy->m = 0;
-    policy->r = 0;
+/**
+ *  Free the memory for *only* the POMDP's internal arrays.
+ *  @param  pomdp       The POMDP object. Arrays within will be freed.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int pomdp_uninitialize_cpu(POMDP *pomdp);
 
-    if (policy->S != nullptr) {
-        delete [] policy->S;
-    }
-    policy->S = nullptr;
+};
 
-    if (policy->V != nullptr) {
-        delete [] policy->V;
-    }
-    policy->V = nullptr;
 
-    if (policy->pi != nullptr) {
-        delete [] policy->pi;
-    }
-    policy->pi = nullptr;
-
-    return NOVA_SUCCESS;
-}
-
-}; // namespace nova
+#endif // POMDP_UTILITIES_CPU_H
 

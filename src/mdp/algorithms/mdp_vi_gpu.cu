@@ -34,7 +34,7 @@ namespace nova {
 
 __global__ void mdp_vi_bellman_update_gpu(unsigned int n, unsigned int ns, unsigned int m, float gamma,
         const int *S, const float *T, const float *R, const float *V,
-        float *Vprime, unsigned int *pi)
+        float *VPrime, unsigned int *pi)
 {
     // The current state as a function of the blocks and threads.
     int s;
@@ -55,7 +55,7 @@ __global__ void mdp_vi_bellman_update_gpu(unsigned int n, unsigned int ns, unsig
     }
 
     // Nvidia GPUs follow IEEE floating point standards, so this should be safe.
-    Vprime[s] = -FLT_MAX;
+    VPrime[s] = -FLT_MAX;
 
     // Compute max_{a in A} Q(s, a).
     for (int a = 0; a < m; a++) {
@@ -75,8 +75,8 @@ __global__ void mdp_vi_bellman_update_gpu(unsigned int n, unsigned int ns, unsig
 
         __syncthreads();
 
-        if (a == 0 || Qsa > Vprime[s]) {
-            Vprime[s] = Qsa;
+        if (a == 0 || Qsa > VPrime[s]) {
+            VPrime[s] = Qsa;
             pi[s] = a;
         }
 
@@ -87,8 +87,23 @@ __global__ void mdp_vi_bellman_update_gpu(unsigned int n, unsigned int ns, unsig
 
 int mdp_vi_initialize_gpu(const MDP *mdp, MDPVIGPU *vi)
 {
+    if (mdp == nullptr || mdp->n == 0 || vi == nullptr) {
+        fprintf(stderr, "Error[mdp_vi_initialize_gpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     // Reset the current horizon.
     vi->currentHorizon = 0;
+
+    // Create VInitial if undefined.
+    bool createdVInitial = false;
+    if (vi->VInitial == nullptr) {
+        vi->VInitial = new float[mdp->n];
+        for (unsigned int i = 0; i < mdp->n; i++) {
+            vi->VInitial[i] = 0.0f;
+        }
+        createdVInitial = true;
+    }
 
     // Create the device-side V.
     if (cudaMalloc(&vi->d_V, mdp->n * sizeof(float)) != cudaSuccess) {
@@ -96,18 +111,18 @@ int mdp_vi_initialize_gpu(const MDP *mdp, MDPVIGPU *vi)
                 "Failed to allocate device-side memory for the value function.");
         return NOVA_ERROR_DEVICE_MALLOC;
     }
-    if (cudaMemcpy(vi->d_V, vi->Vinitial, mdp->n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+    if (cudaMemcpy(vi->d_V, vi->VInitial, mdp->n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
         fprintf(stderr, "Error[mdp_vi_initialize_gpu]: %s\n",
                 "Failed to copy memory from host to device for the value function.");
         return NOVA_ERROR_MEMCPY_TO_DEVICE;
     }
 
-    if (cudaMalloc(&vi->d_Vprime, mdp->n * sizeof(float)) != cudaSuccess) {
+    if (cudaMalloc(&vi->d_VPrime, mdp->n * sizeof(float)) != cudaSuccess) {
         fprintf(stderr, "Error[mdp_vi_initialize_gpu]: %s\n",
                 "Failed to allocate device-side memory for the value function (prime).");
         return NOVA_ERROR_DEVICE_MALLOC;
     }
-    if (cudaMemcpy(vi->d_Vprime, vi->Vinitial, mdp->n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+    if (cudaMemcpy(vi->d_VPrime, vi->VInitial, mdp->n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
         fprintf(stderr, "Error[mdp_vi_initialize_gpu]: %s\n",
                 "Failed to copy memory from host to device for the value function (prime).");
         return NOVA_ERROR_MEMCPY_TO_DEVICE;
@@ -118,6 +133,12 @@ int mdp_vi_initialize_gpu(const MDP *mdp, MDPVIGPU *vi)
         fprintf(stderr, "Error[mdp_vi_initialize_gpu]: %s\n",
                 "Failed to allocate device-side memory for the policy (pi).");
         return NOVA_ERROR_DEVICE_MALLOC;
+    }
+
+    // If we created VInitial, then free it.
+    if (createdVInitial) {
+        delete [] vi->VInitial;
+        vi->VInitial = nullptr;
     }
 
     return NOVA_SUCCESS;
@@ -133,7 +154,7 @@ int mdp_vi_execute_gpu(const MDP *mdp, MDPVIGPU *vi, MDPValueFunction *&policy)
     if (mdp == nullptr || mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
             mdp->gamma < 0.0f || mdp->gamma > 1.0f || mdp->horizon < 1 ||
-            vi == nullptr || vi->Vinitial == nullptr || policy != nullptr) {
+            vi == nullptr || policy != nullptr) {
         fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -178,6 +199,11 @@ int mdp_vi_execute_gpu(const MDP *mdp, MDPVIGPU *vi, MDPValueFunction *&policy)
 
 int mdp_vi_uninitialize_gpu(const MDP *mdp, MDPVIGPU *vi)
 {
+    if (mdp == nullptr || vi == nullptr) {
+        fprintf(stderr, "Error[mdp_vi_uninitialize_gpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     int result;
 
     result = NOVA_SUCCESS;
@@ -194,14 +220,14 @@ int mdp_vi_uninitialize_gpu(const MDP *mdp, MDPVIGPU *vi)
     }
     vi->d_V = nullptr;
 
-    if (vi->d_Vprime != nullptr) {
-        if (cudaFree(vi->d_Vprime) != cudaSuccess) {
+    if (vi->d_VPrime != nullptr) {
+        if (cudaFree(vi->d_VPrime) != cudaSuccess) {
             fprintf(stderr, "Error[mdp_vi_uninitialize_gpu]: %s\n",
                     "Failed to free memory from device for the value function (prime).");
             result = NOVA_ERROR_DEVICE_FREE;
         }
     }
-    vi->d_Vprime = nullptr;
+    vi->d_VPrime = nullptr;
 
     if (vi->d_pi != nullptr) {
         if (cudaFree(vi->d_pi) != cudaSuccess) {
@@ -229,12 +255,12 @@ int mdp_vi_update_gpu(const MDP *mdp, MDPVIGPU *vi)
         mdp_vi_bellman_update_gpu<<< numBlocks, vi->numThreads >>>(
                     mdp->n, mdp->ns, mdp->m, mdp->gamma,
                     mdp->d_S, mdp->d_T, mdp->d_R,
-                    vi->d_V, vi->d_Vprime, vi->d_pi);
+                    vi->d_V, vi->d_VPrime, vi->d_pi);
     } else {
         mdp_vi_bellman_update_gpu<<< numBlocks, vi->numThreads >>>(
                     mdp->n, mdp->ns, mdp->m, mdp->gamma,
                     mdp->d_S, mdp->d_T, mdp->d_R,
-                    vi->d_Vprime, vi->d_V, vi->d_pi);
+                    vi->d_VPrime, vi->d_V, vi->d_pi);
     }
 
     // Check if there was an error executing the kernel.
@@ -259,7 +285,7 @@ int mdp_vi_update_gpu(const MDP *mdp, MDPVIGPU *vi)
 
 int mdp_vi_get_policy_gpu(const MDP *mdp, MDPVIGPU *vi, MDPValueFunction *&policy)
 {
-    if (policy != nullptr) {
+    if (mdp == nullptr || vi == nullptr || policy != nullptr) {
         fprintf(stderr, "Error[mdp_vi_get_policy_gpu]: %s\n",
                         "Invalid arguments. The policy must be undefined.");
         return NOVA_ERROR_INVALID_DATA;
@@ -284,7 +310,7 @@ int mdp_vi_get_policy_gpu(const MDP *mdp, MDPVIGPU *vi, MDPValueFunction *&polic
             return NOVA_ERROR_MEMCPY_TO_HOST;
         }
     } else {
-        if (cudaMemcpy(policy->V, vi->d_Vprime, mdp->n * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
+        if (cudaMemcpy(policy->V, vi->d_VPrime, mdp->n * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
             fprintf(stderr, "Error[mdp_vi_get_policy_gpu]: %s\n",
                     "Failed to copy memory from device to host for the value function (prime).");
             return NOVA_ERROR_MEMCPY_TO_HOST;

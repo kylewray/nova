@@ -23,10 +23,12 @@
 
 
 #include "utilities/pomdp_sigma_cpu.h"
-#include "error_codes.h"
 
 #include <stdio.h>
 #include <algorithm>
+
+#include "error_codes.h"
+#include "constants.h"
 
 namespace nova {
 

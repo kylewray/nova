@@ -30,6 +30,12 @@ namespace nova {
 
 /*
  *  A structure for MDP value function policies within nova.
+ *
+ *  There are two scenarios. First, if r == 0, then only V and pi will contain
+ *  values and actions for all n states, in order; S will be undefined.
+ *  Second, if r > 1, then S is defined as an ordering, of length r, and
+ *  V and pi will have values and actions for states following ordering S.
+ *
  *  @param  n   The number of states in the MDP.
  *  @param  m   The number of actions in the MDP.
  *  @param  r   The number of relevant states in the solution. If r == 0,
@@ -53,7 +59,7 @@ typedef struct NovaMDPValueFunction {
  *  @param  policy  The resultant value function. Arrays within will be freed.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int mdp_value_function_free(MDPValueFunction *policy);
+extern "C" int mdp_value_function_uninitialize(MDPValueFunction *policy);
 
 };
 

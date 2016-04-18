@@ -33,21 +33,21 @@ namespace nova {
 
 /**
  *  The necessary variables to perform value iteration on an MDP within nova.
- *  @param  Vinitial        The initial value function, mapping states (n-array) to floats.
+ *  @param  VInitial        The initial value function, mapping states (n-array) to floats.
  *  @param  numThreads      The number of CUDA threads per block. Use multiples of 32.
  *  @param  currentHorizon  The current horizon updated after each iteration.
  *  @param  d_V             The value of the states (n-array), a device-side pointer.
- *  @param  d_Vprime        The value of the states (n-array) copy, a device-side pointer.
+ *  @param  d_VPrime        The value of the states (n-array) copy, a device-side pointer.
  *  @param  d_pi            The action to take at each state (n-array), a device-side pointer.
  */
 typedef struct NovaMDPVIGPU {
-    float *Vinitial;
+    float *VInitial;
     unsigned int numThreads;
 
     unsigned int currentHorizon;
 
     float *d_V;
-    float *d_Vprime;
+    float *d_VPrime;
     unsigned int *d_pi;
 } MDPVIGPU;
 
