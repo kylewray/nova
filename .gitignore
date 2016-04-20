@@ -1,7 +1,7 @@
 bin
 lib
 obj
+gcov
 *.swp
 *.pyc
-*.gcno
-*.gcda
+*.gc*
