@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -23,12 +23,13 @@
 
 
 #include "algorithms/mdp_vi_gpu.h"
-#include "utilities/mdp_model_gpu.h"
-#include "error_codes.h"
-#include "constants.h"
 
 #include <cmath>
 #include <stdio.h>
+
+#include "utilities/mdp_model_gpu.h"
+#include "error_codes.h"
+#include "constants.h"
 
 namespace nova {
 
