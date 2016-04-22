@@ -102,6 +102,8 @@ _nova.pomdp_sigma_cpu.argtypes = (ct.POINTER(NovaPOMDP),
 
 
 # Functions from 'pomdp_model_gpu.h'.
+_nova.pomdp_initialize_gpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
+_nova.pomdp_uninitialize_gpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
 _nova.pomdp_initialize_successors_gpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
 _nova.pomdp_uninitialize_successors_gpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
 _nova.pomdp_initialize_state_transitions_gpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])

@@ -80,94 +80,129 @@ pomdp_policies.o: src/pomdp/policies/*.cpp
 	mv *.o obj
 
 
-tests: novat test_mdp test_pomdp
-	#export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:`pwd`/lib; $(TEST_EXECUTE_COMMAND) ./bin/test_mdp
-	#export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:`pwd`/lib; $(TEST_EXECUTE_COMMAND) ./bin/test_pomdp
-	export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:`pwd`/lib; ./bin/test_mdp 2>/dev/null
-	export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:`pwd`/lib; ./bin/test_pomdp 2>/dev/null
-	mv *.gc* gcov
-	gcov -o gcov -r src/mdp/algorithms/*.cpp src/mdp/utilities/*.cpp src/mdp/policies/*.cpp src/pomdp/algorithms/*.cpp src/pomdp/utilities/*.cpp src/pomdp/policies/*.cpp
-	mv *.gc* gcov
+tests: novat test_nova run_tests
 
-novat: test_mdp_algorithms.o test_mdp_algorithms_cuda.o test_mdp_utilities.o test_mdp_utilities_cuda.o test_mdp_policies.o test_pomdp_algorithms.o test_pomdp_utilities.o test_pomdp_algorithms_cuda.o test_pomdp_utilities_cuda.o test_pomdp_policies.o
+
+novat: novat_mdp_algorithms.o novat_mdp_algorithms_cuda.o novat_mdp_utilities.o novat_mdp_utilities_cuda.o novat_mdp_policies.o novat_pomdp_algorithms.o novat_pomdp_utilities.o novat_pomdp_algorithms_cuda.o novat_pomdp_utilities_cuda.o novat_pomdp_policies.o
 	mkdir -p lib
 	$(NOVAT_COMMAND) $(NOVAT_FLAGS) obj/*.o -o libnovat.so
 	mv libnovat.so lib
 	mkdir -p gcov
 	mv *.gc* gcov
 
-test_mdp_algorithms.o: src/mdp/algorithms/*.cpp
+novat_mdp_algorithms.o: src/mdp/algorithms/*.cpp
 	mkdir -p obj
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -c src/mdp/algorithms/*.cpp
+	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -Iinclude/mdp -c src/mdp/algorithms/*.cpp
 	mv *.o obj
 
-test_mdp_algorithms_cuda.o: src/mdp/algorithms/*.cu
+novat_mdp_algorithms_cuda.o: src/mdp/algorithms/*.cu
 	mkdir -p obj
 	$(CUDA_COMMAND) $(CUDA_FLAGS) -Iinclude/mdp -c src/mdp/algorithms/*.cu
 	mv *.o obj
 
-test_mdp_utilities.o: src/mdp/utilities/*.cpp
+novat_mdp_utilities.o: src/mdp/utilities/*.cpp
 	mkdir -p obj
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -c src/mdp/utilities/*.cpp
+	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -Iinclude/mdp -c src/mdp/utilities/*.cpp
 	mv *.o obj
 
-test_mdp_utilities_cuda.o: src/mdp/utilities/*.cu
+novat_mdp_utilities_cuda.o: src/mdp/utilities/*.cu
 	mkdir -p obj
 	$(CUDA_COMMAND) $(CUDA_FLAGS) -Iinclude/mdp -c src/mdp/utilities/*.cu
 	mv *.o obj
 
-test_mdp_policies.o: src/mdp/policies/*.cpp
+novat_mdp_policies.o: src/mdp/policies/*.cpp
 	mkdir -p obj
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -c src/mdp/policies/*.cpp
+	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -Iinclude/mdp -c src/mdp/policies/*.cpp
 	mv *.o obj
 
-test_pomdp_algorithms.o: src/pomdp/algorithms/*.cpp
+novat_pomdp_algorithms.o: src/pomdp/algorithms/*.cpp
 	mkdir -p obj
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -c src/pomdp/algorithms/*.cpp
+	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -Iinclude/pomdp -c src/pomdp/algorithms/*.cpp
 	mv *.o obj
 
-test_pomdp_algorithms_cuda.o: src/pomdp/algorithms/*.cu
+novat_pomdp_algorithms_cuda.o: src/pomdp/algorithms/*.cu
 	mkdir -p obj
 	$(CUDA_COMMAND) $(CUDA_FLAGS) -Iinclude/pomdp -c src/pomdp/algorithms/*.cu
 	mv *.o obj
 
-test_pomdp_utilities.o: src/pomdp/utilities/*.cpp
+novat_pomdp_utilities.o: src/pomdp/utilities/*.cpp
 	mkdir -p obj
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -c src/pomdp/utilities/*.cpp
+	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -Iinclude/pomdp -c src/pomdp/utilities/*.cpp
 	mv *.o obj
 
-test_pomdp_utilities_cuda.o: src/pomdp/utilities/*.cu
+novat_pomdp_utilities_cuda.o: src/pomdp/utilities/*.cu
 	mkdir -p obj
 	$(CUDA_COMMAND) $(CUDA_FLAGS) -Iinclude/pomdp -c src/pomdp/utilities/*.cu
 	mv *.o obj
 
-test_pomdp_policies.o: src/pomdp/policies/*.cpp
+novat_pomdp_policies.o: src/pomdp/policies/*.cpp
 	mkdir -p obj
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -c src/pomdp/policies/*.cpp
+	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -Iinclude/pomdp -c src/pomdp/policies/*.cpp
 	mv *.o obj
 
-test_mdp:
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -o test_mdp tests/mdp/unit/*.cpp $(TEST_LIB_FLAGS)
-	chmod +x test_mdp
+
+#test_nova: test_nova_mdp.o test_nova_mdp_algorithms.o test_nova_mdp_utilities.o test_nova_mdp_policies.o test_nova_pomdp.o test_nova_pomdp_algorithms.o test_nova_pomdp_utilities.o test_nova_pomdp_policies.o
+test_nova: test_nova_mdp.o test_nova_mdp_algorithms.o
+	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Iinclude/pomdp -Itests obj/*.o tests/unit/test_nova.cpp -o test_nova $(TEST_LIB_FLAGS)
+	chmod +x test_nova
 	mkdir -p bin
-	mv test_mdp bin
+	mv test_nova bin
 	mkdir -p gcov
 	mv *.gc* gcov
 
-test_pomdp:
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -o test_pomdp tests/pomdp/unit/*.cpp $(TEST_LIB_FLAGS)
-	chmod +x test_pomdp
-	mkdir -p bin
-	mv test_pomdp bin
-	mkdir -p gcov
+test_nova_mdp.o: tests/unit/mdp/*.cpp
+	mkdir -p obj
+	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Itests -c tests/unit/mdp/*.cpp
+	mv *.o obj
+
+test_nova_mdp_algorithms.o: tests/unit/mdp/algorithms/*.cpp
+	mkdir -p obj
+	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Itests -c tests/unit/mdp/algorithms/*.cpp
+	mv *.o obj
+
+#test_nova_mdp_utilities.o: tests/unit/mdp/utilities/*.cpp
+#	mkdir -p obj
+#	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Itests -c tests/unit/mdp/utilities/*.cpp
+#	mv *.o obj
+#
+#test_nova_mdp_policies.o: tests/unit/mdp/policies/*.cpp
+#	mkdir -p obj
+#	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Itests -c tests/unit/mdp/policies/*.cpp
+#	mv *.o obj
+#
+#test_nova_pomdp.o: tests/unit/pomdp/*.cpp
+#	mkdir -p obj
+#	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/*.cpp
+#	mv *.o obj
+#
+#test_nova_pomdp_algorithms.o: tests/unit/pomdp/algorithms/*.cpp
+#	mkdir -p obj
+#	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/algorithms/*.cpp
+#	mv *.o obj
+#
+#test_nova_pomdp_utilities.o: tests/unit/pomdp/utilities/*.cpp
+#	mkdir -p obj
+#	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/utilities/*.cpp
+#	mv *.o obj
+#
+#test_nova_pomdp_policies.o: tests/unit/pomdp/policies/*.cpp
+#	mkdir -p obj
+#	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/policies/*.cpp
+#	mv *.o obj
+
+
+run_tests:
+	#export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:`pwd`/lib; $(TEST_EXECUTE_COMMAND) ./bin/test_nova
+	export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:`pwd`/lib; ./bin/test_nova #2>/dev/null
+	mv *.gc* gcov
+	gcov -o gcov -r src/mdp/algorithms/*.cpp src/mdp/utilities/*.cpp src/mdp/policies/*.cpp src/pomdp/algorithms/*.cpp src/pomdp/utilities/*.cpp src/pomdp/policies/*.cpp
 	mv *.gc* gcov
 
 
 clean:
 	rm *.o
 	rm *.gc*
-	rm test_mdp
-	rm test_pomdp
+	rm test_nova
 	rm libnova.so
 	rm libnovat.so
 	rm -rf lib

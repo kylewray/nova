@@ -68,6 +68,8 @@ _nova.mdp_uninitialize_cpu.argtypes = tuple([ct.POINTER(NovaMDP)])
 
 
 # Functions from 'mdp_model_gpu.h'.
+_nova.mdp_initialize_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
+_nova.mdp_uninitialize_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
 _nova.mdp_initialize_successors_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
 _nova.mdp_uninitialize_successors_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])
 _nova.mdp_initialize_state_transitions_gpu.argtypes = tuple([ct.POINTER(NovaMDP)])

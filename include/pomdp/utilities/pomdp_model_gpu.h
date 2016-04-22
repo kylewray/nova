@@ -35,10 +35,24 @@ namespace nova {
  *  @param  pomdp   The POMDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_initialize_successors_gpu(POMDP *pomdp);
+extern "C" int pomdp_initialize_gpu(POMDP *pomdp);
 
 /**
  *  Uninitialize CUDA by transferring all of the constant POMDP model information to the device.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int pomdp_uninitialize_gpu(POMDP *pomdp);
+
+/**
+ *  Initialize CUDA successors object.
+ *  @param  pomdp   The POMDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int pomdp_initialize_successors_gpu(POMDP *pomdp);
+
+/**
+ *  Uninitialize CUDA successors object.
  *  @param  pomdp   The POMDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */

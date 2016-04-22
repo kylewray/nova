@@ -23,11 +23,43 @@
 
 
 #include "utilities/mdp_model_gpu.h"
-#include "error_codes.h"
 
 #include <stdio.h>
 
+#include "error_codes.h"
+
+
 namespace nova {
+
+int mdp_initialize_gpu(MDP *mdp)
+{
+    int result = 0;
+
+    result += mdp_initialize_successors_gpu(mdp);
+    result += mdp_initialize_state_transitions_gpu(mdp);
+    result += mdp_initialize_rewards_gpu(mdp);
+    if (mdp->ng > 0) {
+        result += mdp_initialize_goals_gpu(mdp);
+    }
+
+    return result;
+}
+
+
+int mdp_uninitialize_gpu(MDP *mdp)
+{
+    int result = 0;
+
+    result += mdp_uninitialize_successors_gpu(mdp);
+    result += mdp_uninitialize_state_transitions_gpu(mdp);
+    result += mdp_uninitialize_rewards_gpu(mdp);
+    if (mdp->ng > 0) {
+        result += mdp_uninitialize_goals_gpu(mdp);
+    }
+
+    return result;
+}
+
 
 int mdp_initialize_successors_gpu(MDP *mdp)
 {

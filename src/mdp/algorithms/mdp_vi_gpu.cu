@@ -136,6 +136,19 @@ int mdp_vi_initialize_gpu(const MDP *mdp, MDPVIGPU *vi)
         return NOVA_ERROR_DEVICE_MALLOC;
     }
 
+    unsigned int *pi = new unsigned int[mdp->n];
+    for (unsigned int i = 0; i < mdp->n; i++) {
+        pi[i] = 0;
+    }
+
+    if (cudaMemcpy(vi->d_pi, pi, mdp->n * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
+        fprintf(stderr, "Error[mdp_vi_initialize_gpu]: %s\n",
+                "Failed to copy memory from host to device for pi.");
+        return NOVA_ERROR_MEMCPY_TO_DEVICE;
+    }
+
+    delete [] pi;
+
     // If we created VInitial, then free it.
     if (createdVInitial) {
         delete [] vi->VInitial;

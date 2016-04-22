@@ -30,31 +30,11 @@
 #include "error_codes.h"
 #include "constants.h"
 
+#include "unit/mdp/mdp_test.h"
 
-nova::MDP *create_simple_mdp()
-{
-    nova::MDP *mdp = new nova::MDP();
 
-    mdp->n = 1;
-    mdp->ns = 1;
-    mdp->m = 1;
-
-    mdp->S = new int[1];
-    mdp->S[0] = 0;
-
-    mdp->T = new float[1];
-    mdp->T[0] = 1.0f;
-
-    mdp->R = new float[1];
-    mdp->R[0] = 1.0f;
-
-    mdp->gamma = 0.9f;
-    mdp->horizon = 3;
-    mdp->epsilon = 0.1f;
-
-    return mdp;
-}
-
+namespace nova {
+namespace tests {
 
 TEST(MDPVICPU, initialization)
 {
@@ -188,6 +168,8 @@ TEST(MDPVICPU, execution)
     if (policy != nullptr) {
         result = nova::mdp_value_function_uninitialize(policy);
         EXPECT_EQ(result, NOVA_SUCCESS);
+        delete policy;
+        policy = nullptr;
     }
 
     result = nova::mdp_uninitialize_cpu(mdp);
@@ -212,7 +194,6 @@ TEST(MDPVICPU, badExecution)
     policy = new nova::MDPValueFunction();
     result = nova::mdp_vi_execute_cpu(mdp, &vi, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
-    delete policy;
 
     mdp->n = 0;
     result = nova::mdp_vi_execute_cpu(mdp, &vi, policy);
@@ -267,7 +248,12 @@ TEST(MDPVICPU, badExecution)
     if (policy != nullptr) {
         result = nova::mdp_value_function_uninitialize(policy);
         EXPECT_EQ(result, NOVA_SUCCESS);
+        delete policy;
+        policy = nullptr;
     }
+
+    result = nova::mdp_uninitialize_cpu(mdp);
+    EXPECT_EQ(result, NOVA_SUCCESS);
 
     delete mdp;
 }
@@ -414,6 +400,8 @@ TEST(MDPVICPU, getPolicy)
 
             result = nova::mdp_value_function_uninitialize(policy);
             EXPECT_EQ(result, NOVA_SUCCESS);
+            delete policy;
+            policy = nullptr;
         }
     }
 
@@ -441,10 +429,6 @@ TEST(MDPVICPU, badGetPolicy)
     delete policy;
 }
 
-
-int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+}; // namespace tests
+}; // namespace nova
 

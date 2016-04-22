@@ -29,7 +29,42 @@
 #include "error_codes.h"
 #include "constants.h"
 
+
 namespace nova {
+
+int pomdp_initialize_gpu(POMDP *pomdp)
+{
+    int result = 0;
+
+    result += pomdp_initialize_successors_gpu(pomdp);
+    result += pomdp_initialize_state_transitions_gpu(pomdp);
+    result += pomdp_initialize_observation_transitions_gpu(pomdp);
+    result += pomdp_initialize_rewards_gpu(pomdp);
+    if (pomdp->r > 0) {
+        result += pomdp_initialize_nonzero_beliefs_gpu(pomdp);
+        result += pomdp_initialize_belief_points_gpu(pomdp);
+    }
+
+    return result;
+}
+
+
+int pomdp_uninitialize_gpu(POMDP *pomdp)
+{
+    int result = 0;
+
+    result += pomdp_uninitialize_successors_gpu(pomdp);
+    result += pomdp_uninitialize_state_transitions_gpu(pomdp);
+    result += pomdp_uninitialize_observation_transitions_gpu(pomdp);
+    result += pomdp_uninitialize_rewards_gpu(pomdp);
+    if (pomdp->r > 0) {
+        result += pomdp_uninitialize_nonzero_beliefs_gpu(pomdp);
+        result += pomdp_uninitialize_belief_points_gpu(pomdp);
+    }
+
+    return result;
+}
+
 
 int pomdp_initialize_successors_gpu(POMDP *pomdp)
 {

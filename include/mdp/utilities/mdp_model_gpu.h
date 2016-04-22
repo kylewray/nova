@@ -35,10 +35,24 @@ namespace nova {
  *  @param  mdp   The MDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
+extern "C" int mdp_initialize_gpu(MDP *mdp);
+
+/**
+ *  Uninitialize CUDA by freeing all of the constant MDP model information to the device.
+ *  @param  mdp   The MDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int mdp_uninitialize_gpu(MDP *mdp);
+
+/**
+ *  Initialize CUDA successors object.
+ *  @param  mdp   The MDP object.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
 extern "C" int mdp_initialize_successors_gpu(MDP *mdp);
 
 /**
- *  Uninitialize CUDA by transferring all of the constant MDP model information to the device.
+ *  Uninitialize CUDA successors object.
  *  @param  mdp   The MDP object.
  *  @return Returns zero upon success, non-zero otherwise.
  */
