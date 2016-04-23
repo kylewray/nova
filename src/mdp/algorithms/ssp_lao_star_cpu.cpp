@@ -23,14 +23,16 @@
 
 
 #include "algorithms/ssp_lao_star_cpu.h"
-#include "error_codes.h"
-#include "constants.h"
 
 #include <stdio.h>
 #include <cstring>
 #include <cmath>
 #include <algorithm>
 #include <math.h>
+
+#include "error_codes.h"
+#include "constants.h"
+
 
 namespace nova {
 
@@ -123,8 +125,6 @@ void ssp_lao_star_stack_pop_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
     unsigned int &stackSize, unsigned int *stack, unsigned int &s)
 {
     s = stack[--stackSize];
-    //s = stack[stackSize - 1];
-    //stackSize--;
 }
 
 
@@ -132,8 +132,6 @@ void ssp_lao_star_stack_push_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
     unsigned int &stackSize, unsigned int *stack, unsigned int s)
 {
     stack[stackSize++] = s;
-    //stack[stackSize] = s;
-    //stackSize++;
 }
 
 
@@ -328,6 +326,11 @@ int ssp_lao_star_check_convergence_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
 
 int ssp_lao_star_initialize_cpu(const MDP *mdp, SSPLAOStarCPU *lao)
 {
+    if (mdp == nullptr || mdp->n == 0 || lao == nullptr) {
+        fprintf(stderr, "Error[ssp_lao_star_initialize_cpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     // Reset the current horizon.
     lao->currentHorizon = 0;
 
@@ -336,10 +339,17 @@ int ssp_lao_star_initialize_cpu(const MDP *mdp, SSPLAOStarCPU *lao)
     lao->pi = new unsigned int[mdp->n];
 
     // Copy the data from the V provided, and set default values for pi.
-    // Note that these values of V are the heuristics for each state.
-    memcpy(lao->V, lao->Vinitial, mdp->n * sizeof(float));
-    for (unsigned int i = 0; i < mdp->n; i++) {
-        lao->pi[i] = 0;
+    // If undefined, then assign 0 for V.
+    if (lao->VInitial != nullptr) {
+        memcpy(lao->V, lao->VInitial, mdp->n * sizeof(float));
+        for (unsigned int i = 0; i < mdp->n; i++) {
+            lao->pi[i] = 0;
+        }
+    } else {
+        for (unsigned int i = 0; i < mdp->n; i++) {
+            lao->V[i] = 0.0f;
+            lao->pi[i] = 0;
+        }
     }
 
     return NOVA_SUCCESS;
@@ -348,18 +358,17 @@ int ssp_lao_star_initialize_cpu(const MDP *mdp, SSPLAOStarCPU *lao)
 
 int ssp_lao_star_execute_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunction *&policy)
 {
-    int result;
-
     // First, ensure data is valid.
     if (mdp == nullptr || mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
             mdp->horizon < 1 || mdp->epsilon < 0.0f ||
-            lao == nullptr || lao->Vinitial == nullptr || policy != nullptr) {
+            mdp->ng < 1 || mdp->goals == nullptr ||
+            lao == nullptr || policy != nullptr) {
         fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    result = ssp_lao_star_initialize_cpu(mdp, lao);
+    int result = ssp_lao_star_initialize_cpu(mdp, lao);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n", "Failed to initialize the CPU variables.");
         return result;
@@ -372,58 +381,20 @@ int ssp_lao_star_execute_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunctio
     ssp_lao_star_reset_newly_expanded_states_cpu(mdp, lao);
 
     // We continue the process of expanding and testing convergence until convergence occurs.
-    bool running = true;
-    while (running) {
-        // Expand Step: Perform DFS (greedy actions) and construct a tree from possible stochastic transitions.
-        // This continues until you have: (1) expanded all states, and (2) have reached one of the goal states.
-        unsigned int numNewlyExpandedStates = 1;
+    result = NOVA_SUCCESS;
+    while (result != NOVA_CONVERGED) {
+        result = ssp_lao_star_update_cpu(mdp, lao);
+        if (result != NOVA_SUCCESS && result != NOVA_CONVERGED) {
+            fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n",
+                        "Failed to perform the update step of LAO*.");
 
-        while (lao->currentHorizon < mdp->horizon && numNewlyExpandedStates != 0) {
-            // Perform DFS (greedy actions), but mark states as visited along the way too, so it doesn't
-            // revisit them. This performs a Bellman update in postorder traversal through the tree of
-            // visited (plus one-level of newly expanded) nodes.
-            result = ssp_lao_star_expand_cpu(mdp, lao, numNewlyExpandedStates);
-            if (result != NOVA_SUCCESS) {
-                fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n",
-                                "Failed to perform expand step of LAO* on the CPU.");
-
-                int resultPrime = ssp_lao_star_uninitialize_cpu(mdp, lao);
-                if (resultPrime != NOVA_SUCCESS) {
-                    fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n",
-                                    "Failed to uninitialize the CPU variables.");
-                }
-
-                return result;
+            int resultPrime = ssp_lao_star_uninitialize_cpu(mdp, lao);
+            if (resultPrime != NOVA_SUCCESS) {
+                fprintf(stderr, "Error[ssp_lao_star_update_cpu]: %s\n",
+                                "Failed to uninitialize the CPU variables.");
             }
-        }
 
-        // Check Convergence Step: Run value iteration on expanded states until: (1) it converges (done),
-        // or (2) it has an optimal action has a possible successor that was not yet expanded (continue).
-        bool converged = false;
-        bool nonExpandedTipStateFound = false;
-
-        while (lao->currentHorizon < mdp->horizon && !converged && !nonExpandedTipStateFound) {
-            // Check convergence by fixing the expanded nodes and running post-order traversal of Bellman
-            // update. If the policy changes, or we expand a new node, then we are not done. Otherwise,
-            // check if we are within residual. If so, we have converged!
-            result = ssp_lao_star_check_convergence_cpu(mdp, lao, converged, nonExpandedTipStateFound);
-            if (result != NOVA_SUCCESS) {
-                fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n",
-                                "Failed to perform check convergence step of LAO* on the CPU.");
-
-                int resultPrime = ssp_lao_star_uninitialize_cpu(mdp, lao);
-                if (resultPrime != NOVA_SUCCESS) {
-                    fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n",
-                                    "Failed to uninitialize the CPU variables.");
-                }
-
-                return result;
-            }
-        }
-
-        // If we ran out of time, or converged without hitting a non-expanded state, then we are done.
-        if (lao->currentHorizon >= mdp->horizon || (converged && !nonExpandedTipStateFound)) {
-            running = false;
+            return result;
         }
     }
 
@@ -452,6 +423,11 @@ int ssp_lao_star_execute_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunctio
 
 int ssp_lao_star_uninitialize_cpu(const MDP *mdp, SSPLAOStarCPU *lao)
 {
+    if (mdp == nullptr || lao == nullptr) {
+        fprintf(stderr, "Error[ssp_lao_star_uninitialize_cpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     // Reset the current horizon and number of expanded states.
     lao->currentHorizon = 0;
 
@@ -470,9 +446,55 @@ int ssp_lao_star_uninitialize_cpu(const MDP *mdp, SSPLAOStarCPU *lao)
 }
 
 
+int ssp_lao_star_update_cpu(const MDP *mdp, SSPLAOStarCPU *lao)
+{
+    int result = 0;
+
+    // Expand Step: Perform DFS (greedy actions) and construct a tree from possible stochastic transitions.
+    // This continues until you have: (1) expanded all states, and (2) have reached one of the goal states.
+    unsigned int numNewlyExpandedStates = 1;
+
+    while (lao->currentHorizon < mdp->horizon && numNewlyExpandedStates != 0) {
+        // Perform DFS (greedy actions), but mark states as visited along the way too, so it doesn't
+        // revisit them. This performs a Bellman update in postorder traversal through the tree of
+        // visited (plus one-level of newly expanded) nodes.
+        result = ssp_lao_star_expand_cpu(mdp, lao, numNewlyExpandedStates);
+        if (result != NOVA_SUCCESS) {
+            fprintf(stderr, "Error[ssp_lao_star_update_cpu]: %s\n",
+                            "Failed to perform expand step of LAO* on the CPU.");
+            return result;
+        }
+    }
+
+    // Check Convergence Step: Run value iteration on expanded states until: (1) it converges (done),
+    // or (2) it has an optimal action has a possible successor that was not yet expanded (continue).
+    bool converged = false;
+    bool nonExpandedTipStateFound = false;
+
+    while (lao->currentHorizon < mdp->horizon && !converged && !nonExpandedTipStateFound) {
+        // Check convergence by fixing the expanded nodes and running post-order traversal of Bellman
+        // update. If the policy changes, or we expand a new node, then we are not done. Otherwise,
+        // check if we are within residual. If so, we have converged!
+        result = ssp_lao_star_check_convergence_cpu(mdp, lao, converged, nonExpandedTipStateFound);
+        if (result != NOVA_SUCCESS) {
+            fprintf(stderr, "Error[ssp_lao_star_update_cpu]: %s\n",
+                            "Failed to perform check convergence step of LAO* on the CPU.");
+            return result;
+        }
+    }
+
+    // If we ran out of time, or converged without hitting a non-expanded state, then we are done.
+    if (lao->currentHorizon >= mdp->horizon || (converged && !nonExpandedTipStateFound)) {
+        return NOVA_CONVERGED;
+    }
+
+    return NOVA_SUCCESS;
+}
+
+
 int ssp_lao_star_get_policy_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunction *&policy)
 {
-    if (policy != nullptr) {
+    if (mdp == nullptr || lao == nullptr || policy != nullptr) {
         fprintf(stderr, "Error[ssp_lao_star_get_policy_cpu]: %s\n",
                         "Invalid arguments. The policy must be undefined.");
         return NOVA_ERROR_INVALID_DATA;

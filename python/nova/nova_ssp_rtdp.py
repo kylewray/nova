@@ -47,7 +47,7 @@ else:
 class NovaSSPRTDPCPU(ct.Structure):
     """ The C struct SSPRTDPCPU object. """
 
-    _fields_ = [("Vinitial", ct.POINTER(ct.c_float)),
+    _fields_ = [("VInitial", ct.POINTER(ct.c_float)),
                 ("trials", ct.c_uint),
                 ("currentTrial", ct.c_uint),
                 ("currentHorizon", ct.c_uint),

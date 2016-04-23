@@ -139,7 +139,7 @@ int ssp_rtdp_initialize_cpu(const MDP *mdp, SSPRTDPCPU *rtdp)
     // Also, we use pi to determine expanded states. If pi has value m,
     // then it is not expanded. Else if it is a valid action in
     // {0, ..., m-1}, then it is expanded.
-    memcpy(rtdp->V, rtdp->Vinitial, mdp->n * sizeof(float));
+    memcpy(rtdp->V, rtdp->VInitial, mdp->n * sizeof(float));
     for (unsigned int i = 0; i < mdp->n; i++) {
         rtdp->pi[i] = mdp->m;
     }
@@ -150,18 +150,16 @@ int ssp_rtdp_initialize_cpu(const MDP *mdp, SSPRTDPCPU *rtdp)
 
 int ssp_rtdp_execute_cpu(const MDP *mdp, SSPRTDPCPU *rtdp, MDPValueFunction *&policy)
 {
-    int result;
-
     // First, ensure data is valid.
     if (mdp == nullptr || mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
             mdp->horizon < 1 || mdp->epsilon < 0.0f ||
-            rtdp == nullptr || rtdp->Vinitial == nullptr || policy != nullptr) {
+            rtdp == nullptr || rtdp->VInitial == nullptr || policy != nullptr) {
         fprintf(stderr, "Error[ssp_rtdp_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    result = ssp_rtdp_initialize_cpu(mdp, rtdp);
+    int result = ssp_rtdp_initialize_cpu(mdp, rtdp);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[ssp_rtdp_execute_cpu]: %s\n", "Failed to initialize the CPU variables.");
         return result;

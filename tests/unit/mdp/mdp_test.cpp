@@ -53,6 +53,10 @@ nova::MDP *create_simple_mdp()
     mdp->horizon = 3;
     mdp->epsilon = 0.0001f;
 
+    mdp->ng = 1;
+    mdp->goals = new unsigned int[1];
+    mdp->goals[0] = 0;
+
     return mdp;
 }
 

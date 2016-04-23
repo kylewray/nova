@@ -386,17 +386,21 @@ TEST(MDPVICPU, getPolicy)
             EXPECT_EQ(policy->S, nullptr);
 
             EXPECT_NE(policy->V, nullptr);
-            if (i % 2 == 0) {
-                EXPECT_EQ(policy->V[0], 10);
-                EXPECT_EQ(policy->V[1], 20);
-            } else {
-                EXPECT_EQ(policy->V[0], 30);
-                EXPECT_EQ(policy->V[1], 40);
+            if (policy->V != nullptr) {
+                if (i % 2 == 0) {
+                    EXPECT_EQ(policy->V[0], 10);
+                    EXPECT_EQ(policy->V[1], 20);
+                } else {
+                    EXPECT_EQ(policy->V[0], 30);
+                    EXPECT_EQ(policy->V[1], 40);
+                }
             }
 
-            EXPECT_NE(policy->V, nullptr);
-            EXPECT_EQ(policy->pi[0], 50);
-            EXPECT_EQ(policy->pi[1], 60);
+            EXPECT_NE(policy->pi, nullptr);
+            if (policy->pi != nullptr) {
+                EXPECT_EQ(policy->pi[0], 50);
+                EXPECT_EQ(policy->pi[1], 60);
+            }
 
             result = nova::mdp_value_function_uninitialize(policy);
             EXPECT_EQ(result, NOVA_SUCCESS);

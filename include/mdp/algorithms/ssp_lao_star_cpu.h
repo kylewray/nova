@@ -33,14 +33,14 @@ namespace nova {
 
 /**
  *  The necessary variables to perform value iteration on an LAO* within nova.
- *  @param  Vinitial        The initial value function, mapping states (n-array) to floats.
+ *  @param  VInitial        The initial value function, mapping states (n-array) to floats.
  *  @param  currentHorizon  The current horizon updated after each iteration.
  *  @param  V               The value of the states (n-array).
  *  @param  Vprime          The value of the states (n-array) copy.
  *  @param  pi              The action to take at each state (n-array).
  */
 typedef struct NovaSSPLAOStarCPU {
-    float *Vinitial;
+    float *VInitial;
 
     unsigned int currentHorizon;
 
@@ -75,6 +75,14 @@ extern "C" int ssp_lao_star_execute_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPV
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int ssp_lao_star_uninitialize_cpu(const MDP *mdp, SSPLAOStarCPU *lao);
+
+/**
+ *  The update step of LAO*. This applies the LAO* procedure (expand & test convergence) once.
+ *  @param  mdp         The MDP object.
+ *  @param  lao         The SSPLAOStarCPU object containing algorithm variables.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int ssp_lao_star_update_cpu(const MDP *mdp, SSPLAOStarCPU *lao);
 
 /**
  *  The get resultant policy step of LAO*. This retrieves the values of states (V) and

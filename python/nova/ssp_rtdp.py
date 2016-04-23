@@ -41,22 +41,22 @@ class SSPRTDPCPU(nsr.NovaSSPRTDPCPU):
         This class provides a clean python wrapper for simple interactions with this solver.
     """
 
-    def __init__(self, mdpObject, Vinitial=None):
+    def __init__(self, mdpObject, VInitial=None):
         """ The constructor for the SSPRTDPCPU class.
 
             Parameters:
                 mdpObject   --  The MDP object on which to run value iteration.
-                Vinitial    --  The heuristic values for all states. If undefined, then it is zero.
+                VInitial    --  The heuristic values for all states. If undefined, then it is zero.
         """
 
         self.mdp = mdpObject
         self.mdpPtr = ct.POINTER(mdp.MDP)(self.mdp)
 
-        self.Vinitial = Vinitial
-        if Vinitial is None:
-            Vinitial = np.array([0.0 for s in range(self.mdp.n)])
+        self.VInitial = VInitial
+        if VInitial is None:
+            VInitial = np.array([0.0 for s in range(self.mdp.n)])
             array_type_n_float = ct.c_float * self.mdp.n
-            self.Vinitial = array_type_n_float(*Vinitial)
+            self.VInitial = array_type_n_float(*VInitial)
 
         self.trials = int(1)
         self.currentTrial = int(0)
@@ -101,7 +101,7 @@ class SSPRTDPCPU(nsr.NovaSSPRTDPCPU):
                 The string of the SSP RTDP algorithm.
         """
 
-        result = "Vinitial:\n%s" % (str(np.array([self.Vinitial[i] \
+        result = "VInitial:\n%s" % (str(np.array([self.VInitial[i] \
                     for i in range(self.mdp.n)]))) + "\n\n"
 
         result += "trials: %i" % (self.trials) + "\n\n"

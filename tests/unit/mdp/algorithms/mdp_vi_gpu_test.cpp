@@ -415,12 +415,16 @@ TEST(MDPVIGPU, getPolicy)
         EXPECT_EQ(policy->S, nullptr);
 
         EXPECT_NE(policy->V, nullptr);
-        EXPECT_EQ(policy->V[0], 10.0f);
-        EXPECT_EQ(policy->V[1], 20.0f);
+        if (policy->V != nullptr) {
+            EXPECT_EQ(policy->V[0], 10.0f);
+            EXPECT_EQ(policy->V[1], 20.0f);
+        }
 
-        EXPECT_NE(policy->V, nullptr);
-        EXPECT_EQ(policy->pi[0], 0);
-        EXPECT_EQ(policy->pi[1], 0);
+        EXPECT_NE(policy->pi, nullptr);
+        if (policy->pi != nullptr) {
+            EXPECT_EQ(policy->pi[0], 0);
+            EXPECT_EQ(policy->pi[1], 0);
+        }
 
         result = nova::mdp_value_function_uninitialize(policy);
         EXPECT_EQ(result, NOVA_SUCCESS);

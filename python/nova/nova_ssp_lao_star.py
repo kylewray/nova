@@ -47,7 +47,7 @@ else:
 class NovaSSPLAOStarCPU(ct.Structure):
     """ The C struct SSPLAOStarCPU object. """
 
-    _fields_ = [("Vinitial", ct.POINTER(ct.c_float)),
+    _fields_ = [("VInitial", ct.POINTER(ct.c_float)),
                 ("currentHorizon", ct.c_uint),
                 ("V", ct.POINTER(ct.c_float)),
                 ("pi", ct.POINTER(ct.c_uint)),
@@ -64,8 +64,8 @@ _nova.ssp_lao_star_execute_cpu.argtypes = (ct.POINTER(mdp.MDP),
 _nova.ssp_lao_star_uninitialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
                                                 ct.POINTER(NovaSSPLAOStarCPU))
 
-#_nova.ssp_lao_star_update_cpu.argtypes = (ct.POINTER(mdp.MDP),
-#                                          ct.POINTER(NovaSSPLAOStarCPU))
+_nova.ssp_lao_star_update_cpu.argtypes = (ct.POINTER(mdp.MDP),
+                                          ct.POINTER(NovaSSPLAOStarCPU))
 
 _nova.ssp_lao_star_get_policy_cpu.argtypes = (ct.POINTER(mdp.MDP),
                                               ct.POINTER(NovaSSPLAOStarCPU),
