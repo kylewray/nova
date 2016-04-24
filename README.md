@@ -52,9 +52,9 @@ python3 tests/tiger/tiger.py
 
 # Benchmarks
 
-Benchmarks to compare algorithm performance can be found in the "tests/benchmarks" directory. Examples include:
+Benchmarks to compare algorithm performance can be found in the ```tests/benchmarks``` directory. Examples include:
 ```
 python3 tests/benchmarks/algorithms/algorithms.py
 python3 tests/benchmarks/parallel/parallel.py
 ```
-
+The performance of each algorithm, in terms of run time, initial state value, and average reward (e.g., ADR) in trials is reported in the resultant ```results``` folders inside the benchmark's directory.
