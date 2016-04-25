@@ -72,8 +72,8 @@ TEST(MDPVIGPU, initialization)
     EXPECT_EQ(result, NOVA_SUCCESS);
 
     EXPECT_NE(vi.VInitial, nullptr);
-    EXPECT_EQ(vi.VInitial[0], -1.0f);
-    EXPECT_EQ(vi.VInitial[1], 1.0f);
+    EXPECT_NEAR(vi.VInitial[0], -1.0f, 1e-5f);
+    EXPECT_NEAR(vi.VInitial[1], 1.0f, 1e-5f);
 
     EXPECT_EQ(vi.currentHorizon, 0);
     EXPECT_EQ(vi.numThreads, 512);
@@ -133,9 +133,9 @@ TEST(MDPVIGPU, badInitializations)
 }
 
 
-TEST(MDPVIGPU, execution)
+TEST(MDPVIGPU, executionSimpleMDP)
 {
-    nova::MDP *mdp = create_simple_mdp();
+    nova::MDP *mdp = create_simple_mdp(false);
 
     int result = nova::mdp_initialize_gpu(mdp);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -160,7 +160,7 @@ TEST(MDPVIGPU, execution)
 
         EXPECT_NE(policy->V, nullptr);
         if (policy->V != nullptr) {
-            EXPECT_NEAR(policy->V[0], 2.71f, 1e-5);
+            EXPECT_NEAR(policy->V[0], 2.71f, 1e-5f);
         }
 
         EXPECT_NE(policy->pi, nullptr);
@@ -186,9 +186,77 @@ TEST(MDPVIGPU, execution)
 }
 
 
+TEST(MDPVIGPU, executionThreeStateMDP)
+{
+    nova::MDP *mdp = create_three_state_mdp(false);
+
+    int result = nova::mdp_initialize_gpu(mdp);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    nova::MDPVIGPU vi;
+    vi.VInitial = nullptr;
+    vi.numThreads = 512;
+
+    nova::MDPValueFunction *policy = nullptr;
+
+    result = nova::mdp_vi_execute_gpu(mdp, &vi, policy);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    EXPECT_NE(policy, nullptr);
+
+    if (policy != nullptr) {
+        EXPECT_EQ(policy->n, 3);
+        EXPECT_EQ(policy->m, 2);
+
+        EXPECT_EQ(policy->r, 0);
+        EXPECT_EQ(policy->S, nullptr);
+
+        // Note: The value is -3.303775 because the horizon is 5; this is essentially 'max iterations'.
+        // This value can be verified exactly:
+        // -1+0.9*(
+        //     0.5*(-1+0.9*(
+        //         0.5*(-1+0.9*(
+        //             0.5*(-1+0.9*(
+        //                 0.5*(-1+0) +
+        //                 0.5*(-1+0))) +
+        //             0.5*(-1.9))) +
+        //         0.5*(-2.0))) +
+        //     0.5*(-2.0)) = -
+        EXPECT_NE(policy->V, nullptr);
+        if (policy->V != nullptr) {
+            EXPECT_NEAR(policy->V[0], -3.303775f, 1e-5f);
+            EXPECT_NEAR(policy->V[1], -2.0f, 1e-5f);
+            EXPECT_NEAR(policy->V[2], 0.0f, 1e-5f);
+        }
+
+        EXPECT_NE(policy->pi, nullptr);
+        if (policy->pi != nullptr) {
+            EXPECT_EQ(policy->pi[0], 0);
+            EXPECT_EQ(policy->pi[1], 1);
+            //EXPECT_EQ(policy->pi[2], 0);
+        }
+    }
+
+    if (policy != nullptr) {
+        result = nova::mdp_value_function_uninitialize(policy);
+        EXPECT_EQ(result, NOVA_SUCCESS);
+        delete policy;
+        policy = nullptr;
+    }
+
+    result = nova::mdp_uninitialize_gpu(mdp);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    result = nova::mdp_uninitialize_cpu(mdp);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    delete mdp;
+}
+
+
 TEST(MDPVIGPU, badExecution)
 {
-    nova::MDP *mdp = create_simple_mdp();
+    nova::MDP *mdp = create_simple_mdp(false);
 
     int result = nova::mdp_initialize_gpu(mdp);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -313,9 +381,9 @@ TEST(MDPVIGPU, badUninitialization)
 
 // For performance reasons, there is no checking here, so we simply
 // are checking valid mathematics.
-TEST(MDPVIGPU, update)
+TEST(MDPVIGPU, updateSimpleMDP)
 {
-    nova::MDP *mdp = create_simple_mdp();
+    nova::MDP *mdp = create_simple_mdp(false);
 
     int result = nova::mdp_initialize_gpu(mdp);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -336,7 +404,7 @@ TEST(MDPVIGPU, update)
     result = nova::mdp_vi_get_policy_gpu(mdp, &vi, policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
     EXPECT_EQ(vi.currentHorizon, 1);
-    EXPECT_EQ(policy->V[0], 1.0f);
+    EXPECT_NEAR(policy->V[0], 1.0f, 1e-5f);
     EXPECT_EQ(policy->pi[0], 0);
     result = nova::mdp_value_function_uninitialize(policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -348,7 +416,7 @@ TEST(MDPVIGPU, update)
     result = nova::mdp_vi_get_policy_gpu(mdp, &vi, policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
     EXPECT_EQ(vi.currentHorizon, 2);
-    EXPECT_EQ(policy->V[0], 1.9f);
+    EXPECT_NEAR(policy->V[0], 1.9f, 1e-5f);
     EXPECT_EQ(policy->pi[0], 0);
     result = nova::mdp_value_function_uninitialize(policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -360,8 +428,87 @@ TEST(MDPVIGPU, update)
     result = nova::mdp_vi_get_policy_gpu(mdp, &vi, policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
     EXPECT_EQ(vi.currentHorizon, 3);
-    EXPECT_EQ(policy->V[0], 2.71f);
+    EXPECT_NEAR(policy->V[0], 2.71f, 1e-5f);
     EXPECT_EQ(policy->pi[0], 0);
+    result = nova::mdp_value_function_uninitialize(policy);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+    delete policy;
+    policy = nullptr;
+
+    result = nova::mdp_vi_uninitialize_gpu(mdp, &vi);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    result = nova::mdp_uninitialize_gpu(mdp);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    result = nova::mdp_uninitialize_cpu(mdp);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    delete mdp;
+}
+
+
+TEST(MDPVIGPU, updateThreeStateMDP)
+{
+    nova::MDP *mdp = create_three_state_mdp(false);
+
+    int result = nova::mdp_initialize_gpu(mdp);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    nova::MDPVIGPU vi;
+    vi.VInitial = nullptr;
+    vi.numThreads = 512;
+
+    nova::MDPValueFunction *policy = nullptr;
+
+    result = nova::mdp_vi_initialize_gpu(mdp, &vi);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    vi.currentHorizon = 0;
+
+    result = nova::mdp_vi_update_gpu(mdp, &vi);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+    result = nova::mdp_vi_get_policy_gpu(mdp, &vi, policy);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+    EXPECT_EQ(vi.currentHorizon, 1);
+    EXPECT_NEAR(policy->V[0], -1.0f, 1e-5f);
+    EXPECT_NEAR(policy->V[1], -1.0f, 1e-5f);
+    EXPECT_NEAR(policy->V[2], 0.0f, 1e-5f);
+    EXPECT_EQ(policy->pi[0], 0);
+    EXPECT_EQ(policy->pi[1], 0);
+    //EXPECT_EQ(policy->pi[2], 0);
+    result = nova::mdp_value_function_uninitialize(policy);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+    delete policy;
+    policy = nullptr;
+
+    result = nova::mdp_vi_update_gpu(mdp, &vi);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+    result = nova::mdp_vi_get_policy_gpu(mdp, &vi, policy);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+    EXPECT_EQ(vi.currentHorizon, 2);
+    EXPECT_NEAR(policy->V[0], -1.9f, 1e-5f);
+    EXPECT_NEAR(policy->V[1], -1.9f, 1e-5f);
+    EXPECT_NEAR(policy->V[2], 0.0f, 1e-5f);
+    EXPECT_EQ(policy->pi[0], 0);
+    EXPECT_EQ(policy->pi[1], 0);
+    //EXPECT_EQ(policy->pi[2], 0);
+    result = nova::mdp_value_function_uninitialize(policy);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+    delete policy;
+    policy = nullptr;
+
+    result = nova::mdp_vi_update_gpu(mdp, &vi);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+    result = nova::mdp_vi_get_policy_gpu(mdp, &vi, policy);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+    EXPECT_EQ(vi.currentHorizon, 3);
+    EXPECT_NEAR(policy->V[0], -2.71f, 1e-5f);
+    EXPECT_NEAR(policy->V[1], -2.0f, 1e-5f);
+    EXPECT_NEAR(policy->V[2], 0.0f, 1e-5f);
+    EXPECT_EQ(policy->pi[0], 0);
+    EXPECT_EQ(policy->pi[1], 1);
+    //EXPECT_EQ(policy->pi[2], 0);
     result = nova::mdp_value_function_uninitialize(policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
     delete policy;
@@ -416,8 +563,8 @@ TEST(MDPVIGPU, getPolicy)
 
         EXPECT_NE(policy->V, nullptr);
         if (policy->V != nullptr) {
-            EXPECT_EQ(policy->V[0], 10.0f);
-            EXPECT_EQ(policy->V[1], 20.0f);
+            EXPECT_NEAR(policy->V[0], 10.0f, 1e-5f);
+            EXPECT_NEAR(policy->V[1], 20.0f, 1e-5f);
         }
 
         EXPECT_NE(policy->pi, nullptr);

@@ -32,9 +32,18 @@ namespace nova {
 namespace tests {
 
 /**
- *  Create a simple MDP.
+ *  Create a simple one-state MDP.
+ *  @param  ssp     Create an SSP version with costs instead of rewards.
+ *  @return A simple MDP.
  */
-nova::MDP *create_simple_mdp();
+nova::MDP *create_simple_mdp(bool ssp);
+
+/**
+ *  Create an MDP with three states and predictable stochasticity.
+ *  @param  ssp     Create an SSP version with costs instead of rewards.
+ *  @return A bit more complex MDP.
+ */
+nova::MDP *create_three_state_mdp(bool ssp);
 
 }; // namespace tests
 }; // namespace nova

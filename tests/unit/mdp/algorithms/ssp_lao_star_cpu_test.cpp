@@ -51,8 +51,8 @@ TEST(SSPLAOStarCPU, initialization)
     EXPECT_EQ(lao.currentHorizon, 0);
 
     EXPECT_NE(lao.V, nullptr);
-    EXPECT_EQ(lao.V[0], 0.0f);
-    EXPECT_EQ(lao.V[1], 0.0f);
+    EXPECT_NEAR(lao.V[0], 0.0f, 1e-5f);
+    EXPECT_NEAR(lao.V[1], 0.0f, 1e-5f);
 
     EXPECT_NE(lao.pi, nullptr);
     EXPECT_EQ(lao.pi[0], 0);
@@ -71,8 +71,8 @@ TEST(SSPLAOStarCPU, initialization)
     EXPECT_EQ(lao.currentHorizon, 0);
 
     EXPECT_NE(lao.V, nullptr);
-    EXPECT_EQ(lao.V[0], -1.0f);
-    EXPECT_EQ(lao.V[1], 1.0f);
+    EXPECT_NEAR(lao.V[0], -1.0f, 1e-5f);
+    EXPECT_NEAR(lao.V[1], 1.0f, 1e-5f);
 
     EXPECT_NE(lao.pi, nullptr);
     EXPECT_EQ(lao.pi[0], 0);
@@ -126,10 +126,13 @@ TEST(SSPLAOStarCPU, badInitializations)
 }
 
 
-TEST(SSPLAOStarCPU, execution)
+TEST(SSPLAOStarCPU, executionSimpleMDP)
 {
-    nova::MDP *mdp = create_simple_mdp();
+    nova::MDP *mdp = create_simple_mdp(true);
+
     nova::SSPLAOStarCPU lao;
+    lao.VInitial = nullptr;
+
     nova::MDPValueFunction *policy = nullptr;
 
     int result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
@@ -147,9 +150,11 @@ TEST(SSPLAOStarCPU, execution)
             EXPECT_EQ(policy->S[0], 0);
         }
 
+        // Note: The value (cost) is 3 because the horizon is 3; this is essentially 'max iterations'.
+        // In the limit, this should be infinity.
         EXPECT_NE(policy->V, nullptr);
         if (policy->V != nullptr) {
-            EXPECT_EQ(policy->V[0], 3.0f);
+            EXPECT_NEAR(policy->V[0], 3.0f, 1e-5f);
         }
 
         EXPECT_NE(policy->pi, nullptr);
@@ -172,10 +177,71 @@ TEST(SSPLAOStarCPU, execution)
 }
 
 
+TEST(SSPLAOStarCPU, executionThreeStateMDP)
+{
+    nova::MDP *mdp = create_three_state_mdp(true);
+
+    nova::SSPLAOStarCPU lao;
+    lao.VInitial = nullptr;
+
+    nova::MDPValueFunction *policy = nullptr;
+
+    int result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    EXPECT_NE(policy, nullptr);
+
+    if (policy != nullptr) {
+        EXPECT_EQ(policy->n, 3);
+        EXPECT_EQ(policy->m, 2);
+
+        EXPECT_EQ(policy->r, 3);
+        EXPECT_NE(policy->S, nullptr);
+        if (policy->S != nullptr) {
+            EXPECT_EQ(policy->S[0], 0);
+            EXPECT_EQ(policy->S[1], 1);
+            EXPECT_EQ(policy->S[2], 2);
+        }
+
+        // Note: The value (cost) is 3.84375 because the horizon is 5; this is essentially 'max iterations'.
+        // This value can be verified exactly:
+        // 1+0.5*2+0.5*(1 + 0.5*2+0.5*(1 + 0.5*2+0.5*(1 + 0.5*2+0.5*(1 + 0.5*1+0.5*0)))) = 3.84375
+        EXPECT_NE(policy->V, nullptr);
+        if (policy->V != nullptr) {
+            EXPECT_NEAR(policy->V[0], 3.84375f, 1e-5f);
+            EXPECT_NEAR(policy->V[1], 2.0f, 1e-5f);
+            //EXPECT_NEAR(policy->V[2], 0.0f, 1e-5f);
+        }
+
+        EXPECT_NE(policy->pi, nullptr);
+        if (policy->pi != nullptr) {
+            EXPECT_EQ(policy->pi[0], 0);
+            EXPECT_EQ(policy->pi[1], 1);
+            //EXPECT_EQ(policy->pi[2], 0);
+        }
+    }
+
+    if (policy != nullptr) {
+        result = nova::mdp_value_function_uninitialize(policy);
+        EXPECT_EQ(result, NOVA_SUCCESS);
+        delete policy;
+        policy = nullptr;
+    }
+
+    result = nova::mdp_uninitialize_cpu(mdp);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    delete mdp;
+}
+
+
 TEST(SSPLAOStarCPU, badExecution)
 {
-    nova::MDP *mdp = create_simple_mdp();
+    nova::MDP *mdp = create_simple_mdp(true);
+
     nova::SSPLAOStarCPU lao;
+    lao.VInitial = nullptr;
+
     nova::MDPValueFunction *policy = nullptr;
 
     int result = nova::ssp_lao_star_execute_cpu(nullptr, &lao, policy);
@@ -273,6 +339,7 @@ TEST(SSPLAOStarCPU, uninitialization)
     nova::MDP mdp;
 
     nova::SSPLAOStarCPU lao;
+    lao.VInitial = nullptr;
     lao.V = new float[1];
     lao.pi = new unsigned int[1];
 
@@ -308,9 +375,10 @@ TEST(SSPLAOStarCPU, badUninitialization)
 // are checking valid mathematics.
 TEST(SSPLAOStarCPU, update)
 {
-    nova::MDP *mdp = create_simple_mdp();
+    nova::MDP *mdp = create_simple_mdp(true);
 
     nova::SSPLAOStarCPU lao;
+    lao.VInitial = nullptr;
 
     int result = nova::ssp_lao_star_initialize_cpu(mdp, &lao);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -322,7 +390,7 @@ TEST(SSPLAOStarCPU, update)
     result = nova::ssp_lao_star_update_cpu(mdp, &lao);
     EXPECT_EQ(result == NOVA_SUCCESS || result == NOVA_CONVERGED, true);
     EXPECT_EQ(lao.currentHorizon, 1);
-    EXPECT_EQ(lao.V[0], 1.0f);
+    EXPECT_NEAR(lao.V[0], 1.0f, 1e-5f);
     EXPECT_EQ(lao.pi[0], 0);
 
     mdp->horizon = 2;
@@ -331,7 +399,7 @@ TEST(SSPLAOStarCPU, update)
     result = nova::ssp_lao_star_update_cpu(mdp, &lao);
     EXPECT_EQ(result == NOVA_SUCCESS || result == NOVA_CONVERGED, true);
     EXPECT_EQ(lao.currentHorizon, 2);
-    EXPECT_EQ(lao.V[0], 2.0f);
+    EXPECT_NEAR(lao.V[0], 2.0f, 1e-5f);
     EXPECT_EQ(lao.pi[0], 0);
 
     mdp->horizon = 3;
@@ -340,7 +408,7 @@ TEST(SSPLAOStarCPU, update)
     result = nova::ssp_lao_star_update_cpu(mdp, &lao);
     EXPECT_EQ(result == NOVA_SUCCESS || result == NOVA_CONVERGED, true);
     EXPECT_EQ(lao.currentHorizon, 3);
-    EXPECT_EQ(lao.V[0], 3.0f);
+    EXPECT_NEAR(lao.V[0], 3.0f, 1e-5f);
     EXPECT_EQ(lao.pi[0], 0);
 
     result = nova::ssp_lao_star_uninitialize_cpu(mdp, &lao);
@@ -366,12 +434,14 @@ TEST(SSPLAOStarCPU, getPolicy)
 
     nova::SSPLAOStarCPU lao;
     lao.V = new float[2];
-    lao.V[0] = 10;
-    lao.V[1] = 20;
+    lao.V[0] = 10.0f;
+    lao.V[1] = 20.0f;
 
     lao.pi = new unsigned int[2];
     lao.pi[0] = 50;
     lao.pi[1] = 60;
+
+    lao.VInitial = nullptr;
 
     nova::MDPValueFunction *policy = nullptr;
 
@@ -393,8 +463,8 @@ TEST(SSPLAOStarCPU, getPolicy)
 
         EXPECT_NE(policy->V, nullptr);
         if (policy->V != nullptr) {
-            EXPECT_EQ(policy->V[0], 10);
-            EXPECT_EQ(policy->V[1], 20);
+            EXPECT_NEAR(policy->V[0], 10.0f, 1e-5f);
+            EXPECT_NEAR(policy->V[1], 20.0f, 1e-5f);
         }
 
         EXPECT_NE(policy->pi, nullptr);
@@ -417,7 +487,10 @@ TEST(SSPLAOStarCPU, getPolicy)
 TEST(SSPLAOStarCPU, badGetPolicy)
 {
     nova::MDP mdp;
+
     nova::SSPLAOStarCPU lao;
+    lao.VInitial = nullptr;
+
     nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     int result = nova::ssp_lao_star_get_policy_cpu(nullptr, nullptr, policy);

@@ -51,12 +51,12 @@ TEST(MDPVICPU, initialization)
     EXPECT_EQ(vi.currentHorizon, 0);
 
     EXPECT_NE(vi.V, nullptr);
-    EXPECT_EQ(vi.V[0], 0.0f);
-    EXPECT_EQ(vi.V[1], 0.0f);
+    EXPECT_NEAR(vi.V[0], 0.0f, 1e-5f);
+    EXPECT_NEAR(vi.V[1], 0.0f, 1e-5f);
 
     EXPECT_NE(vi.VPrime, nullptr);
-    EXPECT_EQ(vi.VPrime[0], 0.0f);
-    EXPECT_EQ(vi.VPrime[1], 0.0f);
+    EXPECT_NEAR(vi.VPrime[0], 0.0f, 1e-5f);
+    EXPECT_NEAR(vi.VPrime[1], 0.0f, 1e-5f);
 
     EXPECT_NE(vi.pi, nullptr);
     EXPECT_EQ(vi.pi[0], 0);
@@ -76,12 +76,12 @@ TEST(MDPVICPU, initialization)
     EXPECT_EQ(vi.currentHorizon, 0);
 
     EXPECT_NE(vi.V, nullptr);
-    EXPECT_EQ(vi.V[0], -1.0f);
-    EXPECT_EQ(vi.V[1], 1.0f);
+    EXPECT_NEAR(vi.V[0], -1.0f, 1e-5f);
+    EXPECT_NEAR(vi.V[1], 1.0f, 1e-5f);
 
     EXPECT_NE(vi.VPrime, nullptr);
-    EXPECT_EQ(vi.VPrime[0], -1.0f);
-    EXPECT_EQ(vi.VPrime[1], 1.0f);
+    EXPECT_NEAR(vi.VPrime[0], -1.0f, 1e-5f);
+    EXPECT_NEAR(vi.VPrime[1], 1.0f, 1e-5f);
 
     EXPECT_NE(vi.pi, nullptr);
     EXPECT_EQ(vi.pi[0], 0);
@@ -136,10 +136,13 @@ TEST(MDPVICPU, badInitializations)
 }
 
 
-TEST(MDPVICPU, execution)
+TEST(MDPVICPU, executionSimpleMDP)
 {
-    nova::MDP *mdp = create_simple_mdp();
+    nova::MDP *mdp = create_simple_mdp(false);
+
     nova::MDPVICPU vi;
+    vi.VInitial = nullptr;
+
     nova::MDPValueFunction *policy = nullptr;
 
     int result = nova::mdp_vi_execute_cpu(mdp, &vi, policy);
@@ -156,7 +159,7 @@ TEST(MDPVICPU, execution)
 
         EXPECT_NE(policy->V, nullptr);
         if (policy->V != nullptr) {
-            EXPECT_EQ(policy->V[0], 2.71f);
+            EXPECT_NEAR(policy->V[0], 2.71f, 1e-5f);
         }
 
         EXPECT_NE(policy->pi, nullptr);
@@ -179,10 +182,74 @@ TEST(MDPVICPU, execution)
 }
 
 
+TEST(MDPVICPU, executionThreeStateMDP)
+{
+    nova::MDP *mdp = create_three_state_mdp(false);
+
+    nova::MDPVICPU vi;
+    vi.VInitial = nullptr;
+
+    nova::MDPValueFunction *policy = nullptr;
+
+    int result = nova::mdp_vi_execute_cpu(mdp, &vi, policy);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    EXPECT_NE(policy, nullptr);
+
+    if (policy != nullptr) {
+        EXPECT_EQ(policy->n, 3);
+        EXPECT_EQ(policy->m, 2);
+
+        EXPECT_EQ(policy->r, 0);
+        EXPECT_EQ(policy->S, nullptr);
+
+        // Note: The value is -3.303775 because the horizon is 5; this is essentially 'max iterations'.
+        // This value can be verified exactly:
+        // -1+0.9*(
+        //     0.5*(-1+0.9*(
+        //         0.5*(-1+0.9*(
+        //             0.5*(-1+0.9*(
+        //                 0.5*(-1+0) +
+        //                 0.5*(-1+0))) +
+        //             0.5*(-1.9))) +
+        //         0.5*(-2.0))) +
+        //     0.5*(-2.0)) = -3.303775
+        EXPECT_NE(policy->V, nullptr);
+        if (policy->V != nullptr) {
+            EXPECT_NEAR(policy->V[0], -3.303775f, 1e-5f);
+            EXPECT_NEAR(policy->V[1], -2.0f, 1e-5f);
+            EXPECT_NEAR(policy->V[2], 0.0f, 1e-5f);
+        }
+
+        EXPECT_NE(policy->pi, nullptr);
+        if (policy->pi != nullptr) {
+            EXPECT_EQ(policy->pi[0], 0);
+            EXPECT_EQ(policy->pi[1], 1);
+            //EXPECT_EQ(policy->pi[2], 0);
+        }
+    }
+
+    if (policy != nullptr) {
+        result = nova::mdp_value_function_uninitialize(policy);
+        EXPECT_EQ(result, NOVA_SUCCESS);
+        delete policy;
+        policy = nullptr;
+    }
+
+    result = nova::mdp_uninitialize_cpu(mdp);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    delete mdp;
+}
+
+
 TEST(MDPVICPU, badExecution)
 {
-    nova::MDP *mdp = create_simple_mdp();
+    nova::MDP *mdp = create_simple_mdp(false);
+
     nova::MDPVICPU vi;
+    vi.VInitial = nullptr;
+
     nova::MDPValueFunction *policy = nullptr;
 
     int result = nova::mdp_vi_execute_cpu(nullptr, &vi, policy);
@@ -267,6 +334,7 @@ TEST(MDPVICPU, uninitialization)
     vi.V = new float[1];
     vi.VPrime = new float[1];
     vi.pi = new unsigned int[1];
+    vi.VInitial = nullptr;
 
     int result = nova::mdp_vi_uninitialize_cpu(&mdp, &vi);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -302,10 +370,12 @@ TEST(MDPVICPU, badUninitialization)
 
 // For performance reasons, there is no checking here, so we simply
 // are checking valid mathematics.
-TEST(MDPVICPU, update)
+TEST(MDPVICPU, updateSimpleMDP)
 {
-    nova::MDP *mdp = create_simple_mdp();
+    nova::MDP *mdp = create_simple_mdp(false);
+
     nova::MDPVICPU vi;
+    vi.VInitial = nullptr;
 
     int result = nova::mdp_vi_initialize_cpu(mdp, &vi);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -316,23 +386,87 @@ TEST(MDPVICPU, update)
     result = nova::mdp_vi_update_cpu(mdp, &vi);
     EXPECT_EQ(result, NOVA_SUCCESS);
     EXPECT_EQ(vi.currentHorizon, 1);
-    EXPECT_EQ(vi.V[0], 0.0f);
-    EXPECT_EQ(vi.VPrime[0], 1.0f);
+    EXPECT_NEAR(vi.V[0], 0.0f, 1e-5f);
+    EXPECT_NEAR(vi.VPrime[0], 1.0f, 1e-5f);
     EXPECT_EQ(vi.pi[0], 0);
 
     result = nova::mdp_vi_update_cpu(mdp, &vi);
     EXPECT_EQ(result, NOVA_SUCCESS);
     EXPECT_EQ(vi.currentHorizon, 2);
-    EXPECT_EQ(vi.V[0], 1.9f);
-    EXPECT_EQ(vi.VPrime[0], 1.0f);
+    EXPECT_NEAR(vi.V[0], 1.9f, 1e-5f);
+    EXPECT_NEAR(vi.VPrime[0], 1.0f, 1e-5f);
     EXPECT_EQ(vi.pi[0], 0);
 
     result = nova::mdp_vi_update_cpu(mdp, &vi);
     EXPECT_EQ(result, NOVA_SUCCESS);
     EXPECT_EQ(vi.currentHorizon, 3);
-    EXPECT_EQ(vi.V[0], 1.9f);
-    EXPECT_EQ(vi.VPrime[0], 2.71f);
+    EXPECT_NEAR(vi.V[0], 1.9f, 1e-5f);
+    EXPECT_NEAR(vi.VPrime[0], 2.71f, 1e-5f);
     EXPECT_EQ(vi.pi[0], 0);
+
+    result = nova::mdp_vi_uninitialize_cpu(mdp, &vi);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    result = nova::mdp_uninitialize_cpu(mdp);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    delete mdp;
+}
+
+
+TEST(MDPVICPU, updateThreeStateMDP)
+{
+    nova::MDP *mdp = create_three_state_mdp(false);
+
+    nova::MDPVICPU vi;
+    vi.VInitial = nullptr;
+
+    int result = nova::mdp_vi_initialize_cpu(mdp, &vi);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    vi.currentHorizon = 0;
+    vi.pi[0] = 1337;
+    vi.pi[1] = 1337;
+    vi.pi[2] = 1337;
+
+    result = nova::mdp_vi_update_cpu(mdp, &vi);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+    EXPECT_EQ(vi.currentHorizon, 1);
+    EXPECT_NEAR(vi.V[0], 0.0f, 1e-5f);
+    EXPECT_NEAR(vi.V[1], 0.0f, 1e-5f);
+    EXPECT_NEAR(vi.V[2], 0.0f, 1e-5f);
+    EXPECT_NEAR(vi.VPrime[0], -1.0f, 1e-5f);
+    EXPECT_NEAR(vi.VPrime[1], -1.0f, 1e-5f);
+    EXPECT_NEAR(vi.VPrime[2], 0.0f, 1e-5f);
+    EXPECT_EQ(vi.pi[0], 0);
+    EXPECT_EQ(vi.pi[1], 0);
+    //EXPECT_EQ(vi.pi[2], 0);
+
+    result = nova::mdp_vi_update_cpu(mdp, &vi);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+    EXPECT_EQ(vi.currentHorizon, 2);
+    EXPECT_NEAR(vi.V[0], -1.9f, 1e-5f);
+    EXPECT_NEAR(vi.V[1], -1.9f, 1e-5f);
+    EXPECT_NEAR(vi.V[2], 0.0f, 1e-5f);
+    EXPECT_NEAR(vi.VPrime[0], -1.0f, 1e-5f);
+    EXPECT_NEAR(vi.VPrime[1], -1.0f, 1e-5f);
+    EXPECT_NEAR(vi.VPrime[2], 0.0f, 1e-5f);
+    EXPECT_EQ(vi.pi[0], 0);
+    EXPECT_EQ(vi.pi[1], 0);
+    //EXPECT_EQ(vi.pi[2], 0);
+
+    result = nova::mdp_vi_update_cpu(mdp, &vi);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+    EXPECT_EQ(vi.currentHorizon, 3);
+    EXPECT_NEAR(vi.V[0], -1.9f, 1e-5f);
+    EXPECT_NEAR(vi.V[1], -1.9f, 1e-5f);
+    EXPECT_NEAR(vi.V[2], 0.0f, 1e-5f);
+    EXPECT_NEAR(vi.VPrime[0], -2.71f, 1e-5f);
+    EXPECT_NEAR(vi.VPrime[1], -2.0f, 1e-5f);
+    EXPECT_NEAR(vi.VPrime[2], 0.0f, 1e-5f);
+    EXPECT_EQ(vi.pi[0], 0);
+    EXPECT_EQ(vi.pi[1], 1);
+    //EXPECT_EQ(vi.pi[2], 0);
 
     result = nova::mdp_vi_uninitialize_cpu(mdp, &vi);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -357,16 +491,18 @@ TEST(MDPVICPU, getPolicy)
 
     nova::MDPVICPU vi;
     vi.V = new float[2];
-    vi.V[0] = 10;
-    vi.V[1] = 20;
+    vi.V[0] = 10.0f;
+    vi.V[1] = 20.0f;
 
     vi.VPrime = new float[2];
-    vi.VPrime[0] = 30;
-    vi.VPrime[1] = 40;
+    vi.VPrime[0] = 30.0f;
+    vi.VPrime[1] = 40.0f;
 
     vi.pi = new unsigned int[2];
     vi.pi[0] = 50;
     vi.pi[1] = 60;
+
+    vi.VInitial = nullptr;
 
     for (unsigned int i = 0; i < 5; i++) {
         vi.currentHorizon = i;
@@ -388,11 +524,11 @@ TEST(MDPVICPU, getPolicy)
             EXPECT_NE(policy->V, nullptr);
             if (policy->V != nullptr) {
                 if (i % 2 == 0) {
-                    EXPECT_EQ(policy->V[0], 10);
-                    EXPECT_EQ(policy->V[1], 20);
+                    EXPECT_NEAR(policy->V[0], 10.0f, 1e-5f);
+                    EXPECT_NEAR(policy->V[1], 20.0f, 1e-5f);
                 } else {
-                    EXPECT_EQ(policy->V[0], 30);
-                    EXPECT_EQ(policy->V[1], 40);
+                    EXPECT_NEAR(policy->V[0], 30.0f, 1e-5f);
+                    EXPECT_NEAR(policy->V[1], 40.0f, 1e-5f);
                 }
             }
 
@@ -418,7 +554,10 @@ TEST(MDPVICPU, getPolicy)
 TEST(MDPVICPU, badGetPolicy)
 {
     nova::MDP mdp;
+
     nova::MDPVICPU vi;
+    vi.VInitial = nullptr;
+
     nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     int result = nova::mdp_vi_get_policy_cpu(nullptr, nullptr, policy);
