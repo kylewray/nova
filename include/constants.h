@@ -30,8 +30,8 @@ namespace nova {
 
 // This is determined by hardware, so what is below is a 'safe' guess. If this is off, the
 // program might return 'nan' or 'inf'. These come from IEEE floating-point standards.
-#define FLT_MAX 1e+35
-#define FLT_MIN -1e+35
+#define FLT_MAX 1e+10
+#define FLT_MIN -1e+10
 #define FLT_ERR_TOL 1e-9
 
 };

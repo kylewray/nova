@@ -51,20 +51,25 @@ TEST(MDPVICPU, initialization)
     EXPECT_EQ(vi.currentHorizon, 0);
 
     EXPECT_NE(vi.V, nullptr);
-    EXPECT_NEAR(vi.V[0], 0.0f, 1e-5f);
-    EXPECT_NEAR(vi.V[1], 0.0f, 1e-5f);
+    if (vi.V != nullptr) {
+        EXPECT_NEAR(vi.V[0], 0.0f, 1e-5f);
+        EXPECT_NEAR(vi.V[1], 0.0f, 1e-5f);
+        delete [] vi.V;
+    }
 
     EXPECT_NE(vi.VPrime, nullptr);
-    EXPECT_NEAR(vi.VPrime[0], 0.0f, 1e-5f);
-    EXPECT_NEAR(vi.VPrime[1], 0.0f, 1e-5f);
+    if (vi.VPrime != nullptr) {
+        EXPECT_NEAR(vi.VPrime[0], 0.0f, 1e-5f);
+        EXPECT_NEAR(vi.VPrime[1], 0.0f, 1e-5f);
+        delete [] vi.VPrime;
+    }
 
     EXPECT_NE(vi.pi, nullptr);
-    EXPECT_EQ(vi.pi[0], 0);
-    EXPECT_EQ(vi.pi[1], 0);
-
-    delete [] vi.V;
-    delete [] vi.VPrime;
-    delete [] vi.pi;
+    if (vi.pi != nullptr) {
+        EXPECT_EQ(vi.pi[0], 0);
+        EXPECT_EQ(vi.pi[1], 0);
+        delete [] vi.pi;
+    }
 
     vi.VInitial = new float[2];
     vi.VInitial[0] = -1.0f;
@@ -76,20 +81,25 @@ TEST(MDPVICPU, initialization)
     EXPECT_EQ(vi.currentHorizon, 0);
 
     EXPECT_NE(vi.V, nullptr);
-    EXPECT_NEAR(vi.V[0], -1.0f, 1e-5f);
-    EXPECT_NEAR(vi.V[1], 1.0f, 1e-5f);
+    if (vi.V != nullptr) {
+        EXPECT_NEAR(vi.V[0], -1.0f, 1e-5f);
+        EXPECT_NEAR(vi.V[1], 1.0f, 1e-5f);
+        delete [] vi.V;
+    }
 
     EXPECT_NE(vi.VPrime, nullptr);
-    EXPECT_NEAR(vi.VPrime[0], -1.0f, 1e-5f);
-    EXPECT_NEAR(vi.VPrime[1], 1.0f, 1e-5f);
+    if (vi.VPrime != nullptr) {
+        EXPECT_NEAR(vi.VPrime[0], -1.0f, 1e-5f);
+        EXPECT_NEAR(vi.VPrime[1], 1.0f, 1e-5f);
+        delete [] vi.VPrime;
+    }
 
     EXPECT_NE(vi.pi, nullptr);
-    EXPECT_EQ(vi.pi[0], 0);
-    EXPECT_EQ(vi.pi[1], 0);
-
-    delete [] vi.V;
-    delete [] vi.VPrime;
-    delete [] vi.pi;
+    if (vi.pi != nullptr) {
+        EXPECT_EQ(vi.pi[0], 0);
+        EXPECT_EQ(vi.pi[1], 0);
+        delete [] vi.pi;
+    }
 
     delete [] vi.VInitial;
 }

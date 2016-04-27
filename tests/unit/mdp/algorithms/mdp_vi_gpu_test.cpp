@@ -221,7 +221,7 @@ TEST(MDPVIGPU, executionThreeStateMDP)
         //                 0.5*(-1+0))) +
         //             0.5*(-1.9))) +
         //         0.5*(-2.0))) +
-        //     0.5*(-2.0)) = -
+        //     0.5*(-2.0)) = -3.303775
         EXPECT_NE(policy->V, nullptr);
         if (policy->V != nullptr) {
             EXPECT_NEAR(policy->V[0], -3.303775f, 1e-5f);
