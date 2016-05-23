@@ -33,6 +33,11 @@ namespace nova {
 
 int mdp_initialize_gpu(MDP *mdp)
 {
+    if (mdp == nullptr) {
+        fprintf(stderr, "Error[mdp_initialize_gpu]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     int result = 0;
 
     result += mdp_initialize_successors_gpu(mdp);
@@ -48,6 +53,11 @@ int mdp_initialize_gpu(MDP *mdp)
 
 int mdp_uninitialize_gpu(MDP *mdp)
 {
+    if (mdp == nullptr) {
+        fprintf(stderr, "Error[mdp_uninitialize_gpu]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     int result = 0;
 
     result += mdp_uninitialize_successors_gpu(mdp);
