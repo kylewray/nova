@@ -174,7 +174,7 @@ int ssp_rtdp_execute_cpu(const MDP *mdp, SSPRTDPCPU *rtdp, MDPValueFunction *&po
     // First, ensure data is valid.
     if (mdp == nullptr || mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
-            mdp->horizon < 1 || mdp->epsilon < 0.0f ||
+            mdp->horizon < 1 ||
             mdp->ng < 1 || mdp->goals == nullptr ||
             rtdp == nullptr || rtdp->trials < 1 || policy != nullptr) {
         fprintf(stderr, "Error[ssp_rtdp_execute_cpu]: %s\n", "Invalid arguments.");

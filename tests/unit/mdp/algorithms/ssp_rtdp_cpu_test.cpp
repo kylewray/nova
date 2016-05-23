@@ -328,11 +328,6 @@ TEST(SSPRTDPCPU, badExecution)
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
     mdp->horizon = 3;
 
-    mdp->epsilon = -1.0f;
-    result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
-    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
-    mdp->epsilon = 0.9f;
-
     mdp->ng = 0;
     result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
