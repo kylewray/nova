@@ -50,7 +50,7 @@ class POMDPAlphaVectors(npav.NovaPOMDPAlphaVectors):
     def __del__(self):
         """ Free the memory of the policy when this object is deleted. """
 
-        result = npav._nova.pomdp_alpha_vectors_free(self)
+        result = npav._nova.pomdp_alpha_vectors_uninitialize(self)
         if result != 0:
             print("Failed to free the alpha vectors.")
             raise Exception()

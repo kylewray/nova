@@ -55,6 +55,6 @@ _nova.pomdp_alpha_vectors_value_and_action.argtypes = (ct.POINTER(NovaPOMDPAlpha
                                         ct.POINTER(ct.c_float),                 # b
                                         ct.POINTER(ct.c_float),                 # Vb
                                         ct.POINTER(ct.c_uint))                  # a
-_nova.pomdp_alpha_vectors_free.argtypes = tuple([ct.POINTER(NovaPOMDPAlphaVectors)])
+_nova.pomdp_alpha_vectors_uninitialize.argtypes = tuple([ct.POINTER(NovaPOMDPAlphaVectors)])
 
 

@@ -60,7 +60,7 @@ extern "C" int pomdp_alpha_vectors_value_and_action(const POMDPAlphaVectors *pol
  *  @param  policy  The resultant set of alpha-vectors. Arrays within will be freed.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_alpha_vectors_free(POMDPAlphaVectors *policy);
+extern "C" int pomdp_alpha_vectors_uninitialize(POMDPAlphaVectors *policy);
 
 };
 

@@ -142,7 +142,7 @@ novat_pomdp_policies.o: src/pomdp/policies/*.cpp
 
 
 #test_nova: test_nova_mdp.o test_nova_mdp_algorithms.o test_nova_mdp_utilities.o test_nova_mdp_policies.o test_nova_pomdp.o test_nova_pomdp_algorithms.o test_nova_pomdp_utilities.o test_nova_pomdp_policies.o
-test_nova: test_nova_mdp.o test_nova_mdp_algorithms.o test_nova_mdp_utilities.o test_nova_mdp_policies.o
+test_nova: test_nova_mdp.o test_nova_mdp_algorithms.o test_nova_mdp_utilities.o test_nova_mdp_policies.o test_nova_pomdp.o test_nova_pomdp_policies.o
 	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Iinclude/pomdp -Itests obj/*.o tests/unit/test_nova.cpp -o test_nova $(TEST_LIB_FLAGS)
 	chmod +x test_nova
 	mkdir -p bin
@@ -170,11 +170,11 @@ test_nova_mdp_policies.o: tests/unit/mdp/policies/*.cpp
 	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Itests -c tests/unit/mdp/policies/*.cpp
 	mv *.o obj
 
-#test_nova_pomdp.o: tests/unit/pomdp/*.cpp
-#	mkdir -p obj
-#	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/*.cpp
-#	mv *.o obj
-#
+test_nova_pomdp.o: tests/unit/pomdp/*.cpp
+	mkdir -p obj
+	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/*.cpp
+	mv *.o obj
+
 #test_nova_pomdp_algorithms.o: tests/unit/pomdp/algorithms/*.cpp
 #	mkdir -p obj
 #	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/algorithms/*.cpp
@@ -184,11 +184,11 @@ test_nova_mdp_policies.o: tests/unit/mdp/policies/*.cpp
 #	mkdir -p obj
 #	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/utilities/*.cpp
 #	mv *.o obj
-#
-#test_nova_pomdp_policies.o: tests/unit/pomdp/policies/*.cpp
-#	mkdir -p obj
-#	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/policies/*.cpp
-#	mv *.o obj
+
+test_nova_pomdp_policies.o: tests/unit/pomdp/policies/*.cpp
+	mkdir -p obj
+	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/policies/*.cpp
+	mv *.o obj
 
 
 run_tests:

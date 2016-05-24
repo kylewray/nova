@@ -23,16 +23,24 @@
 
 
 #include "policies/pomdp_alpha_vectors.h"
-#include "error_codes.h"
-#include "constants.h"
 
 #include <stdio.h>
+
+#include "error_codes.h"
+#include "constants.h"
 
 namespace nova {
 
 int pomdp_alpha_vectors_value_and_action(const POMDPAlphaVectors *policy,
     const float *b, float &Vb, unsigned int &a)
 {
+    if (policy == nullptr || policy->n == 0 || policy->m == 0 || policy->r == 0 ||
+            policy->Gamma == nullptr || policy->pi == nullptr ||
+            b == nullptr) {
+        fprintf(stderr, "Error[pomdp_alpha_vectors_value_and_action]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     Vb = FLT_MIN;
     a = 0;
 
@@ -53,8 +61,13 @@ int pomdp_alpha_vectors_value_and_action(const POMDPAlphaVectors *policy,
 }
 
 
-int pomdp_alpha_vectors_free(POMDPAlphaVectors *policy)
+int pomdp_alpha_vectors_uninitialize(POMDPAlphaVectors *policy)
 {
+    if (policy == nullptr) {
+        fprintf(stderr, "Error[pomdp_alpha_vectors_uninitialize]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     policy->n = 0;
     policy->m = 0;
     policy->r = 0;
