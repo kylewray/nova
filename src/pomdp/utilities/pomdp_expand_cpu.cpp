@@ -54,7 +54,8 @@ int pomdp_expand_construct_belief_cpu(const POMDP *pomdp, unsigned int i, float 
 }
 
 
-int pomdp_expand_probability_observation_cpu(const POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float &prObs)
+int pomdp_expand_probability_observation_cpu(const POMDP *pomdp, const float *b, unsigned int a,
+    unsigned int o, float &prObs)
 {
     prObs = 0.0f;
 
@@ -68,7 +69,7 @@ int pomdp_expand_probability_observation_cpu(const POMDP *pomdp, const float *b,
             }
 
             val += pomdp->T[s * pomdp->m * pomdp->ns + a * pomdp->ns + i] *
-                    pomdp->O[a * pomdp->n * pomdp->z + sp * pomdp->z + o];
+                   pomdp->O[a * pomdp->n * pomdp->z + sp * pomdp->z + o];
         }
 
         prObs += val * b[s];
@@ -78,7 +79,8 @@ int pomdp_expand_probability_observation_cpu(const POMDP *pomdp, const float *b,
 }
 
 
-int pomdp_expand_update_max_non_zero_values_cpu(const POMDP *pomdp, const float *b, unsigned int *maxNonZeroValues)
+int pomdp_expand_update_max_non_zero_values_cpu(const POMDP *pomdp, const float *b,
+    unsigned int &maxNonZeroValues)
 {
     unsigned int numNonZeroValues = 0;
     for (unsigned int s = 0; s < pomdp->n; s++) {
@@ -86,19 +88,30 @@ int pomdp_expand_update_max_non_zero_values_cpu(const POMDP *pomdp, const float 
             numNonZeroValues++;
         }
     }
-    if (numNonZeroValues > *maxNonZeroValues) {
-        *maxNonZeroValues = numNonZeroValues;
+    if (numNonZeroValues > maxNonZeroValues) {
+        maxNonZeroValues = numNonZeroValues;
     }
 
     return NOVA_SUCCESS;
 }
 
 
-int pomdp_expand_random_cpu(const POMDP *pomdp, unsigned int numDesiredBeliefPoints, unsigned int *maxNonZeroValues, float *Bnew)
+int pomdp_expand_random_cpu(const POMDP *pomdp, unsigned int numDesiredBeliefPoints,
+    unsigned int &maxNonZeroValues, float *&Bnew)
 {
+    // Ensure the data is valid.
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
+            pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
+            pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
+            pomdp->Z == nullptr || pomdp->B == nullptr || pomdp->horizon < 1 ||
+            numDesiredBeliefPoints <= 1 || Bnew != nullptr) {
+        fprintf(stderr, "Error[pomdp_expand_random_cpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     srand(time(nullptr));
 
-    *maxNonZeroValues = 0;
+    maxNonZeroValues = 0;
 
     // Setup the initial belief point.
     float *b0 = new float[pomdp->n];
@@ -107,7 +120,8 @@ int pomdp_expand_random_cpu(const POMDP *pomdp, unsigned int numDesiredBeliefPoi
     float *b = new float[pomdp->n];
     unsigned int i = 1;
 
-    // The first one is always the initial seed belief.
+    // Create the new beliefs matrix. The first one is always the initial seed belief.
+    Bnew = new float[numDesiredBeliefPoints * pomdp->n];
     memcpy(&Bnew[0 * pomdp->n], b0, pomdp->n * sizeof(float));
 
     // For each belief point we want to expand. Each step will generate a new trajectory
@@ -142,7 +156,7 @@ int pomdp_expand_random_cpu(const POMDP *pomdp, unsigned int numDesiredBeliefPoi
             }
 
             // Follow the belief update equation to compute b' for all state primes s'.
-            float *bp = new float[pomdp->n];
+            float *bp = nullptr;
             pomdp_belief_update_cpu(pomdp, b, a, o, bp);
             memcpy(b, bp, pomdp->n * sizeof(float));
             delete [] bp;
@@ -168,9 +182,22 @@ int pomdp_expand_random_cpu(const POMDP *pomdp, unsigned int numDesiredBeliefPoi
 }
 
 
-int pomdp_expand_distinct_beliefs_cpu(const POMDP *pomdp, unsigned int *maxNonZeroValues, float *Bnew)
+int pomdp_expand_distinct_beliefs_cpu(const POMDP *pomdp, unsigned int &maxNonZeroValues, float *&Bnew)
 {
-    *maxNonZeroValues = 0;
+    // Ensure the data is valid.
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
+            pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
+            pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
+            pomdp->Z == nullptr || pomdp->B == nullptr ||
+            Bnew != nullptr) {
+        fprintf(stderr, "Error[pomdp_expand_distinct_beliefs_cpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    maxNonZeroValues = 0;
+
+    // Create the new beliefs matrix.
+    Bnew = new float[pomdp->r * pomdp->n];
 
     for (unsigned int i = 0; i < pomdp->r; i++) {
         // Construct a belief to use in computing b'.
@@ -185,14 +212,16 @@ int pomdp_expand_distinct_beliefs_cpu(const POMDP *pomdp, unsigned int *maxNonZe
         for (unsigned int a = 0; a < pomdp->m; a++) {
             for (unsigned int o = 0; o < pomdp->z; o++) {
                 // Compute b'.
-                float *bp = new float[pomdp->n];
+                float *bp = nullptr;
                 unsigned int result = pomdp_belief_update_cpu(pomdp, b, a, o, bp);
 
                 // Since we are iterating over observations, we may examine an observation
                 // which is impossible given the current belief. This is based on the POMDP.
                 // Thus, this is an invalid successor belief state, so continue.
-                if (result == NOVA_WARNING_INVALID_BELIEF) {
-                    delete [] bp;
+                if (result != NOVA_SUCCESS) {
+                    if (bp != nullptr) {
+                        delete [] bp;
+                    }
                     continue;
                 }
 
@@ -240,9 +269,21 @@ int pomdp_expand_distinct_beliefs_cpu(const POMDP *pomdp, unsigned int *maxNonZe
 
 
 int pomdp_expand_pema_cpu(const POMDP *pomdp, const POMDPAlphaVectors *policy,
-    unsigned int *maxNonZeroValues, float *Bnew)
+    unsigned int &maxNonZeroValues, float *&Bnew)
 {
-    *maxNonZeroValues = 0;
+    // Ensure the data is valid.
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
+            pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
+            pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
+            pomdp->Z == nullptr || pomdp->B == nullptr ||
+            Bnew != nullptr) {
+        fprintf(stderr, "Error[pomdp_expand_pema_cpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    // Create the new beliefs matrix.
+    Bnew = new float[1 * pomdp->n];
+    maxNonZeroValues = 0;
 
     float bStarEpsilonErrorBound = FLT_MIN;
 
@@ -305,14 +346,16 @@ int pomdp_expand_pema_cpu(const POMDP *pomdp, const POMDPAlphaVectors *policy,
                 }
 
                 // With the current action and observation compute b'(b, a, o).
-                float *bp = new float[pomdp->n];
+                float *bp = nullptr;
                 unsigned int result = pomdp_belief_update_cpu(pomdp, b, a, o, bp);
 
                 // Since we are iterating over observations, we may examine an observation
                 // which is impossible given the current belief. This is based on the POMDP.
                 // Thus, this is an invalid successor belief state, so continue.
-                if (result == NOVA_WARNING_INVALID_BELIEF) {
-                    delete [] bp;
+                if (result != NOVA_SUCCESS) {
+                    if (bp != nullptr) {
+                        delete [] bp;
+                    }
                     continue;
                 }
 
@@ -360,9 +403,11 @@ int pomdp_expand_pema_cpu(const POMDP *pomdp, const POMDPAlphaVectors *policy,
                 float epsilonBeliefPrime = 0.0f;
                 for (unsigned int s = 0; s < pomdp->n; s++) {
                     if (bp[s] >= b[s]) {
-                        epsilonBeliefPrime += (Rmax / (1.0f - pomdp->gamma) - policy->Gamma[alphaIndexStar * pomdp->n + s]) * (bp[s] - bClosest[s]);
+                        epsilonBeliefPrime += (Rmax / (1.0f - pomdp->gamma) -
+                                policy->Gamma[alphaIndexStar * pomdp->n + s]) * (bp[s] - bClosest[s]);
                     } else {
-                        epsilonBeliefPrime += (Rmin / (1.0f - pomdp->gamma) - policy->Gamma[alphaIndexStar * pomdp->n + s]) * (bp[s] - bClosest[s]);
+                        epsilonBeliefPrime += (Rmin / (1.0f - pomdp->gamma) -
+                                policy->Gamma[alphaIndexStar * pomdp->n + s]) * (bp[s] - bClosest[s]);
                     }
                 }
 
@@ -388,7 +433,19 @@ int pomdp_expand_pema_cpu(const POMDP *pomdp, const POMDPAlphaVectors *policy,
         // We are looking for the largest value possible.
         if (aStarValue > bStarEpsilonErrorBound) {
             // With the best action, compute b'(b, aStar, oStar[aStar]) from the initial b (from i).
-            pomdp_belief_update_cpu(pomdp, b, aStar, oStar[aStar], &Bnew[0 * pomdp->n]);
+            // In the rare case of a failure, just copy the original belief.
+            float *bp = nullptr;
+            unsigned int result = pomdp_belief_update_cpu(pomdp, b, aStar, oStar[aStar], bp);
+
+            if (result == NOVA_SUCCESS) {
+                memcpy(&Bnew[0 * pomdp->n], bp, pomdp->n * sizeof(float));
+            } else {
+                memcpy(&Bnew[0 * pomdp->n], b, pomdp->n * sizeof(float));
+            }
+
+            if (bp != nullptr) {
+                delete [] bp;
+            }
 
             bStarEpsilonErrorBound = aStarValue;
         }

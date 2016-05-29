@@ -38,21 +38,24 @@ bool pomdp_sigma_pair_comparator_cpu(const SigmaPair &bl, const SigmaPair &br)
 }
 
 
-int pomdp_sigma_cpu(POMDP *pomdp, unsigned int rz, float *Bnew, int *Znew, float *sigma)
+int pomdp_sigma_cpu(POMDP *pomdp, unsigned int numDesiredNonZeroValues, int *&Znew, float *&Bnew, float &sigma)
 {
-    // Ensure valid input.
-    if (rz == 0 || Bnew == nullptr || Znew == nullptr) {
-        fprintf(stderr, "Error[pomdp_sigma_cpu]: %s\n", "Invalid data.");
+    // Ensure the data is valid.
+    if (pomdp == nullptr || pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
+            pomdp->Z == nullptr || pomdp->B == nullptr ||
+            numDesiredNonZeroValues == 0 || Znew != nullptr || Bnew != nullptr) {
+        fprintf(stderr, "Error[pomdp_sigma_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    *sigma = 1.0;
-
-    // Note: We assume Bnew has been created to be an r-rz array (the *new* rz provided).
+    // Create the belief return variables.
+    Znew = new int[pomdp->r * numDesiredNonZeroValues];
+    Bnew = new float[pomdp->r * numDesiredNonZeroValues];
+    sigma = 1.0;
 
     // For each belief point, we need to sort the values in descending order, then take
-    // the top rz belief values, normalize them, and store them in the correct positions
-    // in Bnew.
+    // the top numDesiredNonZeroValues belief values, normalize them, and store them in
+    // the correct positions in Bnew.
     for (unsigned int i = 0; i < pomdp->r; i++) {
         // Construct the belief point and sort, remembering the original indexes.
         std::vector<SigmaPair> b;
@@ -62,51 +65,26 @@ int pomdp_sigma_cpu(POMDP *pomdp, unsigned int rz, float *Bnew, int *Znew, float
 
         std::sort(b.begin(), b.end(), pomdp_sigma_pair_comparator_cpu);
 
-        /*
-        printf("b[i] = ");
-        for (unsigned int k = 0; k < pomdp->rz; k++) {
-            printf("%.3f, ", pomdp->B[i * pomdp->rz + k]);
-        }
-        printf("\n");
-
-        printf("sorted{B[i]} = ");
-        for (unsigned int k = 0; k < pomdp->rz; k++) {
-            printf("<%.3f, %i>, ", b[k].first, b[k].second);
-        }
-        printf("\n");
-        //*/
-
         // Compute the normalization constant (sigma_b).
         float sigmab = 0.0f;
-        for (unsigned int k = 0; k < rz; k++) {
+        for (unsigned int k = 0; k < numDesiredNonZeroValues; k++) {
             sigmab += b[k].first;
         }
 
-        if (sigmab < *sigma) {
-            *sigma = sigmab;
+        if (sigmab < sigma) {
+            sigma = sigmab;
         }
 
         // Take the top rz belief values to construct the new Bnew.
-        for (unsigned int k = 0; k < rz; k++) {
+        for (unsigned int k = 0; k < numDesiredNonZeroValues; k++) {
             if (b[k].first > 0.0f) {
-                Bnew[i * rz + k] = b[k].first / sigmab;
-                Znew[i * rz + k] = b[k].second;
+                Bnew[i * numDesiredNonZeroValues + k] = b[k].first / sigmab;
+                Znew[i * numDesiredNonZeroValues + k] = b[k].second;
             } else {
-                Bnew[i * rz + k] = 0.0f;
-                Znew[i * rz + k] = -1;
+                Bnew[i * numDesiredNonZeroValues + k] = 0.0f;
+                Znew[i * numDesiredNonZeroValues + k] = -1;
             }
         }
-
-        /*
-        printf("hat{b}[i] = ");
-        for (unsigned int k = 0; k < rz; k++) {
-            printf("%.3f, ", b[k].first);
-        }
-        printf("\n");
-
-        printf("sigma = %.3f\n", sigmab);
-        printf("----------------------------\n");
-        //*/
     }
 
     return NOVA_SUCCESS;

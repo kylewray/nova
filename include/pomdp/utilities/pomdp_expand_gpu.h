@@ -39,11 +39,13 @@ namespace nova {
  *  @param  numThreads              The number of CUDA threads per block. Use multiples of 32.
  *  @param  numDesiredBeliefPoints  The number of belief points desired after randomly adding beliefs.
  *  @param  maxNonZeroValues        The maximum number of non-zero values over all new belief points.
+ *                                  This will be created and modified.
  *  @param  Bnew                    The new (raw) resultant belief points (numDesiredBeliefPoints-n array).
+ *                                  This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_expand_random_gpu(const POMDP *pomdp, unsigned int numThreads,
-        unsigned int numDesiredBeliefPoints, unsigned int *maxNonZeroValues, float *Bnew);
+        unsigned int numDesiredBeliefPoints, unsigned int &maxNonZeroValues, float *&Bnew);
 
 };
 

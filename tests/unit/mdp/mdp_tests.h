@@ -22,8 +22,8 @@
  */
 
 
-#ifndef MDP_TEST_H
-#define MDP_TEST_H
+#ifndef MDP_TESTS_H
+#define MDP_TESTS_H
 
 
 #include "mdp.h"
@@ -49,5 +49,5 @@ nova::MDP *create_three_state_mdp(bool ssp);
 }; // namespace nova
 
 
-#endif // MDP_TEST_H
+#endif // MDP_TESTS_H
 

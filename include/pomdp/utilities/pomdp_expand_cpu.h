@@ -34,40 +34,48 @@ namespace nova {
 /**
  *  Expand the set of beliefs following random trajectories (e.g., Perseus' expansion). This assumes that
  *  the variable B contains only one element: The initial belief b0. From this, B is expanded to the
- *  size specified; all are reachable belief points from random horizons. This assigns numDesiredBeliefPoints
- *  new elements to Bnew.
+ *  size specified; all are reachable belief points from random horizons. The new numDesiredBeliefPoints
+ *  number of belief points are created in Bnew.
  *  @param  pomdp                   The POMDP object.
  *  @param  numDesiredBeliefPoints  The number of belief points desired after randomly adding beliefs.
  *  @param  maxNonZeroValues        The maximum number of non-zero values over all new belief points.
+ *                                  This will be modified.
  *  @param  Bnew                    The new (raw) resultant belief points (numDesiredBeliefPoints-n array).
+ *                                  This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_expand_random_cpu(const POMDP *pomdp, unsigned int numDesiredBeliefPoints,
-        unsigned int *maxNonZeroValues, float *Bnew);
+        unsigned int &maxNonZeroValues, float *&Bnew);
 
 /**
  *  Expand the set of beliefs by selecting the most distinct successor belief possible for each belief
- *  in the current set B (e.g., PBVI's original expansion). This assigns pomdp->r new elements to Bnew.
+ *  in the current set B (e.g., PBVI's original expansion). The new pomdp->r number of belief points
+ *  are created in Bnew.
  *  @param  pomdp               The POMDP object.
  *  @param  maxNonZeroValues    The maximum number of non-zero values over all new belief points.
+ *                              This will be modified.
  *  @param  Bnew                The new (raw) resultant belief points (r-n array).
+ *                              This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_expand_distinct_beliefs_cpu(const POMDP *pomdp, unsigned int *maxNonZeroValues, float *Bnew);
+extern "C" int pomdp_expand_distinct_beliefs_cpu(const POMDP *pomdp, unsigned int &maxNonZeroValues,
+        float *&Bnew);
 
 /**
  *  Expand the set of beliefs following the Point-based Error Minimization Algorithm (PEMA)
- *  variation of PBVI. This assigns one new element to Bnew.
+ *  variation of PBVI. The new single belief point is created in Bnew.
  *  @param  pomdp               The POMDP object.
  *  @param  Rmin                The minimum reward.
  *  @param  Rmax                The maximum reward.
  *  @param  Gamma               The alpha-vectors from the solution for the current B (r-n array).
  *  @param  maxNonZeroValues    The maximum number of non-zero values over all new belief points.
+ *                              This will be modified.
  *  @param  Bnew                The new (raw) resultant belief points (r-n array).
+ *                              This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_expand_pema_cpu(const POMDP *pomdp, const POMDPAlphaVectors *policy,
-        unsigned int *maxNonZeroValues, float *Bnew);
+        unsigned int &maxNonZeroValues, float *&Bnew);
 
 };
 

@@ -55,11 +55,12 @@ typedef struct NovaMDPValueFunction {
 } MDPValueFunction;
 
 /**
- *  Free the memory for *only* the policy's internal arrays.
+ *  Free the memory for *both* the policy's internal arrays *and* the policy itself.
  *  @param  policy  The resultant value function. Arrays within will be freed.
+ *                  This will be freed and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int mdp_value_function_uninitialize(MDPValueFunction *policy);
+extern "C" int mdp_value_function_uninitialize(MDPValueFunction *&policy);
 
 };
 

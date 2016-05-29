@@ -118,7 +118,7 @@ int pomdp_expand_probability_observation_gpu(const POMDP *pomdp, const float *b,
 
 
 int pomdp_expand_update_max_non_zero_values_gpu(const POMDP *pomdp, const float *b,
-    unsigned int *maxNonZeroValues)
+    unsigned int &maxNonZeroValues)
 {
     unsigned int numNonZeroValues = 0;
     for (unsigned int s = 0; s < pomdp->n; s++) {
@@ -126,21 +126,30 @@ int pomdp_expand_update_max_non_zero_values_gpu(const POMDP *pomdp, const float 
             numNonZeroValues++;
         }
     }
-    if (numNonZeroValues > *maxNonZeroValues) {
-        *maxNonZeroValues = numNonZeroValues;
+    if (numNonZeroValues > maxNonZeroValues) {
+        maxNonZeroValues = numNonZeroValues;
     }
 
     return NOVA_SUCCESS;
 }
 
 
-int pomdp_expand_random_gpu(const POMDP *pomdp, unsigned int numThreads,
-    unsigned int numDesiredBeliefPoints,
-    unsigned int *maxNonZeroValues, float *Bnew)
+int pomdp_expand_random_gpu(const POMDP *pomdp, unsigned int numThreads, unsigned int numDesiredBeliefPoints,
+    unsigned int &maxNonZeroValues, float *&Bnew)
 {
+    // Ensure the data is valid.
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
+            pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
+            pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
+            pomdp->Z == nullptr || pomdp->B == nullptr || pomdp->horizon < 1 ||
+            numDesiredBeliefPoints <= 1 || Bnew != nullptr) {
+        fprintf(stderr, "Error[pomdp_expand_random_gpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     srand(time(nullptr));
 
-    *maxNonZeroValues = 0;
+    maxNonZeroValues = 0;
 
     // Setup the initial belief point.
     float *b0 = new float[pomdp->n];
@@ -149,7 +158,8 @@ int pomdp_expand_random_gpu(const POMDP *pomdp, unsigned int numThreads,
     float *b = new float[pomdp->n];
     unsigned int i = 1;
 
-    // The first one is always the initial seed belief.
+    // Create the new beliefs matrix. The first one is always the initial seed belief.
+    Bnew = new float[numDesiredBeliefPoints * pomdp->n];
     memcpy(&Bnew[0 * pomdp->n], b0, pomdp->n * sizeof(float));
 
     // For each belief point we want to expand. Each step will generate a new trajectory

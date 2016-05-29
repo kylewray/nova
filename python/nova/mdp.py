@@ -159,6 +159,7 @@ class MDP(nm.NovaMDP):
 
         self.gpuIsInitialized = False
 
+    # TODO: REMOVE THIS. IT HAS BEEN REPLACED BY SEPARATE CLASSES.
     def solve(self, algorithm='vi', process='gpu', numThreads=1024, heuristic=None):
         """ Solve the MDP using the nova Python wrapper.
 

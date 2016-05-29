@@ -22,7 +22,7 @@
  */
 
 
-#include "algorithms/ssp_rtdp_cpu.h"
+#include "algorithms/ssp_lao_star_cpu.h"
 
 #include <gtest/gtest.h>
 
@@ -30,129 +30,118 @@
 #include "error_codes.h"
 #include "constants.h"
 
-#include "unit/mdp/mdp_test.h"
+#include "unit/mdp/mdp_tests.h"
 
 
 namespace nova {
 namespace tests {
 
-TEST(SSPRTDPCPU, initialization)
+TEST(SSPLAOStarCPU, initialization)
 {
-    srand(42); // Force random behavior to be deterministic.
-
     nova::MDP mdp;
     mdp.n = 2;
-    mdp.m = 1337;
 
-    nova::SSPRTDPCPU rtdp;
-    rtdp.VInitial = nullptr;
-    rtdp.trials = 100;
+    nova::SSPLAOStarCPU lao;
+    lao.VInitial = nullptr;
 
-    int result = nova::ssp_rtdp_initialize_cpu(&mdp, &rtdp);
+    int result = nova::ssp_lao_star_initialize_cpu(&mdp, &lao);
     EXPECT_EQ(result, NOVA_SUCCESS);
 
-    EXPECT_EQ(rtdp.VInitial, nullptr);
-    EXPECT_EQ(rtdp.currentHorizon, 0);
+    EXPECT_EQ(lao.VInitial, nullptr);
+    EXPECT_EQ(lao.currentHorizon, 0);
 
-    EXPECT_NE(rtdp.V, nullptr);
-    if (rtdp.V != nullptr) {
-        EXPECT_NEAR(rtdp.V[0], 0.0f, 1e-5f);
-        EXPECT_NEAR(rtdp.V[1], 0.0f, 1e-5f);
-        delete [] rtdp.V;
+    EXPECT_NE(lao.V, nullptr);
+    if (lao.V != nullptr) {
+        EXPECT_NEAR(lao.V[0], 0.0f, 1e-5f);
+        EXPECT_NEAR(lao.V[1], 0.0f, 1e-5f);
+        delete [] lao.V;
     }
 
-    EXPECT_NE(rtdp.pi, nullptr);
-    if (rtdp.pi != nullptr) {
-        EXPECT_EQ(rtdp.pi[0], 1337);
-        EXPECT_EQ(rtdp.pi[1], 1337);
-        delete [] rtdp.pi;
+    EXPECT_NE(lao.pi, nullptr);
+    if (lao.pi != nullptr) {
+        EXPECT_EQ(lao.pi[0], 0);
+        EXPECT_EQ(lao.pi[1], 0);
+        delete [] lao.pi;
     }
 
-    rtdp.VInitial = new float[2];
-    rtdp.VInitial[0] = -1.0f;
-    rtdp.VInitial[1] = 1.0f;
+    lao.VInitial = new float[2];
+    lao.VInitial[0] = -1.0f;
+    lao.VInitial[1] = 1.0f;
 
-    result = nova::ssp_rtdp_initialize_cpu(&mdp, &rtdp);
+    result = nova::ssp_lao_star_initialize_cpu(&mdp, &lao);
     EXPECT_EQ(result, NOVA_SUCCESS);
 
-    EXPECT_EQ(rtdp.currentHorizon, 0);
+    EXPECT_EQ(lao.currentHorizon, 0);
 
-    EXPECT_NE(rtdp.V, nullptr);
-    if (rtdp.V != nullptr) {
-        EXPECT_NEAR(rtdp.V[0], -1.0f, 1e-5f);
-        EXPECT_NEAR(rtdp.V[1], 1.0f, 1e-5f);
-        delete [] rtdp.V;
+    EXPECT_NE(lao.V, nullptr);
+    if (lao.V != nullptr) {
+        EXPECT_NEAR(lao.V[0], -1.0f, 1e-5f);
+        EXPECT_NEAR(lao.V[1], 1.0f, 1e-5f);
+        delete [] lao.V;
     }
 
-    EXPECT_NE(rtdp.pi, nullptr);
-    if (rtdp.pi != nullptr) {
-        EXPECT_EQ(rtdp.pi[0], 1337);
-        EXPECT_EQ(rtdp.pi[1], 1337);
-        delete [] rtdp.pi;
+    EXPECT_NE(lao.pi, nullptr);
+    if (lao.pi != nullptr) {
+        EXPECT_EQ(lao.pi[0], 0);
+        EXPECT_EQ(lao.pi[1], 0);
+        delete [] lao.pi;
     }
 
-    delete [] rtdp.VInitial;
+    delete [] lao.VInitial;
 }
 
 
-TEST(SSPRTDPCPU, badInitializations)
+TEST(SSPLAOStarCPU, badInitializations)
 {
-    srand(42); // Force random behavior to be deterministic.
-
     nova::MDP mdp;
     mdp.n = 0;
-    mdp.m = 0;
 
-    nova::SSPRTDPCPU rtdp;
-    rtdp.VInitial = new float[2];
-    rtdp.VInitial[0] = -1.0f;
-    rtdp.VInitial[1] = 1.0f;
-    rtdp.trials = 100;
+    nova::SSPLAOStarCPU lao;
+    lao.VInitial = new float[2];
+    lao.VInitial[0] = -1.0f;
+    lao.VInitial[1] = 1.0f;
 
     int result = 0;
 
     bool requiresCleanup = false;
 
-    result = nova::ssp_rtdp_initialize_cpu(nullptr, &rtdp);
+    result = nova::ssp_lao_star_initialize_cpu(nullptr, &lao);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
     if (result != NOVA_ERROR_INVALID_DATA) {
         requiresCleanup = true;
     }
 
-    result = nova::ssp_rtdp_initialize_cpu(&mdp, nullptr);
+    result = nova::ssp_lao_star_initialize_cpu(&mdp, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
     if (result != NOVA_ERROR_INVALID_DATA) {
         requiresCleanup = true;
     }
 
-    result = nova::ssp_rtdp_initialize_cpu(&mdp, &rtdp);
+    result = nova::ssp_lao_star_initialize_cpu(&mdp, &lao);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
     if (result != NOVA_ERROR_INVALID_DATA) {
         requiresCleanup = true;
     }
 
     if (requiresCleanup) {
-        result = nova::ssp_rtdp_uninitialize_cpu(&mdp, &rtdp);
+        result = nova::ssp_lao_star_uninitialize_cpu(&mdp, &lao);
         EXPECT_EQ(result, NOVA_SUCCESS);
     }
 
-    delete [] rtdp.VInitial;
+    delete [] lao.VInitial;
 }
 
 
-TEST(SSPRTDPCPU, executionSimpleMDP)
+TEST(SSPLAOStarCPU, executionSimpleMDP)
 {
-    srand(42); // Force random behavior to be deterministic.
-
     nova::MDP *mdp = create_simple_mdp(true);
 
-    nova::SSPRTDPCPU rtdp;
-    rtdp.VInitial = nullptr;
-    rtdp.trials = 100;
+    nova::SSPLAOStarCPU lao;
+    lao.VInitial = nullptr;
 
     nova::MDPValueFunction *policy = nullptr;
 
-    int result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
+    int result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
 
     EXPECT_NE(policy, nullptr);
@@ -171,8 +160,7 @@ TEST(SSPRTDPCPU, executionSimpleMDP)
         // In the limit, this should be infinity.
         EXPECT_NE(policy->V, nullptr);
         if (policy->V != nullptr) {
-            //EXPECT_EQ(policy->V[0], FLT_MAX);
-            EXPECT_NEAR((double)policy->V[0], (double)FLT_MAX, (double)1.0);
+            EXPECT_NEAR(policy->V[0], 3.0f, 1e-5f);
         }
 
         EXPECT_NE(policy->pi, nullptr);
@@ -195,19 +183,16 @@ TEST(SSPRTDPCPU, executionSimpleMDP)
 }
 
 
-TEST(SSPRTDPCPU, executionThreeStateMDP)
+TEST(SSPLAOStarCPU, executionThreeStateMDP)
 {
-    srand(42); // Force random behavior to be deterministic.
-
     nova::MDP *mdp = create_three_state_mdp(true);
 
-    nova::SSPRTDPCPU rtdp;
-    rtdp.VInitial = nullptr;
-    rtdp.trials = 100;
+    nova::SSPLAOStarCPU lao;
+    lao.VInitial = nullptr;
 
     nova::MDPValueFunction *policy = nullptr;
 
-    int result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
+    int result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
 
     EXPECT_NE(policy, nullptr);
@@ -229,9 +214,9 @@ TEST(SSPRTDPCPU, executionThreeStateMDP)
         // 1+0.5*2+0.5*(1 + 0.5*2+0.5*(1 + 0.5*2+0.5*(1 + 0.5*2+0.5*(1 + 0.5*1+0.5*0)))) = 3.84375
         EXPECT_NE(policy->V, nullptr);
         if (policy->V != nullptr) {
-            EXPECT_NEAR(policy->V[0], 4.0f, 1e-1f);
-            EXPECT_NEAR(policy->V[1], 2.0f, 1e-1f);
-            //EXPECT_NEAR(policy->V[2], 0.0f, 1e-1f);
+            EXPECT_NEAR(policy->V[0], 3.84375f, 1e-5f);
+            EXPECT_NEAR(policy->V[1], 2.0f, 1e-5f);
+            //EXPECT_NEAR(policy->V[2], 0.0f, 1e-5f);
         }
 
         EXPECT_NE(policy->pi, nullptr);
@@ -256,40 +241,37 @@ TEST(SSPRTDPCPU, executionThreeStateMDP)
 }
 
 
-TEST(SSPRTDPCPU, badExecution)
+TEST(SSPLAOStarCPU, badExecution)
 {
-    srand(42); // Force random behavior to be deterministic.
-
     nova::MDP *mdp = create_simple_mdp(true);
 
-    nova::SSPRTDPCPU rtdp;
-    rtdp.VInitial = nullptr;
-    rtdp.trials = 100;
+    nova::SSPLAOStarCPU lao;
+    lao.VInitial = nullptr;
 
     nova::MDPValueFunction *policy = nullptr;
 
-    int result = nova::ssp_rtdp_execute_cpu(nullptr, &rtdp, policy);
+    int result = nova::ssp_lao_star_execute_cpu(nullptr, &lao, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
-    result = nova::ssp_rtdp_execute_cpu(mdp, nullptr, policy);
+    result = nova::ssp_lao_star_execute_cpu(mdp, nullptr, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
     policy = new nova::MDPValueFunction();
-    result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
+    result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
     mdp->n = 0;
-    result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
+    result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
     mdp->n = 1;
 
     mdp->ns = 0;
-    result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
+    result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
     mdp->ns = 1;
 
     mdp->m = 0;
-    result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
+    result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
     mdp->m = 1;
 
@@ -297,45 +279,50 @@ TEST(SSPRTDPCPU, badExecution)
 
     tempAddress = mdp->S;
     mdp->S = nullptr;
-    result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
+    result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
     mdp->S = (int *)tempAddress;
 
     tempAddress = mdp->T;
     mdp->T = nullptr;
-    result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
+    result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
     mdp->T = (float *)tempAddress;
 
     tempAddress = mdp->R;
     mdp->R = nullptr;
-    result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
+    result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
     mdp->R = (float *)tempAddress;
 
     mdp->gamma = -1.0f;
-    result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
+    result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
     mdp->gamma = 0.9f;
 
     mdp->gamma = 2.0f;
-    result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
+    result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
     mdp->gamma = 0.9f;
 
     mdp->horizon = 0;
-    result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
+    result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
     mdp->horizon = 3;
 
+    mdp->epsilon = -1.0f;
+    result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
+    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
+    mdp->epsilon = 0.9f;
+
     mdp->ng = 0;
-    result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
+    result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
     mdp->ng = 1;
 
     tempAddress = mdp->goals;
     mdp->goals = nullptr;
-    result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
+    result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
     mdp->goals = (unsigned int *)tempAddress;
 
@@ -353,85 +340,84 @@ TEST(SSPRTDPCPU, badExecution)
 }
 
 
-TEST(SSPRTDPCPU, uninitialization)
+TEST(SSPLAOStarCPU, uninitialization)
 {
-    srand(42); // Force random behavior to be deterministic.
-
     nova::MDP mdp;
 
-    nova::SSPRTDPCPU rtdp;
-    rtdp.VInitial = nullptr;
-    rtdp.trials = 100;
-    rtdp.V = new float[1];
-    rtdp.pi = new unsigned int[1];
+    nova::SSPLAOStarCPU lao;
+    lao.VInitial = nullptr;
+    lao.V = new float[1];
+    lao.pi = new unsigned int[1];
 
-    int result = nova::ssp_rtdp_uninitialize_cpu(&mdp, &rtdp);
+    int result = nova::ssp_lao_star_uninitialize_cpu(&mdp, &lao);
     EXPECT_EQ(result, NOVA_SUCCESS);
 
-    EXPECT_EQ(rtdp.currentHorizon, 0);
-    EXPECT_EQ(rtdp.V, nullptr);
-    EXPECT_EQ(rtdp.pi, nullptr);
+    EXPECT_EQ(lao.currentHorizon, 0);
+    EXPECT_EQ(lao.V, nullptr);
+    EXPECT_EQ(lao.pi, nullptr);
 
-    if (rtdp.V != nullptr) {
-        delete [] rtdp.V;
+    if (lao.V != nullptr) {
+        delete [] lao.V;
     }
-    if (rtdp.pi != nullptr) {
-        delete [] rtdp.pi;
+    if (lao.pi != nullptr) {
+        delete [] lao.pi;
     }
 }
 
 
-TEST(SSPRTDPCPU, badUninitialization)
+TEST(SSPLAOStarCPU, badUninitialization)
 {
-    srand(42); // Force random behavior to be deterministic.
-
     nova::MDP mdp;
 
-    int result = nova::ssp_rtdp_uninitialize_cpu(nullptr, nullptr);
+    int result = nova::ssp_lao_star_uninitialize_cpu(nullptr, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
-    result = nova::ssp_rtdp_uninitialize_cpu(&mdp, nullptr);
+    result = nova::ssp_lao_star_uninitialize_cpu(&mdp, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 }
 
 
 // For performance reasons, there is no checking here, so we simply
 // are checking valid mathematics.
-TEST(SSPRTDPCPU, updateSimpleMDP)
+TEST(SSPLAOStarCPU, updateSimpleMDP)
 {
-    srand(42); // Force random behavior to be deterministic.
-
     nova::MDP *mdp = create_simple_mdp(true);
 
-    nova::SSPRTDPCPU rtdp;
-    rtdp.VInitial = nullptr;
-    rtdp.trials = 100;
+    nova::SSPLAOStarCPU lao;
+    lao.VInitial = nullptr;
 
-    int result = nova::ssp_rtdp_initialize_cpu(mdp, &rtdp);
+    int result = nova::ssp_lao_star_initialize_cpu(mdp, &lao);
     EXPECT_EQ(result, NOVA_SUCCESS);
 
     mdp->horizon = 1;
-    rtdp.currentHorizon = 0;
-    rtdp.pi[0] = 1337;
+    lao.currentHorizon = 0;
+    lao.pi[0] = 1337;
 
-    result = nova::ssp_rtdp_update_cpu(mdp, &rtdp);
+    result = nova::ssp_lao_star_update_cpu(mdp, &lao);
     EXPECT_EQ(result == NOVA_SUCCESS || result == NOVA_CONVERGED, true);
-    EXPECT_EQ(rtdp.currentHorizon, 0);
-    EXPECT_NEAR((double)rtdp.V[0], (double)FLT_MAX, (double)1.0);
-    //EXPECT_EQ(rtdp.V[0], FLT_MAX);
-    EXPECT_EQ(rtdp.pi[0], 0);
+    EXPECT_EQ(lao.currentHorizon, 1);
+    EXPECT_NEAR(lao.V[0], 1.0f, 1e-5f);
+    EXPECT_EQ(lao.pi[0], 0);
 
     mdp->horizon = 2;
-    rtdp.pi[0] = 1337;
+    lao.pi[0] = 1337;
 
-    result = nova::ssp_rtdp_update_cpu(mdp, &rtdp);
+    result = nova::ssp_lao_star_update_cpu(mdp, &lao);
     EXPECT_EQ(result == NOVA_SUCCESS || result == NOVA_CONVERGED, true);
-    EXPECT_EQ(rtdp.currentHorizon, 0);
-    EXPECT_NEAR((double)rtdp.V[0], (double)FLT_MAX, (double)1.0);
-    //EXPECT_EQ(rtdp.V[0], FLT_MAX);
-    EXPECT_EQ(rtdp.pi[0], 0);
+    EXPECT_EQ(lao.currentHorizon, 2);
+    EXPECT_NEAR(lao.V[0], 2.0f, 1e-5f);
+    EXPECT_EQ(lao.pi[0], 0);
 
-    result = nova::ssp_rtdp_uninitialize_cpu(mdp, &rtdp);
+    mdp->horizon = 3;
+    lao.pi[0] = 1337;
+
+    result = nova::ssp_lao_star_update_cpu(mdp, &lao);
+    EXPECT_EQ(result == NOVA_SUCCESS || result == NOVA_CONVERGED, true);
+    EXPECT_EQ(lao.currentHorizon, 3);
+    EXPECT_NEAR(lao.V[0], 3.0f, 1e-5f);
+    EXPECT_EQ(lao.pi[0], 0);
+
+    result = nova::ssp_lao_star_uninitialize_cpu(mdp, &lao);
     EXPECT_EQ(result, NOVA_SUCCESS);
 
     result = nova::mdp_uninitialize_cpu(mdp);
@@ -441,81 +427,93 @@ TEST(SSPRTDPCPU, updateSimpleMDP)
 }
 
 
-TEST(SSPRTDPCPU, updateThreeStateMDP)
+TEST(SSPLAOStarCPU, updateThreeStateMDP)
 {
-    srand(42); // Force random behavior to be deterministic.
-
     nova::MDP *mdp = create_three_state_mdp(true);
 
-    nova::SSPRTDPCPU rtdp;
-    rtdp.VInitial = nullptr;
-    rtdp.trials = 100;
+    nova::SSPLAOStarCPU lao;
+    lao.VInitial = nullptr;
 
-    int result = nova::ssp_rtdp_initialize_cpu(mdp, &rtdp);
+    int result = nova::ssp_lao_star_initialize_cpu(mdp, &lao);
     EXPECT_EQ(result, NOVA_SUCCESS);
 
     mdp->horizon = 1;
-    rtdp.currentHorizon = 0;
-    rtdp.pi[0] = 1337;
-    rtdp.pi[1] = 1337;
-    rtdp.pi[2] = 1337;
+    lao.currentHorizon = 0;
+    lao.pi[0] = 1337;
+    lao.pi[1] = 1337;
+    lao.pi[2] = 1337;
 
-    result = nova::ssp_rtdp_update_cpu(mdp, &rtdp);
+    result = nova::ssp_lao_star_update_cpu(mdp, &lao);
     EXPECT_EQ(result == NOVA_SUCCESS || result == NOVA_CONVERGED, true);
-    EXPECT_LE(rtdp.currentHorizon, 1);
-    EXPECT_NEAR(rtdp.V[0], 1.0f, 1e-1f);
-    EXPECT_NEAR(rtdp.V[1], 0.0f, 1e-5f);
-    EXPECT_NEAR(rtdp.V[2], 0.0f, 1e-5f);
-    EXPECT_EQ(rtdp.pi[0], 0);
-    EXPECT_EQ(rtdp.pi[1], 1337);
-    EXPECT_EQ(rtdp.pi[2], 1337);
+    EXPECT_EQ(lao.currentHorizon, 1);
+    EXPECT_NEAR(lao.V[0], 1.5f, 1e-1f);
+    EXPECT_NEAR(lao.V[1], 0.0f, 1e-5f);
+    EXPECT_NEAR(lao.V[2], 0.0f, 1e-5f);
+    EXPECT_EQ(lao.pi[0], 0);
+    EXPECT_EQ(lao.pi[1], 1337);
+    EXPECT_EQ(lao.pi[2], 1337);
 
     mdp->horizon = 2;
-    rtdp.pi[0] = 1337;
-    rtdp.pi[1] = 1337;
-    rtdp.pi[2] = 1337;
+    lao.pi[0] = 1337;
+    lao.pi[1] = 1337;
+    lao.pi[2] = 1337;
 
-    result = nova::ssp_rtdp_update_cpu(mdp, &rtdp);
+    result = nova::ssp_lao_star_update_cpu(mdp, &lao);
     EXPECT_EQ(result == NOVA_SUCCESS || result == NOVA_CONVERGED, true);
-    EXPECT_LE(rtdp.currentHorizon, 2);
-    EXPECT_NEAR(rtdp.V[0], 1.75f, 1e-1f);
-    EXPECT_NEAR(rtdp.V[1], 0.0f, 1e-5f);
-    EXPECT_NEAR(rtdp.V[2], 0.0f, 1e-5f);
-    EXPECT_EQ(rtdp.pi[0], 0);
-    EXPECT_EQ(rtdp.pi[1], 0);
-    EXPECT_EQ(rtdp.pi[2], 1337);
+    EXPECT_EQ(lao.currentHorizon, 2);
+    EXPECT_NEAR(lao.V[0], 1.875f, 1e-1f);
+    EXPECT_NEAR(lao.V[1], 0.0f, 1e-5f);
+    EXPECT_NEAR(lao.V[2], 0.0f, 1e-5f);
+    EXPECT_EQ(lao.pi[0], 0);
+    EXPECT_EQ(lao.pi[1], 1337);
+    EXPECT_EQ(lao.pi[2], 1337);
+
+    mdp->horizon = 3;
+    lao.pi[0] = 1337;
+    lao.pi[1] = 1337;
+    lao.pi[2] = 1337;
+
+    result = nova::ssp_lao_star_update_cpu(mdp, &lao);
+    EXPECT_EQ(result == NOVA_SUCCESS || result == NOVA_CONVERGED, true);
+    EXPECT_EQ(lao.currentHorizon, 3);
+    EXPECT_NEAR(lao.V[0], 1.96875f, 1e-1f);
+    EXPECT_NEAR(lao.V[1], 0.0f, 1e-5f);
+    EXPECT_NEAR(lao.V[2], 0.0f, 1e-5f);
+    EXPECT_EQ(lao.pi[0], 0);
+    EXPECT_EQ(lao.pi[1], 1337);
+    EXPECT_EQ(lao.pi[2], 1337);
 
     mdp->horizon = 5;
-    rtdp.pi[0] = 1337;
-    rtdp.pi[1] = 1337;
-    rtdp.pi[2] = 1337;
+    lao.pi[0] = 1337;
+    lao.pi[1] = 1337;
+    lao.pi[2] = 1337;
 
-    result = nova::ssp_rtdp_update_cpu(mdp, &rtdp);
+    result = nova::ssp_lao_star_update_cpu(mdp, &lao);
     EXPECT_EQ(result == NOVA_SUCCESS || result == NOVA_CONVERGED, true);
-    EXPECT_LE(rtdp.currentHorizon, 5);
-    EXPECT_NEAR(rtdp.V[0], 1.984375f, 1e-1f);
-    EXPECT_NEAR(rtdp.V[1], 1.0f, 1e-1f);
-    EXPECT_NEAR(rtdp.V[2], 0.0f, 1e-5f);
-    EXPECT_EQ(rtdp.pi[0], 0);
-    EXPECT_EQ(rtdp.pi[1], 0);
-    //EXPECT_EQ(rtdp.pi[2], 0);
+    EXPECT_EQ(lao.currentHorizon, 5);
+    EXPECT_NEAR(lao.V[0], 2.99609375f, 1e-1f);
+    EXPECT_NEAR(lao.V[1], 2.0f, 1e-1f);
+    EXPECT_NEAR(lao.V[2], 0.0f, 1e-5f);
+    EXPECT_EQ(lao.pi[0], 0);
+    EXPECT_EQ(lao.pi[1], 0);
+    EXPECT_EQ(lao.pi[2], 1337);
 
     mdp->horizon = 10;
-    rtdp.pi[0] = 1337;
-    rtdp.pi[1] = 1337;
-    rtdp.pi[2] = 1337;
+    lao.pi[0] = 1337;
+    lao.pi[1] = 1337;
+    lao.pi[2] = 1337;
 
-    result = nova::ssp_rtdp_update_cpu(mdp, &rtdp);
+    result = nova::ssp_lao_star_update_cpu(mdp, &lao);
     EXPECT_EQ(result == NOVA_SUCCESS || result == NOVA_CONVERGED, true);
-    EXPECT_LE(rtdp.currentHorizon, 10);
-    EXPECT_NEAR(rtdp.V[0], 2.93652f, 1e-1f);
-    EXPECT_NEAR(rtdp.V[1], 2.0f, 1e-1f);
-    EXPECT_NEAR(rtdp.V[2], 0.0f, 1e-5f);
-    EXPECT_EQ(rtdp.pi[0], 0);
-    EXPECT_EQ(rtdp.pi[1], 1);
-    //EXPECT_EQ(rtdp.pi[2], 0);
+    EXPECT_EQ(lao.currentHorizon, 10);
+    EXPECT_NEAR(lao.V[0], 3.98431396484375f, 1e-1f);
+    EXPECT_NEAR(lao.V[1], 2.0f, 1e-1f);
+    EXPECT_NEAR(lao.V[2], 0.0f, 1e-5f);
+    EXPECT_EQ(lao.pi[0], 0);
+    EXPECT_EQ(lao.pi[1], 1);
+    //EXPECT_EQ(lao.pi[2], 0);
 
-    result = nova::ssp_rtdp_uninitialize_cpu(mdp, &rtdp);
+    result = nova::ssp_lao_star_uninitialize_cpu(mdp, &lao);
     EXPECT_EQ(result, NOVA_SUCCESS);
 
     result = nova::mdp_uninitialize_cpu(mdp);
@@ -527,32 +525,29 @@ TEST(SSPRTDPCPU, updateThreeStateMDP)
 
 // There is no bad update because for performance reasons, we do not
 // check or sanitize input to this function.
-//TEST(SSPRTDPCPU, badUpdate) { }
+//TEST(SSPLAOStarCPU, badUpdate) { }
 
 
-TEST(SSPRTDPCPU, getPolicy)
+TEST(SSPLAOStarCPU, getPolicy)
 {
-    srand(42); // Force random behavior to be deterministic.
-
     nova::MDP mdp;
     mdp.n = 2;
-    mdp.m = 100;
+    mdp.m = 3;
 
-    nova::SSPRTDPCPU rtdp;
-    rtdp.VInitial = nullptr;
-    rtdp.trials = 100;
+    nova::SSPLAOStarCPU lao;
+    lao.VInitial = nullptr;
 
-    rtdp.V = new float[2];
-    rtdp.V[0] = 10.0f;
-    rtdp.V[1] = 20.0f;
+    lao.V = new float[2];
+    lao.V[0] = 10.0f;
+    lao.V[1] = 20.0f;
 
-    rtdp.pi = new unsigned int[2];
-    rtdp.pi[0] = 50;
-    rtdp.pi[1] = 60;
+    lao.pi = new unsigned int[2];
+    lao.pi[0] = 50;
+    lao.pi[1] = 60;
 
     nova::MDPValueFunction *policy = nullptr;
 
-    int result = nova::ssp_rtdp_get_policy_cpu(&mdp, &rtdp, policy);
+    int result = nova::ssp_lao_star_get_policy_cpu(&mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
 
     EXPECT_NE(policy, nullptr);
@@ -586,30 +581,27 @@ TEST(SSPRTDPCPU, getPolicy)
         policy = nullptr;
     }
 
-    delete [] rtdp.V;
-    delete [] rtdp.pi;
+    delete [] lao.V;
+    delete [] lao.pi;
 }
 
 
-TEST(SSPRTDPCPU, badGetPolicy)
+TEST(SSPLAOStarCPU, badGetPolicy)
 {
-    srand(42); // Force random behavior to be deterministic.
-
     nova::MDP mdp;
 
-    nova::SSPRTDPCPU rtdp;
-    rtdp.VInitial = nullptr;
-    rtdp.trials = 100;
+    nova::SSPLAOStarCPU lao;
+    lao.VInitial = nullptr;
 
     nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
-    int result = nova::ssp_rtdp_get_policy_cpu(nullptr, nullptr, policy);
+    int result = nova::ssp_lao_star_get_policy_cpu(nullptr, nullptr, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
-    result = nova::ssp_rtdp_get_policy_cpu(&mdp, nullptr, policy);
+    result = nova::ssp_lao_star_get_policy_cpu(&mdp, nullptr, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
-    result = nova::ssp_rtdp_get_policy_cpu(&mdp, &rtdp, policy);
+    result = nova::ssp_lao_star_get_policy_cpu(&mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
     delete policy;
@@ -617,6 +609,5 @@ TEST(SSPRTDPCPU, badGetPolicy)
 
 }; // namespace tests
 }; // namespace nova
-
 
 

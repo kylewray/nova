@@ -31,8 +31,18 @@
 
 namespace nova {
 
-int pomdp_belief_update_cpu(const POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float *bp)
+int pomdp_belief_update_cpu(const POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float *&bp)
 {
+    // Ensure the data is valid.
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 || pomdp->z == 0 ||
+            pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
+            bp != nullptr) {
+        fprintf(stderr, "Error[pomdp_belief_update_cpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    // Create the resultant belief vector and assign default values.
+    bp = new float[pomdp->n];
     for (unsigned int sp = 0; sp < pomdp->n; sp++) {
         bp[sp] = 0.0f;
     }
@@ -59,6 +69,8 @@ int pomdp_belief_update_cpu(const POMDP *pomdp, const float *b, unsigned int a, 
     // very likely to be an invalid belief. In practice, this arises when there is a probabilistically
     // impossible observation, given the POMDP.
     if (std::fabs(normalizingConstant) < FLT_ERR_TOL) {
+        fprintf(stderr, "Error[pomdp_belief_update_cpu]: %s\n",
+                "Computed belief is invalid. The observation is impossible given the belief and action.");
         return NOVA_WARNING_INVALID_BELIEF;
     }
 

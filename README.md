@@ -35,7 +35,7 @@ make novat
 ```
 Next, build the unit test suites:
 ```
-make test_nova
+make nova_tests
 ```
 Finally, run the test suites:
 ```

@@ -59,22 +59,21 @@ for f in files:
     tigerFile = os.path.join(thisFilePath, f['filename'])
     tiger = POMDP()
     tiger.load(tigerFile, filetype=f['filetype'])
-    print(tiger)
+    #print(tiger)
 
     if f['expand'] == "random":
-        # Note: 1 + 250 = 251 belief points.
+        # Note: 1 + 249 = 250 belief points.
         tiger.expand(method=f['expand'], numBeliefsToAdd=250)
-        #print(tiger)
     elif f['expand'] == "distinct_beliefs":
         # Note: 2^3 = 8 belief points.
         for i in range(3):
             tiger.expand(method=f['expand'])
-        #print(tiger)
     elif f['expand'] == "pema":
         # Note: 1 + 4 = 5 belief points.
         for i in range(4):
             tiger.expand(method=f['expand'], pemaAlgorithm=POMDPPerseusCPU(tiger))
-            #print(tiger)
+
+    print(tiger)
 
     if f['process'] == "gpu":
         tiger.initialize_gpu()
@@ -97,10 +96,16 @@ for f in files:
     pylab.ylabel("Value of Belief: V(b(s2))")
     for i in range(policy.r):
         if policy.pi[i] == 0:
-            pylab.plot([0.0, 1.0], [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]], linewidth=10, color='red')
+            pylab.plot([0.0, 1.0],
+                       [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]],
+                       linewidth=10, color='red')
         elif policy.pi[i] == 1:
-            pylab.plot([0.0, 1.0], [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]], linewidth=10, color='green')
+            pylab.plot([0.0, 1.0],
+                       [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]],
+                       linewidth=10, color='green')
         elif policy.pi[i] == 2:
-            pylab.plot([0.0, 1.0], [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]], linewidth=10, color='blue')
+            pylab.plot([0.0, 1.0],
+                       [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]],
+                       linewidth=10, color='blue')
     pylab.show()
 

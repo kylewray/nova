@@ -193,21 +193,21 @@ class POMDP(npm.NovaPOMDP):
         array_type_uint = ct.c_uint * (1)
         array_type_ndbpn_float = ct.c_float * (numBeliefsToAdd * self.n)
 
-        maxNonZeroValues = array_type_uint(*np.array([0]))
-        Bnew = array_type_ndbpn_float(*np.zeros(numBeliefsToAdd * self.n))
+        maxNonZeroValues = ct.c_uint(0)
+        Bnew = ct.POINTER(ct.c_float)()
 
         if method == "random":
-            npm._nova.pomdp_expand_random_cpu(self, numBeliefsToAdd, maxNonZeroValues, Bnew)
+            npm._nova.pomdp_expand_random_cpu(self, numBeliefsToAdd, ct.byref(maxNonZeroValues), ct.byref(Bnew))
         elif method == "distinct_beliefs":
-            npm._nova.pomdp_expand_distinct_beliefs_cpu(self, maxNonZeroValues, Bnew)
+            npm._nova.pomdp_expand_distinct_beliefs_cpu(self, ct.byref(maxNonZeroValues), ct.byref(Bnew))
         elif method == "pema":
             if pemaPolicy is None:
                 pemaPolicy = pemaAlgorithm.solve()
-            npm._nova.pomdp_expand_pema_cpu(self, ct.byref(pemaPolicy), maxNonZeroValues, Bnew)
+            npm._nova.pomdp_expand_pema_cpu(self, ct.byref(pemaPolicy), ct.byref(maxNonZeroValues), ct.byref(Bnew))
 
         # Reconstruct the compressed Z and B.
         rPrime = int(self.r + numBeliefsToAdd)
-        rzPrime = max(self.rz, int(maxNonZeroValues[0]))
+        rzPrime = max(self.rz, int(maxNonZeroValues.value))
 
         array_type_rrz_int = ct.c_int * (rPrime * rzPrime)
         array_type_rrz_float = ct.c_float * (rPrime * rzPrime)
@@ -233,36 +233,42 @@ class POMDP(npm.NovaPOMDP):
         self.Z = ZPrime
         self.B = BPrime
 
-    def sigma_approximate(self, rz=1):
+    def sigma_approximate(self, numDesiredNonZeroValues=1):
         """ Perform the sigma-approximation algorithm on the current set of beliefs.
 
             Parameters:
-                rz  --  The desired maximal number of non-zero values in the belief vectors.
+                numDesiredNonZeroValues     --  The desired maximal number of non-zero values in the beliefs.
+
             Returns:
                 The sigma = min_{b in B} sigma_b.
         """
 
-        array_type_rrz_float = ct.c_float * (self.r * rz)
-        array_type_rrz_int = ct.c_int * (self.r * rz)
+        array_type_rnumDesiredNonZeroValues_float = ct.c_float * (self.r * numDesiredNonZeroValues)
+        array_type_rnumDesiredNonZeroValues_int = ct.c_int * (self.r * numDesiredNonZeroValues)
 
-        array_type_1_float = ct.c_float * (1)
+        #array_type_1_float = ct.c_float * (1)
 
-        Bnew = array_type_rrz_float(*np.zeros(self.r * rz).astype(float))
-        Znew = array_type_rrz_int(*-np.ones(self.r * rz).astype(int))
+        #Bnew = array_type_rrz_float(*np.zeros(self.r * rz).astype(float))
+        #Znew = array_type_rrz_int(*-np.ones(self.r * rz).astype(int))
+        Bnew = ct.POINTER(array_type_rnumDesiredNonZeroValues_float)()
+        Znew = ct.POINTER(array_type_rnumDesiredNonZeroValues_int)()
 
-        sigma = array_type_1_float(*np.array([0.0]).astype(float))
+        #sigma = array_type_1_float(*np.array([0.0]).astype(float))
+        sigma = float(0)
 
-        result = npm._nova.pomdp_sigma_cpu(self, rz, Bnew, Znew, sigma)
+        result = npm._nova.pomdp_sigma_cpu(self, numDesiredNonZeroValues,
+                                           ct.byref(Bnew), ct.byref(Znew), ct.byref(sigma))
         if result != 0:
             print("Failed to perform sigma-approximation.")
             raise Exception()
 
-        self.rz = rz
+        self.rz = numDesiredNonZeroValues
         self.B = Bnew
         self.Z = Znew
 
-        return sigma[0]
+        return sigma
 
+    # TODO: REMOVE THIS. IT HAS BEEN REPLACED BY SEPARATE CLASSES.
     def solve(self, algorithm='pbvi', process='gpu', numThreads=1024):
         """ Solve the POMDP using the nova Python wrapper.
 
@@ -352,6 +358,34 @@ class POMDP(npm.NovaPOMDP):
 
         return policy, timing
 
+    def belief_update(self, b, a, o):
+        """ Perform a belief update, given belief, action, and observation.
+
+            Parameters:
+                b   --  The current belief (numpy n-array).
+                a   --  The action (index) taken.
+                o   --  The resulting observation (index).
+
+            Returns:
+                The new belief (numpy n-array).
+        """
+
+        array_type_n_float = ct.c_float * (self.n)
+
+        b = array_type_n_float(*b.flatten())
+        a = int(a)
+        o = int(o)
+
+        #bp = array_type_n_float(*np.zeros(self.n).flatten())
+        bp = ct.POINTER(array_type_n_float)()
+
+        result = npm._nova.pomdp_utilities_belief_update_cpu(self, b, a, o, ct.byref(bp))
+        if result != 0:
+            print("Failed to perform a belief update on the CPU.")
+            raise Exception()
+
+        return np.array([bp[s] for s in range(self.n)])
+
     def __str__(self):
         """ Return the string of the POMDP values akin to the raw file format.
 
@@ -387,31 +421,4 @@ class POMDP(npm.NovaPOMDP):
                     for i in range(self.r * self.rz)]).reshape((self.r, self.rz)))) + "\n\n"
 
         return result
-
-    def belief_update(self, b, a, o):
-        """ Perform a belief update, given belief, action, and observation.
-
-            Parameters:
-                b   --  The current belief (numpy n-array).
-                a   --  The action (index) taken.
-                o   --  The resulting observation (index).
-
-            Returns:
-                The new belief (numpy n-array).
-        """
-
-        array_type_n_float = ct.c_float * (self.n)
-
-        b = array_type_n_float(*b.flatten())
-        a = int(a)
-        o = int(o)
-
-        bp = array_type_n_float(*np.zeros(self.n).flatten())
-
-        result = npm._nova.pomdp_utilities_belief_update_cpu(self, b, a, o, bp)
-        if result != 0:
-            print("Failed to perform a belief update on the CPU.")
-            raise Exception()
-
-        return np.array([bp[s] for s in range(self.n)])
 

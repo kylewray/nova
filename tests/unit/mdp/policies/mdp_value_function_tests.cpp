@@ -22,9 +22,10 @@
  */
 
 
-#include "unit/pomdp/pomdp_test.h"
+#include "policies/mdp_value_function.h"
 
-#include "pomdp.h"
+#include <gtest/gtest.h>
+
 #include "error_codes.h"
 #include "constants.h"
 
@@ -32,39 +33,46 @@
 namespace nova {
 namespace tests {
 
-nova::POMDP *create_simple_pomdp()
+TEST(MDPValueFunction, uninitialization)
 {
-    nova::POMDP *pomdp = new nova::POMDP();
+    nova::MDPValueFunction *mdpValueFunction = new nova::MDPValueFunction();
+    mdpValueFunction->n = 2;
+    mdpValueFunction->m = 2;
+    mdpValueFunction->r = 2;
 
-    pomdp->n = 1;
-    pomdp->ns = 1;
-    pomdp->m = 1;
-    pomdp->z = 1;
-    pomdp->r = 1;
-    pomdp->rz = 1;
+    mdpValueFunction->S = new unsigned int[2];
+    mdpValueFunction->V = new float[2];
+    mdpValueFunction->pi = new unsigned int[2];
 
-    pomdp->S = new int[1];
-    pomdp->S[0] = 0;
+    int result = nova::mdp_value_function_uninitialize(mdpValueFunction);
+    EXPECT_EQ(result, NOVA_SUCCESS);
 
-    pomdp->T = new float[1];
-    pomdp->T[0] = 1.0f;
+    EXPECT_EQ(mdpValueFunction, nullptr);
+    if (mdpValueFunction != nullptr) {
+        EXPECT_EQ(mdpValueFunction->S, nullptr);
+        if (mdpValueFunction->S != nullptr) {
+            delete [] mdpValueFunction->S;
+        }
 
-    pomdp->O = new float[1];
-    pomdp->O[0] = 1.0f;
+        EXPECT_EQ(mdpValueFunction->V, nullptr);
+        if (mdpValueFunction->V != nullptr) {
+            delete [] mdpValueFunction->V;
+        }
 
-    pomdp->R = new float[1];
-    pomdp->R[0] = 1.0f;
+        EXPECT_EQ(mdpValueFunction->pi, nullptr);
+        if (mdpValueFunction->pi != nullptr) {
+            delete [] mdpValueFunction->pi;
+        }
 
-    pomdp->Z = new int[1];
-    pomdp->Z[0] = 0;
+        delete mdpValueFunction;
+    }
+}
 
-    pomdp->B = new float[1];
-    pomdp->B[0] = 1.0f;
-
-    pomdp->gamma = 0.9f;
-    pomdp->horizon = 3;
-
-    return pomdp;
+TEST(MDPValueFunction, badUninitializations)
+{
+    nova::MDPValueFunction *mdpValueFunction = nullptr;
+    int result = nova::mdp_value_function_uninitialize(mdpValueFunction);
+    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 }
 
 }; // namespace tests

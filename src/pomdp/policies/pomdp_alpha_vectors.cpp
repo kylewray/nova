@@ -61,7 +61,7 @@ int pomdp_alpha_vectors_value_and_action(const POMDPAlphaVectors *policy,
 }
 
 
-int pomdp_alpha_vectors_uninitialize(POMDPAlphaVectors *policy)
+int pomdp_alpha_vectors_uninitialize(POMDPAlphaVectors *&policy)
 {
     if (policy == nullptr) {
         fprintf(stderr, "Error[pomdp_alpha_vectors_uninitialize]: %s\n", "Invalid input.");
@@ -81,6 +81,9 @@ int pomdp_alpha_vectors_uninitialize(POMDPAlphaVectors *policy)
         delete [] policy->pi;
     }
     policy->pi = nullptr;
+
+    delete policy;
+    policy = nullptr;
 
     return NOVA_SUCCESS;
 }

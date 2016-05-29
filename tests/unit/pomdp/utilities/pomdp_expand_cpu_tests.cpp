@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -22,25 +22,38 @@
  */
 
 
-#ifndef POMDP_TEST_H
-#define POMDP_TEST_H
+#include "utilities/pomdp_expand_cpu.h"
 
+#include <gtest/gtest.h>
 
-#include "pomdp.h"
+#include "utilities/pomdp_model_cpu.h"
+#include "error_codes.h"
+#include "constants.h"
+
+#include "unit/pomdp/pomdp_tests.h"
 
 namespace nova {
 namespace tests {
 
-/**
- *  Create a simple one-state POMDP.
- *  @return A simple POMDP.
- */
-nova::POMDP *create_simple_pomdp();
+TEST(POMDPExpandCPU, random)
+{
+    nova::POMDP *pomdp = create_two_state_pomdp();
+
+    unsigned int maxNonZeroValues = 0;
+    float *Bnew = nullptr;
+    int result = nova::pomdp_expand_random_cpu(pomdp, 42, maxNonZeroValues, Bnew);
+
+    result = nova::pomdp_uninitialize_cpu(pomdp);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    delete pomdp;
+}
+
+TEST(POMDPExpandCPU, badRandom)
+{
+
+}
 
 }; // namespace tests
 }; // namespace nova
-
-
-#endif // POMDP_TEST_H
-
 

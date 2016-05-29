@@ -32,7 +32,7 @@ namespace nova {
 
 /**
  *  Free the memory for *only* the MDP's internal arrays.
- *  @param  mdp     The MDP object. Arrays within will be freed.
+ *  @param  mdp     The MDP object. Only arrays within will be freed.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int mdp_uninitialize_cpu(MDP *mdp);

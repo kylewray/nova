@@ -22,53 +22,25 @@
  */
 
 
-#include "policies/mdp_value_function.h"
+#ifndef POMDP_TESTS_H
+#define POMDP_TESTS_H
 
-#include <gtest/gtest.h>
 
-#include "error_codes.h"
-#include "constants.h"
-
+#include "pomdp.h"
 
 namespace nova {
 namespace tests {
 
-TEST(MDPValueFunction, uninitialization)
-{
-    nova::MDPValueFunction mdpValueFunction;
-    mdpValueFunction.n = 2;
-    mdpValueFunction.m = 2;
-    mdpValueFunction.r = 2;
-
-    mdpValueFunction.S = new unsigned int[2];
-    mdpValueFunction.V = new float[2];
-    mdpValueFunction.pi = new unsigned int[2];
-
-    int result = nova::mdp_value_function_uninitialize(&mdpValueFunction);
-    EXPECT_EQ(result, NOVA_SUCCESS);
-
-    EXPECT_EQ(mdpValueFunction.S, nullptr);
-    if (mdpValueFunction.S != nullptr) {
-        delete [] mdpValueFunction.S;
-    }
-
-    EXPECT_EQ(mdpValueFunction.V, nullptr);
-    if (mdpValueFunction.V != nullptr) {
-        delete [] mdpValueFunction.V;
-    }
-
-    EXPECT_EQ(mdpValueFunction.pi, nullptr);
-    if (mdpValueFunction.pi != nullptr) {
-        delete [] mdpValueFunction.pi;
-    }
-}
-
-TEST(MDPValueFunction, badUninitializations)
-{
-    int result = nova::mdp_value_function_uninitialize(nullptr);
-    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
-}
+/**
+ *  Create a simple one-state POMDP.
+ *  @return A simple POMDP.
+ */
+nova::POMDP *create_simple_pomdp();
 
 }; // namespace tests
 }; // namespace nova
+
+
+#endif // POMDP_TESTS_H
+
 

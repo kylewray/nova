@@ -31,7 +31,7 @@
 #include "error_codes.h"
 #include "constants.h"
 
-#include "unit/mdp/mdp_test.h"
+#include "unit/mdp/mdp_tests.h"
 
 
 namespace nova {

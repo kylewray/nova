@@ -34,6 +34,11 @@ namespace nova {
 
 int pomdp_initialize_gpu(POMDP *pomdp)
 {
+    if (pomdp == nullptr) {
+        fprintf(stderr, "Error[pomdp_initialize_gpu]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     int result = 0;
 
     result += pomdp_initialize_successors_gpu(pomdp);
@@ -51,6 +56,11 @@ int pomdp_initialize_gpu(POMDP *pomdp)
 
 int pomdp_uninitialize_gpu(POMDP *pomdp)
 {
+    if (pomdp == nullptr) {
+        fprintf(stderr, "Error[pomdp_uninitialize_gpu]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     int result = 0;
 
     result += pomdp_uninitialize_successors_gpu(pomdp);

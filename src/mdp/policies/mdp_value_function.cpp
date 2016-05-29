@@ -30,7 +30,7 @@
 
 namespace nova {
 
-int mdp_value_function_uninitialize(MDPValueFunction *policy)
+int mdp_value_function_uninitialize(MDPValueFunction *&policy)
 {
     if (policy == nullptr) {
         fprintf(stderr, "Error[mdp_value_function_uninitialize]: %s\n", "Invalid input.");
@@ -55,6 +55,9 @@ int mdp_value_function_uninitialize(MDPValueFunction *policy)
         delete [] policy->pi;
     }
     policy->pi = nullptr;
+
+    delete policy;
+    policy = nullptr;
 
     return NOVA_SUCCESS;
 }

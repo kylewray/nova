@@ -80,7 +80,7 @@ pomdp_policies.o: src/pomdp/policies/*.cpp
 	mv *.o obj
 
 
-tests: novat test_nova run_tests
+tests: novat nova_tests run_tests
 
 
 novat: novat_mdp_algorithms.o novat_mdp_algorithms_cuda.o novat_mdp_utilities.o novat_mdp_utilities_cuda.o novat_mdp_policies.o novat_pomdp_algorithms.o novat_pomdp_utilities.o novat_pomdp_algorithms_cuda.o novat_pomdp_utilities_cuda.o novat_pomdp_policies.o
@@ -141,59 +141,59 @@ novat_pomdp_policies.o: src/pomdp/policies/*.cpp
 	mv *.o obj
 
 
-#test_nova: test_nova_mdp.o test_nova_mdp_algorithms.o test_nova_mdp_utilities.o test_nova_mdp_policies.o test_nova_pomdp.o test_nova_pomdp_algorithms.o test_nova_pomdp_utilities.o test_nova_pomdp_policies.o
-test_nova: test_nova_mdp.o test_nova_mdp_algorithms.o test_nova_mdp_utilities.o test_nova_mdp_policies.o test_nova_pomdp.o test_nova_pomdp_policies.o
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Iinclude/pomdp -Itests obj/*.o tests/unit/test_nova.cpp -o test_nova $(TEST_LIB_FLAGS)
-	chmod +x test_nova
+#nova_tests: nova_mdp_tests.o nova_mdp_algorithms_tests.o nova_mdp_utilities_tests.o nova_mdp_policies_tests.o nova_pomdp_tests.o nova_pomdp_algorithms_tests.o nova_pomdp_utilities_tests.o nova_pomdp_policies_tests.o
+nova_tests: nova_mdp_tests.o nova_mdp_algorithms_tests.o nova_mdp_utilities_tests.o nova_mdp_policies_tests.o nova_pomdp_tests.o nova_pomdp_policies_tests.o
+	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Iinclude/pomdp -Itests obj/*.o tests/unit/nova_tests.cpp -o nova_tests $(TEST_LIB_FLAGS)
+	chmod +x nova_tests
 	mkdir -p bin
-	mv test_nova bin
+	mv nova_tests bin
 	mkdir -p gcov
 	mv *.gc* gcov
 
-test_nova_mdp.o: tests/unit/mdp/*.cpp
+nova_mdp_tests.o: tests/unit/mdp/*.cpp
 	mkdir -p obj
 	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Itests -c tests/unit/mdp/*.cpp
 	mv *.o obj
 
-test_nova_mdp_algorithms.o: tests/unit/mdp/algorithms/*.cpp
+nova_mdp_algorithms_tests.o: tests/unit/mdp/algorithms/*.cpp
 	mkdir -p obj
 	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Itests -c tests/unit/mdp/algorithms/*.cpp
 	mv *.o obj
 
-test_nova_mdp_utilities.o: tests/unit/mdp/utilities/*.cpp
+nova_mdp_utilities_tests.o: tests/unit/mdp/utilities/*.cpp
 	mkdir -p obj
 	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Itests -c tests/unit/mdp/utilities/*.cpp
 	mv *.o obj
 
-test_nova_mdp_policies.o: tests/unit/mdp/policies/*.cpp
+nova_mdp_policies_tests.o: tests/unit/mdp/policies/*.cpp
 	mkdir -p obj
 	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Itests -c tests/unit/mdp/policies/*.cpp
 	mv *.o obj
 
-test_nova_pomdp.o: tests/unit/pomdp/*.cpp
+nova_pomdp_tests.o: tests/unit/pomdp/*.cpp
 	mkdir -p obj
 	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/*.cpp
 	mv *.o obj
 
-#test_nova_pomdp_algorithms.o: tests/unit/pomdp/algorithms/*.cpp
+#nova_pomdp_algorithms_tests.o: tests/unit/pomdp/algorithms/*.cpp
 #	mkdir -p obj
 #	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/algorithms/*.cpp
 #	mv *.o obj
 #
-#test_nova_pomdp_utilities.o: tests/unit/pomdp/utilities/*.cpp
+#nova_pomdp_utilities_tests.o: tests/unit/pomdp/utilities/*.cpp
 #	mkdir -p obj
 #	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/utilities/*.cpp
 #	mv *.o obj
 
-test_nova_pomdp_policies.o: tests/unit/pomdp/policies/*.cpp
+nova_pomdp_policies_tests.o: tests/unit/pomdp/policies/*.cpp
 	mkdir -p obj
 	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/policies/*.cpp
 	mv *.o obj
 
 
 run_tests:
-	#export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:`pwd`/lib; $(TEST_EXECUTE_COMMAND) ./bin/test_nova
-	export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:`pwd`/lib; ./bin/test_nova #2>/dev/null
+	#export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:`pwd`/lib; $(TEST_EXECUTE_COMMAND) ./bin/nova_tests
+	export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:`pwd`/lib; ./bin/nova_tests #2>/dev/null
 	mv *.gc* gcov
 	gcov -o gcov -r src/mdp/algorithms/*.cpp src/mdp/utilities/*.cpp src/mdp/policies/*.cpp src/pomdp/algorithms/*.cpp src/pomdp/utilities/*.cpp src/pomdp/policies/*.cpp
 	mv *.gc* gcov
@@ -202,7 +202,7 @@ run_tests:
 clean:
 	rm *.o
 	rm *.gc*
-	rm test_nova
+	rm nova_tests
 	rm libnova.so
 	rm libnovat.so
 	rm -rf lib

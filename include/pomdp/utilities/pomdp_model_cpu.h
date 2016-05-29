@@ -36,15 +36,15 @@ namespace nova {
  *  @param  b           The current belief (n-array).
  *  @param  a           The action taken (index).
  *  @param  o           The observation made (index).
- *  @param  bp          The resulting new belief.
+ *  @param  bp          The resulting new belief. This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_belief_update_cpu(const POMDP *pomdp, const float *b,
-        unsigned int a, unsigned int o, float *bp);
+        unsigned int a, unsigned int o, float *&bp);
 
 /**
  *  Free the memory for *only* the POMDP's internal arrays.
- *  @param  pomdp       The POMDP object. Arrays within will be freed.
+ *  @param  pomdp       The POMDP object. Only arrays within will be freed.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_uninitialize_cpu(POMDP *pomdp);
