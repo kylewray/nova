@@ -56,12 +56,11 @@ extern "C" int pomdp_alpha_vectors_value_and_action(const POMDPAlphaVectors *pol
         const float *b, float &Vb, unsigned int &a);
 
 /**
- *  Free the memory for *both* the policy's internal arrays *and* the policy itself.
+ *  Free the memory for *only* the policy's internal arrays.
  *  @param  policy  The resultant set of alpha-vectors. Arrays within will be freed.
- *                  This will be freed and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_alpha_vectors_uninitialize(POMDPAlphaVectors *&policy);
+extern "C" int pomdp_alpha_vectors_uninitialize(POMDPAlphaVectors *policy);
 
 };
 

@@ -184,54 +184,14 @@ class POMDP(npm.NovaPOMDP):
             print("Failed to expand. Method '%s' is not defined." % (method))
             raise Exception()
 
-        # Non-random methods add different quantities of belief points.
-        if method == "distinct_beliefs":
-            numBeliefsToAdd = self.r
-        elif method == "pema":
-            numBeliefsToAdd = 1
-
-        array_type_uint = ct.c_uint * (1)
-        array_type_ndbpn_float = ct.c_float * (numBeliefsToAdd * self.n)
-
-        maxNonZeroValues = ct.c_uint(0)
-        Bnew = ct.POINTER(ct.c_float)()
-
         if method == "random":
-            npm._nova.pomdp_expand_random_cpu(self, numBeliefsToAdd, ct.byref(maxNonZeroValues), ct.byref(Bnew))
+            npm._nova.pomdp_expand_random_cpu(self, numBeliefsToAdd)
         elif method == "distinct_beliefs":
-            npm._nova.pomdp_expand_distinct_beliefs_cpu(self, ct.byref(maxNonZeroValues), ct.byref(Bnew))
+            npm._nova.pomdp_expand_distinct_beliefs_cpu(self)
         elif method == "pema":
             if pemaPolicy is None:
                 pemaPolicy = pemaAlgorithm.solve()
-            npm._nova.pomdp_expand_pema_cpu(self, ct.byref(pemaPolicy), ct.byref(maxNonZeroValues), ct.byref(Bnew))
-
-        # Reconstruct the compressed Z and B.
-        rPrime = int(self.r + numBeliefsToAdd)
-        rzPrime = max(self.rz, int(maxNonZeroValues.value))
-
-        array_type_rrz_int = ct.c_int * (rPrime * rzPrime)
-        array_type_rrz_float = ct.c_float * (rPrime * rzPrime)
-
-        ZPrime = array_type_rrz_int(*-np.ones(rPrime * rzPrime).astype(int))
-        BPrime = array_type_rrz_float(*np.zeros(rPrime * rzPrime).astype(float))
-
-        for i in range(self.r):
-            for j in range(self.rz):
-                ZPrime[i * rzPrime + j] = self.Z[i * self.rz + j]
-                BPrime[i * rzPrime + j] = self.B[i * self.rz + j]
-
-        for i in range(numBeliefsToAdd):
-            j = 0
-            for s in range(self.n):
-                if Bnew[i * self.n + s] > 0.0:
-                    ZPrime[(self.r + i) * rzPrime + j] = s
-                    BPrime[(self.r + i) * rzPrime + j] = Bnew[i * self.n + s]
-                    j += 1
-
-        self.r = rPrime
-        self.rz = rzPrime
-        self.Z = ZPrime
-        self.B = BPrime
+            npm._nova.pomdp_expand_pema_cpu(self, ct.byref(pemaPolicy))
 
     def sigma_approximate(self, numDesiredNonZeroValues=1):
         """ Perform the sigma-approximation algorithm on the current set of beliefs.

@@ -81,16 +81,10 @@ _nova.pomdp_uninitialize_cpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
 
 # Functions from 'pomdp_expand_cpu.h'.
 _nova.pomdp_expand_random_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                            ct.c_uint,                          # numDesiredBeliefPoints
-                                            ct.POINTER(ct.c_uint),              # maxNonZeroValues
-                                            ct.POINTER(ct.POINTER(ct.c_float))) # Bnew
-_nova.pomdp_expand_distinct_beliefs_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                                    ct.POINTER(ct.c_uint),              # maxNonZeroValues
-                                                    ct.POINTER(ct.POINTER(ct.c_float))) # Bnew
+                                          ct.c_uint)    # numBeliefsToAdd
+_nova.pomdp_expand_distinct_beliefs_cpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
 _nova.pomdp_expand_pema_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                        ct.POINTER(pav.POMDPAlphaVectors),      # Gamma
-                                        ct.POINTER(ct.c_uint),                  # maxNonZeroValues
-                                        ct.POINTER(ct.POINTER(ct.c_float)))     # Bnew
+                                        ct.POINTER(pav.POMDPAlphaVectors))  # policy
 
 
 # Functions from 'pomdp_sigma_cpu.h'.
@@ -120,8 +114,6 @@ _nova.pomdp_uninitialize_belief_points_gpu.argtypes = tuple([ct.POINTER(NovaPOMD
 
 # Functions from 'pomdp_expand_gpu.h'.
 _nova.pomdp_expand_random_gpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                            ct.c_uint,                          # numThreads
-                                            ct.c_uint,                          # numDesiredBeliefPoints
-                                            ct.POINTER(ct.c_uint),              # maxNonZeroValues
-                                            ct.POINTER(ct.POINTER(ct.c_float))) # Bnew
+                                          ct.c_uint,  # numThreads
+                                          ct.c_uint)  # numBeliefsToAdd
 
