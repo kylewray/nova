@@ -71,11 +71,23 @@ class NovaPOMDP(ct.Structure):
 
 
 # Functions from 'pomdp_model_cpu.h'.
+_nova.pomdp_initialize_cpu.argtypes = (ct.POINTER(NovaPOMDP),
+                                       ct.c_uint,   # n
+                                       ct.c_uint,   # ns
+                                       ct.c_uint,   # m
+                                       ct.c_uint,   # z
+                                       ct.c_uint,   # r
+                                       ct.c_uint,   # rz
+                                       ct.c_float,  # gamma
+                                       ct.c_uint)   # horizon
 _nova.pomdp_belief_update_cpu.argtypes = (ct.POINTER(NovaPOMDP),
                                             ct.POINTER(ct.c_float),                 # b
                                             ct.c_uint,                              # a
                                             ct.c_uint,                              # o
                                             ct.POINTER(ct.POINTER(ct.c_float)))     # bp
+_nova.pomdp_assign_new_beliefs_from_raw_cpu.argtypes = (ct.POINTER(NovaPOMDP),
+                                                        ct.c_uint,                  # numBeliefPointsToAdd
+                                                        ct.POINTER(ct.c_float))     # Bnew
 _nova.pomdp_uninitialize_cpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
 
 

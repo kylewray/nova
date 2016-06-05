@@ -35,6 +35,70 @@
 namespace nova {
 namespace tests {
 
+TEST(MDPModelCPU, initialization)
+{
+    nova::MDP *mdp = new nova::MDP();
+
+    int result = nova::mdp_initialize_cpu(mdp, 10, 2, 3, 0.9f, 7, 0.01f, 4, 1);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    EXPECT_EQ(mdp->n, 10);
+    EXPECT_EQ(mdp->ns, 2);
+    EXPECT_EQ(mdp->m, 3);
+    EXPECT_NEAR(mdp->gamma, 0.9f, 1e-5f);
+    EXPECT_EQ(mdp->horizon, 7);
+    EXPECT_NEAR(mdp->epsilon, 0.01f, 1e-5f);
+    EXPECT_EQ(mdp->s0, 4);
+    EXPECT_EQ(mdp->ng, 1);
+
+    EXPECT_NE(mdp->S, nullptr);
+    EXPECT_NE(mdp->T, nullptr);
+    EXPECT_NE(mdp->R, nullptr);
+    EXPECT_NE(mdp->goals, nullptr);
+
+    result = nova::mdp_uninitialize_cpu(mdp);
+    EXPECT_EQ(result, NOVA_SUCCESS);
+
+    delete mdp;
+}
+
+TEST(MDPModelCPU, badInitialization)
+{
+    nova::MDP *mdp = new nova::MDP();
+
+    int result = nova::mdp_initialize_cpu(nullptr, 10, 2, 3, 0.9f, 7, 0.01f, 4, 1);
+    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
+
+    result = nova::mdp_initialize_cpu(mdp, 0, 2, 3, 0.9f, 7, 0.01f, 4, 1);
+    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
+
+    result = nova::mdp_initialize_cpu(mdp, 10, 0, 3, 0.9f, 7, 0.01f, 4, 1);
+    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
+
+    result = nova::mdp_initialize_cpu(mdp, 10, 2, 0, 0.9f, 7, 0.01f, 4, 1);
+    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
+
+    result = nova::mdp_initialize_cpu(mdp, 10, 2, 3, 1.1f, 7, 0.01f, 4, 1);
+    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
+
+    result = nova::mdp_initialize_cpu(mdp, 10, 2, 3, -0.1f, 7, 0.01f, 4, 1);
+    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
+
+    result = nova::mdp_initialize_cpu(mdp, 10, 2, 3, 0.9f, 0, 0.01f, 4, 1);
+    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
+
+    result = nova::mdp_initialize_cpu(mdp, 10, 2, 3, 0.9f, 7, -0.01f, 4, 1);
+    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
+
+    result = nova::mdp_initialize_cpu(mdp, 10, 2, 3, 0.9f, 7, 0.01f, 11, 1);
+    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
+
+    result = nova::mdp_initialize_cpu(mdp, 10, 2, 3, 0.9f, 7, 0.01f, 4, 11);
+    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
+
+    delete mdp;
+}
+
 TEST(MDPModelCPU, uninitialization)
 {
     nova::MDP *mdp = create_simple_mdp(false);

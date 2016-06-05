@@ -33,6 +33,56 @@
 
 namespace nova {
 
+int mdp_initialize_cpu(MDP *mdp, unsigned int n, unsigned int ns, unsigned int m, float gamma,
+    unsigned int horizon, float epsilon, unsigned int s0, unsigned int ng)
+{
+    if (mdp == nullptr || mdp->goals != nullptr || mdp->S != nullptr ||
+            mdp->T != nullptr || mdp->R != nullptr || n == 0 || ns == 0 || n < ns ||
+            m == 0 || gamma < 0.0f || gamma > 1.0f || horizon == 0 || epsilon < 0.0f ||
+            s0 >= n || ng >= n) {
+        fprintf(stderr, "Error[mdp_initialize_cpu]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    mdp->n = n;
+    mdp->ns = ns;
+    mdp->m = m;
+    mdp->gamma = gamma;
+    mdp->horizon = horizon;
+    mdp->epsilon = epsilon;
+    mdp->s0 = s0;
+    mdp->ng = ng;
+
+    mdp->S = new int[mdp->n * mdp->m * mdp->ns];
+    mdp->T = new float[mdp->n * mdp->m * mdp->ns];
+    for (unsigned int i = 0; i < mdp->n * mdp->m * mdp->ns; i++) {
+        mdp->S[i] = -1;
+        mdp->T[i] = 0.0f;
+    }
+
+    mdp->R = new float[mdp->n * mdp->m];
+    for (unsigned int i = 0; i < mdp->n * mdp->m; i++) {
+        mdp->R[i] = 0.0f;
+    }
+
+    if (mdp->ng > 0) {
+        mdp->goals = new unsigned int[ng];
+        for (unsigned int i = 0; i < mdp->ng; i++) {
+            mdp->goals[i] = 0;
+        }
+    } else {
+        mdp->goals = nullptr;
+    }
+
+    mdp->d_goals = nullptr;
+    mdp->d_S = nullptr;
+    mdp->d_T = nullptr;
+    mdp->d_R = nullptr;
+
+    return NOVA_SUCCESS;
+}
+
+
 int mdp_uninitialize_cpu(MDP *mdp)
 {
     if (mdp == nullptr) {

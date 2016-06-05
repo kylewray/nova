@@ -182,20 +182,17 @@ TEST(POMDPAlphaVectors, uninitialization)
     int result = nova::pomdp_alpha_vectors_uninitialize(pomdpAlphaVectors);
     EXPECT_EQ(result, NOVA_SUCCESS);
 
-    EXPECT_EQ(pomdpAlphaVectors, nullptr);
-    if (pomdpAlphaVectors != nullptr) {
-        EXPECT_EQ(pomdpAlphaVectors->Gamma, nullptr);
-        if (pomdpAlphaVectors->Gamma != nullptr) {
-            delete [] pomdpAlphaVectors->Gamma;
-        }
-
-        EXPECT_EQ(pomdpAlphaVectors->pi, nullptr);
-        if (pomdpAlphaVectors->pi != nullptr) {
-            delete [] pomdpAlphaVectors->pi;
-        }
-
-        delete pomdpAlphaVectors;
+    EXPECT_EQ(pomdpAlphaVectors->Gamma, nullptr);
+    if (pomdpAlphaVectors->Gamma != nullptr) {
+        delete [] pomdpAlphaVectors->Gamma;
     }
+
+    EXPECT_EQ(pomdpAlphaVectors->pi, nullptr);
+    if (pomdpAlphaVectors->pi != nullptr) {
+        delete [] pomdpAlphaVectors->pi;
+    }
+
+    delete pomdpAlphaVectors;
 }
 
 TEST(POMDPAlphaVectors, badUninitializations)

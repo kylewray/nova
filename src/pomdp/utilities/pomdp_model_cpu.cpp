@@ -31,6 +31,60 @@
 
 namespace nova {
 
+int pomdp_initialize_cpu(POMDP *pomdp, unsigned int n, unsigned int ns, unsigned int m,
+    unsigned int z, unsigned int r, unsigned int rz, float gamma, unsigned int horizon)
+{
+    if (pomdp == nullptr || pomdp->S != nullptr || pomdp->T != nullptr || pomdp->O != nullptr ||
+            pomdp->R != nullptr || pomdp->Z != nullptr || pomdp->B != nullptr ||
+            n == 0 || ns == 0 || n < ns || m == 0 || z == 0 || r == 0 || rz == 0 ||
+            gamma < 0.0f || gamma > 1.0f || horizon == 0) {
+        fprintf(stderr, "Error[pomdp_initialize_cpu]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    pomdp->n = n;
+    pomdp->ns = ns;
+    pomdp->m = m;
+    pomdp->z = z;
+    pomdp->r = r;
+    pomdp->rz = rz;
+    pomdp->gamma = gamma;
+    pomdp->horizon = horizon;
+
+    pomdp->S = new int[pomdp->n * pomdp->m * pomdp->ns];
+    pomdp->T = new float[pomdp->n * pomdp->m * pomdp->ns];
+    for (unsigned int i = 0; i < pomdp->n * pomdp->m * pomdp->ns; i++) {
+        pomdp->S[i] = -1;
+        pomdp->T[i] = 0.0f;
+    }
+
+    pomdp->O = new float[pomdp->m * pomdp->n * pomdp->z];
+    for (unsigned int i = 0; i < pomdp->m * pomdp->n * pomdp->z; i++) {
+        pomdp->O[i] = 0.0f;
+    }
+
+    pomdp->R = new float[pomdp->n * pomdp->m];
+    for (unsigned int i = 0; i < pomdp->n * pomdp->m; i++) {
+        pomdp->R[i] = 0.0f;
+    }
+
+    pomdp->Z = new int[pomdp->r * pomdp->rz];
+    pomdp->B = new float[pomdp->r * pomdp->rz];
+    for (unsigned int i = 0; i < pomdp->r * pomdp->rz; i++) {
+        pomdp->R[i] = 0.0f;
+    }
+
+    pomdp->d_S = nullptr;
+    pomdp->d_T = nullptr;
+    pomdp->d_O = nullptr;
+    pomdp->d_R = nullptr;
+    pomdp->d_Z = nullptr;
+    pomdp->d_B = nullptr;
+
+    return NOVA_SUCCESS;
+}
+
+
 int pomdp_belief_update_cpu(const POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float *&bp)
 {
     // Ensure the data is valid.
@@ -79,6 +133,94 @@ int pomdp_belief_update_cpu(const POMDP *pomdp, const float *b, unsigned int a, 
     }
 
     return NOVA_SUCCESS;
+}
+
+
+int pomdp_expand_update_max_non_zero_values_cpu(const POMDP *pomdp, const float *b,
+    unsigned int &maxNonZeroValues)
+{
+    unsigned int numNonZeroValues = 0;
+    for (unsigned int s = 0; s < pomdp->n; s++) {
+        if (b[s] > 0.0f) {
+            numNonZeroValues++;
+        }
+    }
+    if (numNonZeroValues > maxNonZeroValues) {
+        maxNonZeroValues = numNonZeroValues;
+    }
+
+    return NOVA_SUCCESS;
+}
+
+
+int pomdp_assign_new_beliefs_from_raw_cpu(POMDP *pomdp, unsigned int numBeliefPointsToAdd, float *Bnew)
+{
+    // Ensure the data is valid.
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 || pomdp->z == 0) {
+        fprintf(stderr, "Error[pomdp_expand_distinct_beliefs_cpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    unsigned int rFinal = pomdp->r + numBeliefPointsToAdd;
+    unsigned int rzFinal = pomdp->rz;
+
+    // Compute the new maximimum number of non-zero values.
+    for (unsigned int i = 0; i < pomdp->r; i++) {
+        unsigned int maxNonZeroValues = 0;
+        pomdp_expand_update_max_non_zero_values_cpu(pomdp, &Bnew[i * pomdp->n + 0], maxNonZeroValues);
+
+        if (rzFinal < maxNonZeroValues) {
+            rzFinal = maxNonZeroValues;
+        }
+    }
+
+    int *Zfinal = new int[rFinal * rzFinal];
+    float *Bfinal = new float[rFinal * rzFinal];
+
+    // Copy the original Z and B.
+    for (unsigned int i = 0; i < pomdp->r; i++) {
+        for (unsigned int j = 0; j < pomdp->rz; j++) {
+            Zfinal[i * rzFinal + j] = pomdp->Z[i * pomdp->rz + j];
+            Bfinal[i * rzFinal + j] = pomdp->B[i * pomdp->rz + j];
+        }
+
+        for (unsigned int j = pomdp->rz; j < rzFinal; j++) {
+            Zfinal[i * rzFinal + j] = -1;
+            Bfinal[i * rzFinal + j] = 0.0f;
+        }
+    }
+
+    // Copy the new Z and B.
+    for (unsigned int i = pomdp->r; i < pomdp->r + numBeliefPointsToAdd; i++) {
+        unsigned int j = 0;
+
+        for (unsigned int s = 0; s < pomdp->n; s++) {
+            if (Bnew[i * rzFinal + s] > 0.0f) {
+                Zfinal[i * rzFinal + j] = s;
+                Bfinal[i * rzFinal + j] = Bnew[i * pomdp->rz + s];
+                j++;
+            }
+        }
+
+        // The remaining values are set to -1 and 0.0f.
+        for ( ; j < rzFinal; j++) {
+            Zfinal[i * rzFinal + j] = -1;
+            Bfinal[i * rzFinal + j] = 0.0f;
+        }
+    }
+
+    // Free the old data and assign the new data.
+    if (pomdp->Z != nullptr) {
+        delete [] pomdp->Z;
+    }
+    if (pomdp->B != nullptr) {
+        delete [] pomdp->B;
+    }
+
+    pomdp->r = rFinal;
+    pomdp->rz = rzFinal;
+    pomdp->Z = Zfinal;
+    pomdp->B = Bfinal;
 }
 
 

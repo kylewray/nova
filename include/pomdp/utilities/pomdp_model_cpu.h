@@ -31,6 +31,23 @@
 namespace nova {
 
 /**
+ *  Allocate memory for *only* the POMDP's internal arrays, given the relevant parameters.
+ *  @param  pomdp       The POMDP object. Only arrays within will be freed.
+ *  @param  n           The number of states.
+ *  @param  ns          The maximum number of successor states.
+ *  @param  m           The number of actions.
+ *  @param  z           The number of observations.
+ *  @param  r           The number of belief points.
+ *  @param  rz          The maximum number of non zero values over all beliefs.
+ *  @param  gamma       The discount factor between 0.0 and 1.0.
+ *  @param  horizon     The horizon of the MDP.
+ *  @param  epsilon     The convergence criterion for algorithms like LAO*.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int pomdp_initialize_cpu(POMDP *pomdp, unsigned int n, unsigned int ns, unsigned int m,
+    unsigned int z, unsigned int r, unsigned int rz, float gamma, unsigned int horizon);
+
+/**
  *  Perform a belief update.
  *  @param  pomdp       The POMDP object.
  *  @param  b           The current belief (n-array).
@@ -41,6 +58,16 @@ namespace nova {
  */
 extern "C" int pomdp_belief_update_cpu(const POMDP *pomdp, const float *b,
         unsigned int a, unsigned int o, float *&bp);
+
+/**
+ *  Given a raw set of beliefs (numBeliefPointsToAdd-n array), this adds all Bnew elements into B.
+ *  @param  pomdp                   The POMDP object. The Z and B values will be freed, created, and modified.
+ *  @param  numBeliefPointsToAdd    The number of beliefs in Bnew to add to B.
+ *  @param  Bnew                    The new raw beliefs to add to B (numBeliefPointsToAdd-n array).
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int pomdp_assign_new_beliefs_from_raw_cpu(POMDP *pomdp, unsigned int numBeliefPointsToAdd,
+        float *Bnew);
 
 /**
  *  Free the memory for *only* the POMDP's internal arrays.

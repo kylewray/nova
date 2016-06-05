@@ -31,6 +31,22 @@
 namespace nova {
 
 /**
+ *  Allocate memory for *only* the MDP's internal arrays, given the relevant parameters.
+ *  @param  mdp         The MDP object. Only arrays within will be freed.
+ *  @param  n           The number of states.
+ *  @param  ns          The maximum number of successor states.
+ *  @param  m           The number of actions.
+ *  @param  gamma       The discount factor between 0.0 and 1.0.
+ *  @param  horizon     The horizon of the MDP.
+ *  @param  epsilon     The convergence criterion for algorithms like LAO*.
+ *  @param  s0          The initial state.
+ *  @param  ng          The number of goals; optional for SSP MDPs.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int mdp_initialize_cpu(MDP *mdp, unsigned int n, unsigned int ns, unsigned int m, float gamma,
+    unsigned int horizon, float epsilon, unsigned int s0, unsigned int ng);
+
+/**
  *  Free the memory for *only* the MDP's internal arrays.
  *  @param  mdp     The MDP object. Only arrays within will be freed.
  *  @return Returns zero upon success, non-zero otherwise.

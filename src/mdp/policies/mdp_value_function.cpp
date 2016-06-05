@@ -23,10 +23,11 @@
 
 
 #include "policies/mdp_value_function.h"
-#include "error_codes.h"
-#include "constants.h"
 
 #include <stdio.h>
+
+#include "error_codes.h"
+#include "constants.h"
 
 namespace nova {
 

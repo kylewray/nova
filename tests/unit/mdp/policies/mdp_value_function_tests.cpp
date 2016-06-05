@@ -47,25 +47,22 @@ TEST(MDPValueFunction, uninitialization)
     int result = nova::mdp_value_function_uninitialize(mdpValueFunction);
     EXPECT_EQ(result, NOVA_SUCCESS);
 
-    EXPECT_EQ(mdpValueFunction, nullptr);
-    if (mdpValueFunction != nullptr) {
-        EXPECT_EQ(mdpValueFunction->S, nullptr);
-        if (mdpValueFunction->S != nullptr) {
-            delete [] mdpValueFunction->S;
-        }
-
-        EXPECT_EQ(mdpValueFunction->V, nullptr);
-        if (mdpValueFunction->V != nullptr) {
-            delete [] mdpValueFunction->V;
-        }
-
-        EXPECT_EQ(mdpValueFunction->pi, nullptr);
-        if (mdpValueFunction->pi != nullptr) {
-            delete [] mdpValueFunction->pi;
-        }
-
-        delete mdpValueFunction;
+    EXPECT_EQ(mdpValueFunction->S, nullptr);
+    if (mdpValueFunction->S != nullptr) {
+        delete [] mdpValueFunction->S;
     }
+
+    EXPECT_EQ(mdpValueFunction->V, nullptr);
+    if (mdpValueFunction->V != nullptr) {
+        delete [] mdpValueFunction->V;
+    }
+
+    EXPECT_EQ(mdpValueFunction->pi, nullptr);
+    if (mdpValueFunction->pi != nullptr) {
+        delete [] mdpValueFunction->pi;
+    }
+
+    delete mdpValueFunction;
 }
 
 TEST(MDPValueFunction, badUninitializations)
