@@ -60,13 +60,13 @@ extern "C" int pomdp_belief_update_cpu(const POMDP *pomdp, const float *b,
         unsigned int a, unsigned int o, float *&bp);
 
 /**
- *  Given a raw set of beliefs (numBeliefPointsToAdd-n array), this adds all Bnew elements into B.
- *  @param  pomdp                   The POMDP object. The Z and B values will be freed, created, and modified.
- *  @param  numBeliefPointsToAdd    The number of beliefs in Bnew to add to B.
- *  @param  Bnew                    The new raw beliefs to add to B (numBeliefPointsToAdd-n array).
+ *  Given a raw set of beliefs (numBeliefsToAdd-n array), this adds all Bnew elements into B.
+ *  @param  pomdp               The POMDP object. The Z and B values will be freed, created, and modified.
+ *  @param  numBeliefsToAdd     The number of beliefs in Bnew to add to B.
+ *  @param  Bnew                The new raw beliefs to add to B (numBeliefsToAdd-n array).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_assign_new_beliefs_from_raw_cpu(POMDP *pomdp, unsigned int numBeliefPointsToAdd,
+extern "C" int pomdp_add_new_raw_beliefs_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd,
         float *Bnew);
 
 /**

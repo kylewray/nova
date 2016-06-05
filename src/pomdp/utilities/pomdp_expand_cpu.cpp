@@ -99,6 +99,9 @@ int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd)
 
     // Create the new beliefs matrix.
     float *Bnew = new float[numBeliefsToAdd * pomdp->n];
+    for (unsigned int i = 0; i < numBeliefsToAdd * pomdp->n; i++) {
+        Bnew[i] = 0.0f;
+    }
 
     // For each belief point we want to expand. Each step will generate a new trajectory
     // and add the resulting belief point to B.
@@ -150,7 +153,7 @@ int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd)
     }
 
     // Finally, we update r, rz, and B with Bnew.
-    pomdp_assign_new_beliefs_from_raw_cpu(pomdp, numBeliefsToAdd, Bnew);
+    pomdp_add_new_raw_beliefs_cpu(pomdp, numBeliefsToAdd, Bnew);
 
     delete [] b;
     delete [] Bnew;
@@ -170,12 +173,21 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp)
         return NOVA_ERROR_INVALID_DATA;
     }
 
+    // The number of beliefs to add.
+    unsigned int numBeliefsToAdd = pomdp->r;
+
     // Create the new beliefs matrix.
-    float *Bnew = new float[pomdp->r * pomdp->n];
+    float *Bnew = new float[numBeliefsToAdd * pomdp->n];
+    for (unsigned int i = 0; i < numBeliefsToAdd * pomdp->n; i++) {
+        Bnew[i] = 0.0f;
+    }
 
     float *b = new float[pomdp->n];
+    for (unsigned int i = 0; i < pomdp->n; i++) {
+        b[i] = 0.0f;
+    }
 
-    for (unsigned int i = 0; i < pomdp->r; i++) {
+    for (unsigned int i = 0; i < numBeliefsToAdd; i++) {
         // Construct a belief to use in computing b'.
         pomdp_expand_construct_belief_cpu(pomdp, i, b);
 
@@ -236,7 +248,7 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp)
     }
 
     // Finally, we update r, rz, and B with Bnew.
-    pomdp_assign_new_beliefs_from_raw_cpu(pomdp, pomdp->r, Bnew);
+    pomdp_add_new_raw_beliefs_cpu(pomdp, numBeliefsToAdd, Bnew);
 
     delete [] b;
     delete [] Bnew;
@@ -256,8 +268,14 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy)
         return NOVA_ERROR_INVALID_DATA;
     }
 
+    // The number of beliefs to add.
+    unsigned int numBeliefsToAdd = 1;
+
     // Create the new beliefs matrix.
-    float *Bnew = new float[1 * pomdp->n];
+    float *Bnew = new float[numBeliefsToAdd * pomdp->n];
+    for (unsigned int i = 0; i < numBeliefsToAdd * pomdp->n; i++) {
+        Bnew[i] = 0.0f;
+    }
 
     float bStarEpsilonErrorBound = FLT_MIN;
 
@@ -431,7 +449,7 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy)
     delete [] oStarValue;
 
     // Finally, we update r, rz, and B with Bnew.
-    pomdp_assign_new_beliefs_from_raw_cpu(pomdp, 1, Bnew);
+    pomdp_add_new_raw_beliefs_cpu(pomdp, numBeliefsToAdd, Bnew);
 
     delete [] Bnew;
 

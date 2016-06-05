@@ -154,19 +154,20 @@ int pomdp_expand_update_max_non_zero_values_cpu(const POMDP *pomdp, const float 
 }
 
 
-int pomdp_assign_new_beliefs_from_raw_cpu(POMDP *pomdp, unsigned int numBeliefPointsToAdd, float *Bnew)
+int pomdp_add_new_raw_beliefs_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd, float *Bnew)
 {
     // Ensure the data is valid.
-    if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 || pomdp->z == 0) {
-        fprintf(stderr, "Error[pomdp_expand_distinct_beliefs_cpu]: %s\n", "Invalid arguments.");
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 || pomdp->z == 0 ||
+            numBeliefsToAdd == 0 || Bnew == nullptr) {
+        fprintf(stderr, "Error[pomdp_add_new_beliefs_raw_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    unsigned int rFinal = pomdp->r + numBeliefPointsToAdd;
+    unsigned int rFinal = pomdp->r + numBeliefsToAdd;
     unsigned int rzFinal = pomdp->rz;
 
     // Compute the new maximimum number of non-zero values.
-    for (unsigned int i = 0; i < pomdp->r; i++) {
+    for (unsigned int i = 0; i < numBeliefsToAdd; i++) {
         unsigned int maxNonZeroValues = 0;
         pomdp_expand_update_max_non_zero_values_cpu(pomdp, &Bnew[i * pomdp->n + 0], maxNonZeroValues);
 
@@ -192,25 +193,26 @@ int pomdp_assign_new_beliefs_from_raw_cpu(POMDP *pomdp, unsigned int numBeliefPo
     }
 
     // Copy the new Z and B.
-    for (unsigned int i = pomdp->r; i < pomdp->r + numBeliefPointsToAdd; i++) {
+    for (unsigned int i = pomdp->r; i < pomdp->r + numBeliefsToAdd; i++) {
         unsigned int j = 0;
 
         for (unsigned int s = 0; s < pomdp->n; s++) {
-            if (Bnew[i * rzFinal + s] > 0.0f) {
+            if (Bnew[(i - pomdp->r) * pomdp->n + s] > 0.0f) {
                 Zfinal[i * rzFinal + j] = s;
-                Bfinal[i * rzFinal + j] = Bnew[i * pomdp->rz + s];
+                Bfinal[i * rzFinal + j] = Bnew[(i - pomdp->r) * pomdp->n + s];
                 j++;
             }
         }
 
         // The remaining values are set to -1 and 0.0f.
-        for ( ; j < rzFinal; j++) {
+        while (j < rzFinal) {
             Zfinal[i * rzFinal + j] = -1;
             Bfinal[i * rzFinal + j] = 0.0f;
+            j++;
         }
     }
 
-    // Free the old data and assign the new data.
+    // Free the old data and add the new data.
     if (pomdp->Z != nullptr) {
         delete [] pomdp->Z;
     }
