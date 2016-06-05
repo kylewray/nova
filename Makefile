@@ -31,52 +31,52 @@ nova: mdp_algorithms.o mdp_algorithms_cuda.o mdp_utilities.o mdp_utilities_cuda.
 
 mdp_algorithms.o: src/mdp/algorithms/*.cpp
 	mkdir -p obj
-	$(COMMAND) $(FLAGS) -Iinclude/mdp -c src/mdp/algorithms/*.cpp
+	$(COMMAND) $(FLAGS) -c src/mdp/algorithms/*.cpp
 	mv *.o obj
 
 mdp_algorithms_cuda.o: src/mdp/algorithms/*.cu
 	mkdir -p obj
-	$(CUDA_COMMAND) $(CUDA_FLAGS) -Iinclude/mdp -c src/mdp/algorithms/*.cu
+	$(CUDA_COMMAND) $(CUDA_FLAGS) -c src/mdp/algorithms/*.cu
 	mv *.o obj
 
 mdp_utilities.o: src/mdp/utilities/*.cpp
 	mkdir -p obj
-	$(COMMAND) $(FLAGS) -Iinclude/mdp -c src/mdp/utilities/*.cpp
+	$(COMMAND) $(FLAGS) -c src/mdp/utilities/*.cpp
 	mv *.o obj
 
 mdp_utilities_cuda.o: src/mdp/utilities/*.cu
 	mkdir -p obj
-	$(CUDA_COMMAND) $(CUDA_FLAGS) -Iinclude/mdp -c src/mdp/utilities/*.cu
+	$(CUDA_COMMAND) $(CUDA_FLAGS) -c src/mdp/utilities/*.cu
 	mv *.o obj
 
 mdp_policies.o: src/mdp/policies/*.cpp
 	mkdir -p obj
-	$(COMMAND) $(FLAGS) -Iinclude/mdp -c src/mdp/policies/*.cpp
+	$(COMMAND) $(FLAGS) -c src/mdp/policies/*.cpp
 	mv *.o obj
 
 pomdp_algorithms.o: src/pomdp/algorithms/*.cpp
 	mkdir -p obj
-	$(COMMAND) $(FLAGS) -Iinclude/pomdp -c src/pomdp/algorithms/*.cpp
+	$(COMMAND) $(FLAGS) -c src/pomdp/algorithms/*.cpp
 	mv *.o obj
 
 pomdp_algorithms_cuda.o: src/pomdp/algorithms/*.cu
 	mkdir -p obj
-	$(CUDA_COMMAND) $(CUDA_FLAGS) -Iinclude/pomdp -c src/pomdp/algorithms/*.cu
+	$(CUDA_COMMAND) $(CUDA_FLAGS) -c src/pomdp/algorithms/*.cu
 	mv *.o obj
 
 pomdp_utilities.o: src/pomdp/utilities/*.cpp
 	mkdir -p obj
-	$(COMMAND) $(FLAGS) -Iinclude/pomdp -c src/pomdp/utilities/*.cpp
+	$(COMMAND) $(FLAGS) -c src/pomdp/utilities/*.cpp
 	mv *.o obj
 
 pomdp_utilities_cuda.o: src/pomdp/utilities/*.cu
 	mkdir -p obj
-	$(CUDA_COMMAND) $(CUDA_FLAGS) -Iinclude/pomdp -c src/pomdp/utilities/*.cu
+	$(CUDA_COMMAND) $(CUDA_FLAGS) -c src/pomdp/utilities/*.cu
 	mv *.o obj
 
 pomdp_policies.o: src/pomdp/policies/*.cpp
 	mkdir -p obj
-	$(COMMAND) $(FLAGS) -Iinclude/pomdp -c src/pomdp/policies/*.cpp
+	$(COMMAND) $(FLAGS) -c src/pomdp/policies/*.cpp
 	mv *.o obj
 
 
@@ -92,58 +92,58 @@ novat: novat_mdp_algorithms.o novat_mdp_algorithms_cuda.o novat_mdp_utilities.o 
 
 novat_mdp_algorithms.o: src/mdp/algorithms/*.cpp
 	mkdir -p obj
-	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -Iinclude/mdp -c src/mdp/algorithms/*.cpp
+	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -c src/mdp/algorithms/*.cpp
 	mv *.o obj
 
 novat_mdp_algorithms_cuda.o: src/mdp/algorithms/*.cu
 	mkdir -p obj
-	$(CUDA_COMMAND) $(CUDA_FLAGS) -Iinclude/mdp -c src/mdp/algorithms/*.cu
+	$(CUDA_COMMAND) $(CUDA_FLAGS) -c src/mdp/algorithms/*.cu
 	mv *.o obj
 
 novat_mdp_utilities.o: src/mdp/utilities/*.cpp
 	mkdir -p obj
-	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -Iinclude/mdp -c src/mdp/utilities/*.cpp
+	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -c src/mdp/utilities/*.cpp
 	mv *.o obj
 
 novat_mdp_utilities_cuda.o: src/mdp/utilities/*.cu
 	mkdir -p obj
-	$(CUDA_COMMAND) $(CUDA_FLAGS) -Iinclude/mdp -c src/mdp/utilities/*.cu
+	$(CUDA_COMMAND) $(CUDA_FLAGS) -c src/mdp/utilities/*.cu
 	mv *.o obj
 
 novat_mdp_policies.o: src/mdp/policies/*.cpp
 	mkdir -p obj
-	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -Iinclude/mdp -c src/mdp/policies/*.cpp
+	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -c src/mdp/policies/*.cpp
 	mv *.o obj
 
 novat_pomdp_algorithms.o: src/pomdp/algorithms/*.cpp
 	mkdir -p obj
-	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -Iinclude/pomdp -c src/pomdp/algorithms/*.cpp
+	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -c src/pomdp/algorithms/*.cpp
 	mv *.o obj
 
 novat_pomdp_algorithms_cuda.o: src/pomdp/algorithms/*.cu
 	mkdir -p obj
-	$(CUDA_COMMAND) $(CUDA_FLAGS) -Iinclude/pomdp -c src/pomdp/algorithms/*.cu
+	$(CUDA_COMMAND) $(CUDA_FLAGS) -c src/pomdp/algorithms/*.cu
 	mv *.o obj
 
 novat_pomdp_utilities.o: src/pomdp/utilities/*.cpp
 	mkdir -p obj
-	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -Iinclude/pomdp -c src/pomdp/utilities/*.cpp
+	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -c src/pomdp/utilities/*.cpp
 	mv *.o obj
 
 novat_pomdp_utilities_cuda.o: src/pomdp/utilities/*.cu
 	mkdir -p obj
-	$(CUDA_COMMAND) $(CUDA_FLAGS) -Iinclude/pomdp -c src/pomdp/utilities/*.cu
+	$(CUDA_COMMAND) $(CUDA_FLAGS) -c src/pomdp/utilities/*.cu
 	mv *.o obj
 
 novat_pomdp_policies.o: src/pomdp/policies/*.cpp
 	mkdir -p obj
-	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -Iinclude/pomdp -c src/pomdp/policies/*.cpp
+	$(NOVAT_COMMAND) $(NOVAT_FLAGS) -c src/pomdp/policies/*.cpp
 	mv *.o obj
 
 
 #nova_tests: nova_mdp_tests.o nova_mdp_algorithms_tests.o nova_mdp_utilities_tests.o nova_mdp_policies_tests.o nova_pomdp_tests.o nova_pomdp_algorithms_tests.o nova_pomdp_utilities_tests.o nova_pomdp_policies_tests.o
 nova_tests: nova_mdp_tests.o nova_mdp_algorithms_tests.o nova_mdp_utilities_tests.o nova_mdp_policies_tests.o nova_pomdp_tests.o nova_pomdp_policies_tests.o
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Iinclude/pomdp -Itests obj/*.o tests/unit/nova_tests.cpp -o nova_tests $(TEST_LIB_FLAGS)
+	$(TEST_COMMAND) $(TEST_FLAGS) -Itests obj/*.o tests/unit/nova_tests.cpp -o nova_tests $(TEST_LIB_FLAGS)
 	chmod +x nova_tests
 	mkdir -p bin
 	mv nova_tests bin
@@ -152,42 +152,42 @@ nova_tests: nova_mdp_tests.o nova_mdp_algorithms_tests.o nova_mdp_utilities_test
 
 nova_mdp_tests.o: tests/unit/mdp/*.cpp
 	mkdir -p obj
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Itests -c tests/unit/mdp/*.cpp
+	$(TEST_COMMAND) $(TEST_FLAGS) -Itests -c tests/unit/mdp/*.cpp
 	mv *.o obj
 
 nova_mdp_algorithms_tests.o: tests/unit/mdp/algorithms/*.cpp
 	mkdir -p obj
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Itests -c tests/unit/mdp/algorithms/*.cpp
+	$(TEST_COMMAND) $(TEST_FLAGS) -Itests -c tests/unit/mdp/algorithms/*.cpp
 	mv *.o obj
 
 nova_mdp_utilities_tests.o: tests/unit/mdp/utilities/*.cpp
 	mkdir -p obj
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Itests -c tests/unit/mdp/utilities/*.cpp
+	$(TEST_COMMAND) $(TEST_FLAGS) -Itests -c tests/unit/mdp/utilities/*.cpp
 	mv *.o obj
 
 nova_mdp_policies_tests.o: tests/unit/mdp/policies/*.cpp
 	mkdir -p obj
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/mdp -Itests -c tests/unit/mdp/policies/*.cpp
+	$(TEST_COMMAND) $(TEST_FLAGS) -Itests -c tests/unit/mdp/policies/*.cpp
 	mv *.o obj
 
 nova_pomdp_tests.o: tests/unit/pomdp/*.cpp
 	mkdir -p obj
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/*.cpp
+	$(TEST_COMMAND) $(TEST_FLAGS) -Itests -c tests/unit/pomdp/*.cpp
 	mv *.o obj
 
 #nova_pomdp_algorithms_tests.o: tests/unit/pomdp/algorithms/*.cpp
 #	mkdir -p obj
-#	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/algorithms/*.cpp
+#	$(TEST_COMMAND) $(TEST_FLAGS) -Itests -c tests/unit/pomdp/algorithms/*.cpp
 #	mv *.o obj
 #
 #nova_pomdp_utilities_tests.o: tests/unit/pomdp/utilities/*.cpp
 #	mkdir -p obj
-#	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/utilities/*.cpp
+#	$(TEST_COMMAND) $(TEST_FLAGS) -Itests -c tests/unit/pomdp/utilities/*.cpp
 #	mv *.o obj
 
 nova_pomdp_policies_tests.o: tests/unit/pomdp/policies/*.cpp
 	mkdir -p obj
-	$(TEST_COMMAND) $(TEST_FLAGS) -Iinclude/pomdp -Itests -c tests/unit/pomdp/policies/*.cpp
+	$(TEST_COMMAND) $(TEST_FLAGS) -Itests -c tests/unit/pomdp/policies/*.cpp
 	mv *.o obj
 
 

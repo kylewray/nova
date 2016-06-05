@@ -22,12 +22,12 @@
  */
 
 
-#ifndef POMDP_EXPAND_CPU_H
-#define POMDP_EXPAND_CPU_H
+#ifndef NOVA_POMDP_EXPAND_CPU_H
+#define NOVA_POMDP_EXPAND_CPU_H
 
 
-#include "pomdp.h"
-#include "policies/pomdp_alpha_vectors.h"
+#include <nova/pomdp/pomdp.h>
+#include <nova/pomdp/policies/pomdp_alpha_vectors.h>
 
 namespace nova {
 
@@ -63,5 +63,5 @@ extern "C" int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *poli
 };
 
 
-#endif // POMDP_EXPAND_CPU_H
+#endif // NOVA_POMDP_EXPAND_CPU_H
 

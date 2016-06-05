@@ -22,15 +22,15 @@
  */
 
 
-#include "algorithms/pomdp_pbvi_cpu.h"
+#include <nova/pomdp/algorithms/pomdp_pbvi_cpu.h>
 
 #include <stdio.h>
 #include <cstring>
 #include <cstdlib>
 #include <time.h>
 
-#include "error_codes.h"
-#include "constants.h"
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
 namespace nova {
 

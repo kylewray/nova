@@ -22,11 +22,11 @@
  */
 
 
-#ifndef POMDP_SIGMA_CPU_H
-#define POMDP_SIGMA_CPU_H
+#ifndef NOVA_POMDP_SIGMA_CPU_H
+#define NOVA_POMDP_SIGMA_CPU_H
 
 
-#include "pomdp.h"
+#include <nova/pomdp/pomdp.h>
 
 #include <utility>
 
@@ -45,5 +45,5 @@ extern "C" int pomdp_sigma_cpu(POMDP *pomdp, unsigned int numDesiredNonZeroValue
 };
 
 
-#endif // POMDP_SIGMA_CPU_H
+#endif // NOVA_POMDP_SIGMA_CPU_H
 

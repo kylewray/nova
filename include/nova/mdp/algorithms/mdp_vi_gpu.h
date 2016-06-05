@@ -22,12 +22,12 @@
  */
 
 
-#ifndef MDP_VI_GPU_H
-#define MDP_VI_GPU_H
+#ifndef NOVA_MDP_VI_GPU_H
+#define NOVA_MDP_VI_GPU_H
 
 
-#include "mdp.h"
-#include "policies/mdp_value_function.h"
+#include <nova/mdp/mdp.h>
+#include <nova/mdp/policies/mdp_value_function.h>
 
 namespace nova {
 
@@ -97,5 +97,5 @@ extern "C" int mdp_vi_get_policy_gpu(const MDP *mdp, MDPVIGPU *vi, MDPValueFunct
 };
 
 
-#endif // MDP_VI_GPU_H
+#endif // NOVA_MDP_VI_GPU_H
 

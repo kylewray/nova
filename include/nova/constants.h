@@ -22,8 +22,8 @@
  */
 
 
-#ifndef CONSTANTS_H
-#define CONSTANTS_H
+#ifndef NOVA_CONSTANTS_H
+#define NOVA_CONSTANTS_H
 
 
 namespace nova {
@@ -37,5 +37,5 @@ namespace nova {
 };
 
 
-#endif // CONSTANTS_H
+#endif // NOVA_CONSTANTS_H
 

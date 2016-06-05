@@ -22,12 +22,12 @@
  */
 
 
-#ifndef SSP_RTDP_CPU_H
-#define SSP_RTDP_CPU_H
+#ifndef NOVA_SSP_RTDP_CPU_H
+#define NOVA_SSP_RTDP_CPU_H
 
 
-#include "mdp.h"
-#include "policies/mdp_value_function.h"
+#include <nova/mdp/mdp.h>
+#include <nova/mdp/policies/mdp_value_function.h>
 
 namespace nova {
 
@@ -108,6 +108,6 @@ extern "C" int ssp_rtdp_get_policy_cpu(const MDP *mdp, SSPRTDPCPU *rtdp, MDPValu
 };
 
 
-#endif // SSP_RTDP_CPU_H
+#endif // NOVA_SSP_RTDP_CPU_H
 
 

@@ -22,7 +22,7 @@
  */
 
 
-#include "utilities/pomdp_expand_cpu.h"
+#include <nova/pomdp/utilities/pomdp_expand_cpu.h>
 
 #include <stdio.h>
 #include <cstring>
@@ -30,9 +30,9 @@
 #include <time.h>
 #include <cmath>
 
-#include "utilities/pomdp_model_cpu.h"
-#include "error_codes.h"
-#include "constants.h"
+#include <nova/pomdp/utilities/pomdp_model_cpu.h>
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
 namespace nova {
 

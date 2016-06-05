@@ -26,7 +26,7 @@
 #define NOVA_POMDP_MODEL_GPU_H
 
 
-#include "pomdp.h"
+#include <nova/pomdp/pomdp.h>
 
 namespace nova {
 

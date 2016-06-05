@@ -26,7 +26,7 @@
 #define NOVA_MDP_MODEL_GPU_H
 
 
-#include "mdp.h"
+#include <nova/mdp/mdp.h>
 
 namespace nova {
 

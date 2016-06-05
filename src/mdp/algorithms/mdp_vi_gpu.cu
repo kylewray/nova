@@ -22,14 +22,14 @@
  */
 
 
-#include "algorithms/mdp_vi_gpu.h"
+#include <nova/mdp/algorithms/mdp_vi_gpu.h>
 
 #include <cmath>
 #include <stdio.h>
 
-#include "utilities/mdp_model_gpu.h"
-#include "error_codes.h"
-#include "constants.h"
+#include <nova/mdp/utilities/mdp_model_gpu.h>
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
 namespace nova {
 

@@ -22,8 +22,8 @@
  */
 
 
-#ifndef MDP_H
-#define MDP_H
+#ifndef NOVA_MDP_H
+#define NOVA_MDP_H
 
 
 namespace nova {
@@ -77,5 +77,5 @@ typedef struct NovaMDP {
 };
 
 
-#endif // MDP_H
+#endif // NOVA_MDP_H
 

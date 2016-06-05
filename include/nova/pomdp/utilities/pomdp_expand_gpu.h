@@ -22,11 +22,11 @@
  */
 
 
-#ifndef POMDP_EXPAND_GPU_H
-#define POMDP_EXPAND_GPU_H
+#ifndef NOVA_POMDP_EXPAND_GPU_H
+#define NOVA_POMDP_EXPAND_GPU_H
 
 
-#include "pomdp.h"
+#include <nova/pomdp/pomdp.h>
 
 namespace nova {
 
@@ -50,6 +50,6 @@ extern "C" int pomdp_expand_random_gpu(const POMDP *pomdp, unsigned int numThrea
 };
 
 
-#endif // POMDP_EXPAND_GPU_H
+#endif // NOVA_POMDP_EXPAND_GPU_H
 
 

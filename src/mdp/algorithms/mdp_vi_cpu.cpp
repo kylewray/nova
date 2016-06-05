@@ -22,12 +22,13 @@
  */
 
 
-#include "algorithms/mdp_vi_cpu.h"
-#include "error_codes.h"
-#include "constants.h"
+#include <nova/mdp/algorithms/mdp_vi_cpu.h>
 
 #include <stdio.h>
 #include <cstring>
+
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
 namespace nova {
 

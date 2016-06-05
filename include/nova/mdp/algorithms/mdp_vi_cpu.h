@@ -22,12 +22,12 @@
  */
 
 
-#ifndef MDP_VI_CPU_H
-#define MDP_VI_CPU_H
+#ifndef NOVA_MDP_VI_CPU_H
+#define NOVA_MDP_VI_CPU_H
 
 
-#include "mdp.h"
-#include "policies/mdp_value_function.h"
+#include <nova/mdp/mdp.h>
+#include <nova/mdp/policies/mdp_value_function.h>
 
 namespace nova {
 
@@ -95,5 +95,5 @@ extern "C" int mdp_vi_get_policy_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunct
 };
 
 
-#endif // MDP_VI_CPU_H
+#endif // NOVA_MDP_VI_CPU_H
 

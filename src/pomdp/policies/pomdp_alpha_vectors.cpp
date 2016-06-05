@@ -22,12 +22,12 @@
  */
 
 
-#include "policies/pomdp_alpha_vectors.h"
+#include <nova/pomdp/policies/pomdp_alpha_vectors.h>
 
 #include <stdio.h>
 
-#include "error_codes.h"
-#include "constants.h"
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
 namespace nova {
 

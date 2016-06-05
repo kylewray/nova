@@ -22,12 +22,12 @@
  */
 
 
-#ifndef POMDP_PERSEUS_CPU_H
-#define POMDP_PERSEUS_CPU_H
+#ifndef NOVA_POMDP_PERSEUS_CPU_H
+#define NOVA_POMDP_PERSEUS_CPU_H
 
 
-#include "pomdp.h"
-#include "policies/pomdp_alpha_vectors.h"
+#include <nova/pomdp/pomdp.h>
+#include <nova/pomdp/policies/pomdp_alpha_vectors.h>
 
 namespace nova {
 
@@ -109,5 +109,5 @@ extern "C" int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPPerseusCPU 
 };
 
 
-#endif // POMDP_PERSEUS_CPU_H
+#endif // NOVA_POMDP_PERSEUS_CPU_H
 

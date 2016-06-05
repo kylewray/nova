@@ -22,8 +22,8 @@
  */
 
 
-#ifndef POMDP_H
-#define POMDP_H
+#ifndef NOVA_POMDP_H
+#define NOVA_POMDP_H
 
 
 namespace nova {
@@ -87,6 +87,6 @@ typedef struct NovaPOMDP {
 };
 
 
-#endif // POMDP_H
+#endif // NOVA_POMDP_H
 
 

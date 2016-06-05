@@ -22,7 +22,7 @@
  */
 
 
-#include "algorithms/ssp_rtdp_cpu.h"
+#include <nova/mdp/algorithms/ssp_rtdp_cpu.h>
 
 #include <stdio.h>
 #include <cstring>
@@ -30,8 +30,8 @@
 #include <algorithm>
 #include <math.h>
 
-#include "error_codes.h"
-#include "constants.h"
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
 
 namespace nova {

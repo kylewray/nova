@@ -22,13 +22,12 @@
  */
 
 
-#include "utilities/pomdp_model_gpu.h"
+#include <nova/pomdp/utilities/pomdp_model_gpu.h>
 
 #include <stdio.h>
 
-#include "error_codes.h"
-#include "constants.h"
-
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
 namespace nova {
 

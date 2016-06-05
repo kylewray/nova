@@ -22,7 +22,7 @@
  */
 
 
-#include "utilities/pomdp_expand_gpu.h"
+#include <nova/pomdp/utilities/pomdp_expand_gpu.h>
 
 #include <stdio.h>
 #include <cstring>
@@ -30,8 +30,8 @@
 #include <time.h>
 #include <cmath>
 
-#include "error_codes.h"
-#include "constants.h"
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
 namespace nova {
 

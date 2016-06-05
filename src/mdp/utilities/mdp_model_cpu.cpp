@@ -22,14 +22,13 @@
  */
 
 
-#include "utilities/mdp_model_cpu.h"
+#include <nova/mdp/utilities/mdp_model_cpu.h>
 
 #include <stdio.h>
 #include <cstring>
 
-#include "error_codes.h"
-#include "constants.h"
-
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
 namespace nova {
 

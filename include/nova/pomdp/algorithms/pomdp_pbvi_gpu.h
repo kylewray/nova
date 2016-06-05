@@ -22,12 +22,12 @@
  */
 
 
-#ifndef POMDP_PBVI_GPU_H
-#define POMDP_PBVI_GPU_H
+#ifndef NOVA_POMDP_PBVI_GPU_H
+#define NOVA_POMDP_PBVI_GPU_H
 
 
-#include "pomdp.h"
-#include "policies/pomdp_alpha_vectors.h"
+#include <nova/pomdp/pomdp.h>
+#include <nova/pomdp/policies/pomdp_alpha_vectors.h>
 
 namespace nova {
 
@@ -102,5 +102,5 @@ extern "C" int pomdp_pbvi_get_policy_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi,
 };
 
 
-#endif // POMDP_PBVI_GPU_H
+#endif // NOVA_POMDP_PBVI_GPU_H
 

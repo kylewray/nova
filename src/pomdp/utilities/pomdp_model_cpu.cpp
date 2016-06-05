@@ -21,13 +21,13 @@
  *  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "utilities/pomdp_model_cpu.h"
+#include <nova/pomdp/utilities/pomdp_model_cpu.h>
 
 #include <stdio.h>
 #include <cmath>
 
-#include "error_codes.h"
-#include "constants.h"
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
 namespace nova {
 

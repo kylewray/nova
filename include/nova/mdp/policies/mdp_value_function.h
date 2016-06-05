@@ -22,8 +22,8 @@
  */
 
 
-#ifndef MDP_VALUE_FUNCTION_H
-#define MDP_VALUE_FUNCTION_H
+#ifndef NOVA_MDP_VALUE_FUNCTION_H
+#define NOVA_MDP_VALUE_FUNCTION_H
 
 
 namespace nova {
@@ -64,7 +64,7 @@ extern "C" int mdp_value_function_uninitialize(MDPValueFunction *policy);
 };
 
 
-#endif // MDP_VALUE_FUNCTION_H
+#endif // NOVA_MDP_VALUE_FUNCTION_H
 
 
 

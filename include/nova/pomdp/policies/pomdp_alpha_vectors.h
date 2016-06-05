@@ -22,8 +22,8 @@
  */
 
 
-#ifndef POMDP_ALPHA_VECTORS_H
-#define POMDP_ALPHA_VECTORS_H
+#ifndef NOVA_POMDP_ALPHA_VECTORS_H
+#define NOVA_POMDP_ALPHA_VECTORS_H
 
 
 namespace nova {
@@ -65,6 +65,6 @@ extern "C" int pomdp_alpha_vectors_uninitialize(POMDPAlphaVectors *policy);
 };
 
 
-#endif // POMDP_ALPHA_VECTORS_H
+#endif // NOVA_POMDP_ALPHA_VECTORS_H
 
 
