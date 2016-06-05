@@ -126,12 +126,7 @@ class POMDP(npm.NovaPOMDP):
         if self.gpuIsInitialized:
             return
 
-        result = npm._nova.pomdp_initialize_successors_gpu(self)
-        result += npm._nova.pomdp_initialize_state_transitions_gpu(self)
-        result += npm._nova.pomdp_initialize_observation_transitions_gpu(self)
-        result += npm._nova.pomdp_initialize_rewards_gpu(self)
-        result += npm._nova.pomdp_initialize_nonzero_beliefs_gpu(self)
-        result += npm._nova.pomdp_initialize_belief_points_gpu(self)
+        result = npm._nova.pomdp_initialize_gpu(self)
         if result != 0:
             print("Failed to initialize the 'nova' library's GPU variables for the POMDP.")
             raise Exception()
@@ -144,12 +139,7 @@ class POMDP(npm.NovaPOMDP):
         if not self.gpuIsInitialized:
             return
 
-        result = npm._nova.pomdp_uninitialize_successors_gpu(self)
-        result += npm._nova.pomdp_uninitialize_state_transitions_gpu(self)
-        result += npm._nova.pomdp_uninitialize_observation_transitions_gpu(self)
-        result += npm._nova.pomdp_uninitialize_rewards_gpu(self)
-        result += npm._nova.pomdp_uninitialize_nonzero_beliefs_gpu(self)
-        result += npm._nova.pomdp_uninitialize_belief_points_gpu(self)
+        result = npm._nova.pomdp_uninitialize_gpu(self)
         if result != 0:
             print("Failed to initialize the 'nova' library's GPU variables for the POMDP.")
             raise Exception()
@@ -238,7 +228,6 @@ class POMDP(npm.NovaPOMDP):
                 pemaPolicy = pemaAlgorithm.solve()
             npm._nova.pomdp_expand_pema_cpu(self, ct.byref(pemaPolicy))
 
-    # TODO: Fix the C++ code, then fix this to call that new method that automatically changes Bnew...
     def sigma_approximate(self, numDesiredNonZeroValues=1):
         """ Perform the sigma-approximation algorithm on the current set of beliefs.
 
@@ -249,30 +238,14 @@ class POMDP(npm.NovaPOMDP):
                 The sigma = min_{b in B} sigma_b.
         """
 
-        array_type_rnumDesiredNonZeroValues_float = ct.c_float * (self.r * numDesiredNonZeroValues)
-        array_type_rnumDesiredNonZeroValues_int = ct.c_int * (self.r * numDesiredNonZeroValues)
+        sigma = ct.c_float(0.0)
 
-        #array_type_1_float = ct.c_float * (1)
-
-        #Bnew = array_type_rrz_float(*np.zeros(self.r * rz).astype(float))
-        #Znew = array_type_rrz_int(*-np.ones(self.r * rz).astype(int))
-        Bnew = ct.POINTER(array_type_rnumDesiredNonZeroValues_float)()
-        Znew = ct.POINTER(array_type_rnumDesiredNonZeroValues_int)()
-
-        #sigma = array_type_1_float(*np.array([0.0]).astype(float))
-        sigma = float(0)
-
-        result = npm._nova.pomdp_sigma_cpu(self, numDesiredNonZeroValues,
-                                           ct.byref(Bnew), ct.byref(Znew), ct.byref(sigma))
+        result = npm._nova.pomdp_sigma_cpu(self, numDesiredNonZeroValues, ct.byref(sigma))
         if result != 0:
             print("Failed to perform sigma-approximation.")
             raise Exception()
 
-        self.rz = numDesiredNonZeroValues
-        self.B = Bnew
-        self.Z = Znew
-
-        return sigma
+        return sigma.value
 
     # TODO: REMOVE THIS. IT HAS BEEN REPLACED BY SEPARATE CLASSES.
     def solve(self, algorithm='pbvi', process='gpu', numThreads=1024):

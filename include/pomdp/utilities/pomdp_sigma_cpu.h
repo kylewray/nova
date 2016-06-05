@@ -33,30 +33,14 @@
 namespace nova {
 
 /**
- *  Perform the sigma-approximation on the current set of beliefs and return a new set.
+ *  Perform the sigma-approximation on the current set of beliefs and revise them within the POMDP.
  *  @param  pomdp                       The POMDP object.
  *  @param  numDesiredNonZeroValues     The desired maximum number of non-zero values in belief vectors.
- *  @param  Znew                        The new set of state indexes after the approximation (r-rz array).
- *                                      This will be created and modified.
- *  @param  Bnew                        The new set of belief points after the approximation (r-rz array).
- *                                      This will be created and modified.
  *  @param  sigma                       The resultant sigma value, proportional to the approximation error.
  *                                      This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_sigma_cpu(POMDP *pomdp, unsigned int numDesiredNonZeroValues,
-        int *&Znew, float *&Bnew, float &sigma);
-
-// A quick typedef for comparing beliefs and remembering their indexes.
-typedef std::pair<float, int> SigmaPair;
-
-/**
- *  A comparator function for SigmaPair types.
- *  @param  bl  The left belief to compare.
- *  @param  br  The right belief to compare.
- *  @return Returns true if left is greater than right, false otherwise.
- */
-bool pomdp_sigma_pair_comparator_cpu(const SigmaPair &bl, const SigmaPair &br);
+extern "C" int pomdp_sigma_cpu(POMDP *pomdp, unsigned int numDesiredNonZeroValues, float &sigma);
 
 };
 

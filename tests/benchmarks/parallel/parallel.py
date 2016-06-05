@@ -35,7 +35,7 @@ from pylab import *
 
 
 horizon = 50
-numTrials = 10
+numTrials = 3
 
 fixedAlgorithm = 'pbvi'
 processes = ['gpu', 'cpu']
@@ -95,6 +95,10 @@ for f in files:
                 # This is just to get a sense of the speed, not the optimal value. Also, the horizon is much
                 # too small for the larger domains.
                 pomdp.expand(method='random', numBeliefsToAdd=(pow(2, f['numExpandSteps']) - 1))
+                #for ex in range(f['numExpandSteps']):
+                #    pomdp.expand(method='distinct_beliefs')
+
+                #print(pomdp)
 
                 if p == "gpu":
                     pomdp.initialize_gpu()
@@ -117,8 +121,8 @@ for f in files:
                 Vb0, ab0 = policy.value_and_action(b0)
 
                 # Note: use the time.time() function, which measures wall-clock time.
-                out.write("%i,%i,%i,%i,%i,%i,%.5f,%.5f\n" % (pomdp.n, pomdp.m, pomdp.z, pomdp.r, pomdp.ns, pomdp.rz,
-                                                            timing[0], Vb0))
+                out.write("%i,%i,%i,%i,%i,%i,%.5f,%.5f\n" % (pomdp.n, pomdp.m, pomdp.z, pomdp.r, pomdp.ns,
+                                                            pomdp.rz, timing[0], Vb0))
 
         print()
 

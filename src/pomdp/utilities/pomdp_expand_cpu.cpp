@@ -129,7 +129,8 @@ int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd)
                 pomdp_expand_probability_observation_cpu(pomdp, b, a, op, prObs);
                 currentNumber += prObs;
 
-                if (currentNumber >= targetNumber) {
+                // Note: We ensure that whatever observation is observed can actually happen.
+                if (currentNumber >= targetNumber && prObs > 0.0f) {
                     o = op;
                     break;
                 }
@@ -198,13 +199,21 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp)
         // from the current set of beliefs B. This will be added to Bnew.
         for (unsigned int a = 0; a < pomdp->m; a++) {
             for (unsigned int o = 0; o < pomdp->z; o++) {
+                // Ensure that this observation is possible given the belief and action.
+                float prObs = 0.0f;
+                pomdp_expand_probability_observation_cpu(pomdp, b, a, o, prObs);
+                if (prObs == 0.0f) {
+                    continue;
+                }
+
                 // Compute b'.
                 float *bp = nullptr;
                 unsigned int result = pomdp_belief_update_cpu(pomdp, b, a, o, bp);
 
                 // Since we are iterating over observations, we may examine an observation
                 // which is impossible given the current belief. This is based on the POMDP.
-                // Thus, this is an invalid successor belief state, so continue.
+                // Thus, this is an invalid successor belief state, so continue. Technically,
+                // this should be caught by the first check above, but this is just in case.
                 if (result != NOVA_SUCCESS) {
                     if (bp != nullptr) {
                         delete [] bp;

@@ -27,6 +27,8 @@ thisFilePath = os.path.dirname(os.path.realpath(__file__))
 
 sys.path.append(os.path.join(thisFilePath, "..", "..", "..", "python"))
 from nova.pomdp import *
+from nova.pomdp_pbvi import *
+from nova.pomdp_perseus import *
 
 from pylab import *
 
@@ -57,7 +59,6 @@ files = [
         #{'name': "drive_boston", 'filename': "domains/drive_boston.pomdp", 'filetype': "cassandra", 'numExpandSteps': 10},
         ]
 
-#rzValuesInRelationToNForSigmaApprox = [1.0, 2.0, 3.0] + [10.0, 30.0] # + [5.0 * (i + 1) for i in range(5)]
 rzValuesInRelationToNForSigmaApprox = [1.0, 3.0, 10.0, 30.0]
 
 
@@ -94,7 +95,7 @@ for f in files:
                 # Do the sigma-approximation, if desired.
                 sigma = 1.0
                 if sigmarz > 1.0:
-                    sigma = pomdp.sigma_approximate(rz=min(pomdp.rz, int(pomdp.rz / sigmarz + 1)))
+                    sigma = pomdp.sigma_approximate(min(pomdp.rz, int(pomdp.rz / sigmarz + 1)))
 
                 if fixedProcess == "gpu":
                     pomdp.initialize_gpu()
@@ -117,8 +118,8 @@ for f in files:
                 Vb0, ab0 = policy.value_and_action(b0)
 
                 # Note: use the time.time() function, which measures wall-clock time.
-                out.write("%i,%i,%i,%i,%i,%i,%.5f,%.5f,%.5f\n" % (pomdp.n, pomdp.m, pomdp.z, pomdp.r, pomdp.ns, pomdp.rz,
-                                                                  timing[0], Vb0, sigma))
+                out.write("%i,%i,%i,%i,%i,%i,%.5f,%.5f,%.5f\n" % (pomdp.n, pomdp.m, pomdp.z, pomdp.r, pomdp.ns,
+                                                                  pomdp.rz, timing[0], Vb0, sigma))
 
     print()
 

@@ -24,10 +24,11 @@
 
 #include "algorithms/pomdp_pbvi_gpu.h"
 #include "utilities/pomdp_model_gpu.h"
-#include "error_codes.h"
-#include "constants.h"
 
 #include <stdio.h>
+
+#include "error_codes.h"
+#include "constants.h"
 
 namespace nova {
 

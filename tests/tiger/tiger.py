@@ -60,7 +60,7 @@ for f in files:
     tigerFile = os.path.join(thisFilePath, f['filename'])
     tiger = POMDP()
     tiger.load(tigerFile, filetype=f['filetype'])
-    print(tiger)
+    #print(tiger)
 
     if f['expand'] == "random":
         # Note: 1 + 249 = 250 belief points.

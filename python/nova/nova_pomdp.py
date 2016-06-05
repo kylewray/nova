@@ -102,8 +102,6 @@ _nova.pomdp_expand_pema_cpu.argtypes = (ct.POINTER(NovaPOMDP),
 # Functions from 'pomdp_sigma_cpu.h'.
 _nova.pomdp_sigma_cpu.argtypes = (ct.POINTER(NovaPOMDP),
                                   ct.c_uint,                            # numDesiredNonZeroValues
-                                  ct.POINTER(ct.POINTER(ct.c_int)),     # Znew
-                                  ct.POINTER(ct.POINTER(ct.c_float)),   # Bnew
                                   ct.POINTER(ct.c_float))               # sigma
 
 

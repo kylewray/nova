@@ -32,25 +32,38 @@
 
 namespace nova {
 
+// A quick typedef for comparing beliefs and remembering their indexes.
+typedef std::pair<float, int> SigmaPair;
+
+
+/**
+ *  A comparator function for SigmaPair types. It returns true if left is greater
+ *  than right, false otherwise.
+ */
 bool pomdp_sigma_pair_comparator_cpu(const SigmaPair &bl, const SigmaPair &br)
 {
     return bl.first > br.first;
 }
 
 
-int pomdp_sigma_cpu(POMDP *pomdp, unsigned int numDesiredNonZeroValues, int *&Znew, float *&Bnew, float &sigma)
+int pomdp_sigma_cpu(POMDP *pomdp, unsigned int numDesiredNonZeroValues, float &sigma)
 {
     // Ensure the data is valid.
     if (pomdp == nullptr || pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
             pomdp->Z == nullptr || pomdp->B == nullptr ||
-            numDesiredNonZeroValues == 0 || Znew != nullptr || Bnew != nullptr) {
+            numDesiredNonZeroValues == 0) {
         fprintf(stderr, "Error[pomdp_sigma_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
     // Create the belief return variables.
-    Znew = new int[pomdp->r * numDesiredNonZeroValues];
-    Bnew = new float[pomdp->r * numDesiredNonZeroValues];
+    int *Znew = new int[pomdp->r * numDesiredNonZeroValues];
+    float *Bnew = new float[pomdp->r * numDesiredNonZeroValues];
+    for (unsigned int i = 0; i < numDesiredNonZeroValues * pomdp->n; i++) {
+        Znew[i] = -1;
+        Bnew[i] = 0.0f;
+    }
+
     sigma = 1.0;
 
     // For each belief point, we need to sort the values in descending order, then take
@@ -86,6 +99,19 @@ int pomdp_sigma_cpu(POMDP *pomdp, unsigned int numDesiredNonZeroValues, int *&Zn
             }
         }
     }
+
+    // Free the current belief variables.
+    if (pomdp->Z != nullptr) {
+        delete [] pomdp->Z;
+    }
+    if (pomdp->B != nullptr) {
+        delete [] pomdp->B;
+    }
+
+    // Assign the new values for belief variables.
+    pomdp->rz = numDesiredNonZeroValues;
+    pomdp->Z = Znew;
+    pomdp->B = Bnew;
 
     return NOVA_SUCCESS;
 }

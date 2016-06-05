@@ -23,13 +23,14 @@
 
 
 #include "algorithms/pomdp_perseus_cpu.h"
-#include "error_codes.h"
-#include "constants.h"
 
 #include <stdio.h>
 #include <cstring>
 #include <cstdlib>
 #include <time.h>
+
+#include "error_codes.h"
+#include "constants.h"
 
 namespace nova {
 
