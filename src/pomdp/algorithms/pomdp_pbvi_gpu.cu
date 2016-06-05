@@ -257,7 +257,7 @@ int pomdp_pbvi_initialize_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi)
 }
 
 
-int pomdp_pbvi_execute_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi, POMDPAlphaVectors *&policy)
+int pomdp_pbvi_execute_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi, POMDPAlphaVectors *policy)
 {
     // The result from calling other functions.
     int result;
@@ -268,7 +268,7 @@ int pomdp_pbvi_execute_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi, POMDPAlphaVec
             pomdp->d_S == nullptr || pomdp->d_T == nullptr || pomdp->d_O == nullptr || pomdp->d_R == nullptr ||
             pomdp->d_Z == nullptr || pomdp->d_B == nullptr ||
             pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
-            pbvi == nullptr || pbvi->GammaInitial == nullptr || policy != nullptr) {
+            pbvi == nullptr || pbvi->GammaInitial == nullptr || policy == nullptr) {
         fprintf(stderr, "Error[pomdp_pbvi_execute_gpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -441,22 +441,19 @@ int pomdp_pbvi_update_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi)
 }
 
 
-int pomdp_pbvi_get_policy_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi, POMDPAlphaVectors *&policy)
+int pomdp_pbvi_get_policy_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi, POMDPAlphaVectors *policy)
 {
-    if (policy != nullptr) {
-        fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s\n",
-                        "Invalid arguments. Policy must be undefined.");
+    if (pomdp == nullptr || pbvi == nullptr || policy == nullptr) {
+        fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    policy = new POMDPAlphaVectors();
-
-    policy->n = pomdp->n;
-    policy->m = pomdp->m;
-    policy->r = pomdp->r;
-
-    policy->Gamma = new float[pomdp->r * pomdp->n];
-    policy->pi = new unsigned int[pomdp->r];
+    // Initialize the policy, which allocates memory.
+    int result = pomdp_alpha_vectors_initialize(policy, pomdp->n, pomdp->m, pomdp->r);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[pomdp_pbvi_get_policy_gpu]: %s\n", "Could not create the policy.");
+        return NOVA_ERROR_POLICY_CREATION;
+    }
 
     // Copy the final result of Gamma and pi to the variables provided, from device to host.
     // This assumes that the memory has been allocated for the variables provided.

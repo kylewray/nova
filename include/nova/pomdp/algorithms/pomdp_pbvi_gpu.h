@@ -66,11 +66,11 @@ extern "C" int pomdp_pbvi_initialize_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi)
  *  Step 2/3: Execute PBVI for the infinite horizon POMDP model specified.
  *  @param  pomdp       The POMDP object.
  *  @param  pbvi        The POMDPPBVIGPU object containing algorithm variables.
- *  @param  policy      The resultant set of alpha-vectors. This will be created and modified.
+ *  @param  policy      The resultant set of alpha-vectors. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_pbvi_execute_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi,
-        POMDPAlphaVectors *&policy);
+        POMDPAlphaVectors *policy);
 
 /**
  *  Step 3/3: The uninitialization step of PBVI. This sets up the Gamma, pi, and alphaBA variables.
@@ -93,11 +93,11 @@ extern "C" int pomdp_pbvi_update_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi);
  *  corresponding actions (pi).
  *  @param  pomdp       The POMDP object.
  *  @param  pbvi        The POMDPPBVIGPU object containing algorithm variables.
- *  @param  policy      The resultant set of alpha-vectors. This will be created and modified.
+ *  @param  policy      The resultant set of alpha-vectors. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_pbvi_get_policy_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi,
-        POMDPAlphaVectors *&policy);
+        POMDPAlphaVectors *policy);
 
 };
 

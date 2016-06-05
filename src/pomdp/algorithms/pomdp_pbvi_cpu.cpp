@@ -183,7 +183,7 @@ int pomdp_pbvi_initialize_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi)
 }
 
 
-int pomdp_pbvi_execute_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVectors *&policy)
+int pomdp_pbvi_execute_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVectors *policy)
 {
     // The result from calling other functions.
     int result;
@@ -194,7 +194,7 @@ int pomdp_pbvi_execute_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVec
             pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
             pomdp->Z == nullptr || pomdp->B == nullptr ||
             pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
-            pbvi == nullptr || pbvi->GammaInitial == nullptr || policy != nullptr) {
+            pbvi == nullptr || pbvi->GammaInitial == nullptr || policy == nullptr) {
         fprintf(stderr, "Error[pomdp_pbvi_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -273,22 +273,20 @@ int pomdp_pbvi_update_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi)
 }
 
 
-int pomdp_pbvi_get_policy_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVectors *&policy)
+int pomdp_pbvi_get_policy_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVectors *policy)
 {
-    if (policy != nullptr) {
+    if (pomdp == nullptr || pbvi == nullptr || policy == nullptr) {
         fprintf(stderr, "Error[pomdp_pbvi_get_policy_cpu]: %s\n",
                         "Invalid arguments. Policy must be undefined.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    policy = new POMDPAlphaVectors();
-
-    policy->n = pomdp->n;
-    policy->m = pomdp->m;
-    policy->r = pomdp->r;
-
-    policy->Gamma = new float[pomdp->r * pomdp->n];
-    policy->pi = new unsigned int[pomdp->r];
+    // Initialize the policy, which allocates memory.
+    int result = pomdp_alpha_vectors_initialize(policy, pomdp->n, pomdp->m, pomdp->r);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[pomdp_pbvi_get_policy_cpu]: %s\n", "Could not create the policy.");
+        return NOVA_ERROR_POLICY_CREATION;
+    }
 
     // Copy the final (or intermediate) result of Gamma and pi to the variables.
     if (pbvi->currentHorizon % 2 == 0) {

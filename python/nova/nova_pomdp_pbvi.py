@@ -60,7 +60,7 @@ _nova.pomdp_pbvi_initialize_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
 
 _nova.pomdp_pbvi_execute_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
                                          ct.POINTER(NovaPOMDPPBVICPU),
-                                         ct.POINTER(ct.POINTER(pav.POMDPAlphaVectors)))
+                                         ct.POINTER(pav.POMDPAlphaVectors))
 
 _nova.pomdp_pbvi_uninitialize_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
                                               ct.POINTER(NovaPOMDPPBVICPU))
@@ -70,7 +70,7 @@ _nova.pomdp_pbvi_update_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
 
 _nova.pomdp_pbvi_get_policy_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
                                             ct.POINTER(NovaPOMDPPBVICPU),
-                                            ct.POINTER(ct.POINTER(pav.POMDPAlphaVectors)))
+                                            ct.POINTER(pav.POMDPAlphaVectors))
 
 
 class NovaPOMDPPBVIGPU(ct.Structure):
@@ -91,7 +91,7 @@ _nova.pomdp_pbvi_initialize_gpu.argtypes = (ct.POINTER(pomdp.POMDP),
 
 _nova.pomdp_pbvi_execute_gpu.argtypes = (ct.POINTER(pomdp.POMDP),
                                          ct.POINTER(NovaPOMDPPBVIGPU),
-                                         ct.POINTER(ct.POINTER(pav.POMDPAlphaVectors)))
+                                         ct.POINTER(pav.POMDPAlphaVectors))
 
 _nova.pomdp_pbvi_uninitialize_gpu.argtypes = (ct.POINTER(pomdp.POMDP),
                                               ct.POINTER(NovaPOMDPPBVIGPU))
@@ -101,5 +101,5 @@ _nova.pomdp_pbvi_update_gpu.argtypes = (ct.POINTER(pomdp.POMDP),
 
 _nova.pomdp_pbvi_get_policy_gpu.argtypes = (ct.POINTER(pomdp.POMDP),
                                             ct.POINTER(NovaPOMDPPBVIGPU),
-                                            ct.POINTER(ct.POINTER(pav.POMDPAlphaVectors)))
+                                            ct.POINTER(pav.POMDPAlphaVectors))
 

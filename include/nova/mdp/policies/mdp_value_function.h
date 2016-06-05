@@ -56,9 +56,10 @@ typedef struct NovaMDPValueFunction {
 
 /**
  *  Assign variables and allocate the memory *only* for the policy's internal arrays given the parameters.
- *  @param  n   The number of states.
- *  @param  m   The number of actions.
- *  @param  r   Optionally define the number of relevant states (r <= n). If r == 0, then all states are used.
+ *  @param  policy  The value function. Arrays within will be created.
+ *  @param  n       The number of states.
+ *  @param  m       The number of actions.
+ *  @param  r       Optionally define the number of relevant states (r <= n). If r == 0, then all states are used.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int mdp_value_function_initialize(MDPValueFunction *policy,

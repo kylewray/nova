@@ -61,10 +61,10 @@ extern "C" int pomdp_pbvi_initialize_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi)
  *  Step 2/3: Execute PBVI for the infinite horizon POMDP model specified.
  *  @param  pomdp       The POMDP object.
  *  @param  pbvi        The POMDPPBVICPU object containing algorithm variables.
- *  @param  policy      The resultant set of alpha-vectors. This will be created and modified.
+ *  @param  policy      The resultant set of alpha-vectors. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_pbvi_execute_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVectors *&policy);
+extern "C" int pomdp_pbvi_execute_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVectors *policy);
 
 /**
  *  Step 3/3: The uninitialization step of PBVI. This sets up the Gamma and pi variables.
@@ -87,10 +87,10 @@ extern "C" int pomdp_pbvi_update_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi);
  *  corresponding actions (pi).
  *  @param  pomdp       The POMDP object.
  *  @param  pbvi        The POMDPPBVICPU object containing algorithm variables.
- *  @param  policy      The resultant set of alpha-vectors. This will be created and modified.
+ *  @param  policy      The resultant set of alpha-vectors. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_pbvi_get_policy_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVectors *&policy);
+extern "C" int pomdp_pbvi_get_policy_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVectors *policy);
 
 };
 

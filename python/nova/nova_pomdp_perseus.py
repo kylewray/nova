@@ -65,7 +65,7 @@ _nova.pomdp_perseus_initialize_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
 
 _nova.pomdp_perseus_execute_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
                                             ct.POINTER(NovaPOMDPPerseusCPU),
-                                            ct.POINTER(ct.POINTER(pav.POMDPAlphaVectors)))
+                                            ct.POINTER(pav.POMDPAlphaVectors))
 
 _nova.pomdp_perseus_uninitialize_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
                                                  ct.POINTER(NovaPOMDPPerseusCPU))
@@ -75,5 +75,5 @@ _nova.pomdp_perseus_update_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
 
 _nova.pomdp_perseus_get_policy_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
                                                ct.POINTER(NovaPOMDPPerseusCPU),
-                                               ct.POINTER(ct.POINTER(pav.POMDPAlphaVectors)))
+                                               ct.POINTER(pav.POMDPAlphaVectors))
 

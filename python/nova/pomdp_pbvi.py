@@ -92,14 +92,14 @@ class POMDPPBVICPU(npp.NovaPOMDPPBVICPU):
                 The POMDPAlphaVectors policy solution to the POMDP.
         """
 
-        policy = ct.POINTER(pav.POMDPAlphaVectors)()
+        policy = pav.POMDPAlphaVectors()
 
-        result = npp._nova.pomdp_pbvi_execute_cpu(self.pomdpPtr, self, ct.byref(policy))
+        result = npp._nova.pomdp_pbvi_execute_cpu(self.pomdpPtr, self, policy)
         if result != 0:
             print("Failed to execute the 'nova' library's CPU POMDP solver.")
             raise Exception()
 
-        return policy.contents
+        return policy
 
     def __str__(self):
         """ Return the string of the POMDP PBVI.
@@ -188,14 +188,14 @@ class POMDPPBVIGPU(npp.NovaPOMDPPBVIGPU):
                 The POMDPAlphaVectors policy solution to the POMDP.
         """
 
-        policy = ct.POINTER(pav.POMDPAlphaVectors)()
+        policy = pav.POMDPAlphaVectors()
 
-        result = npp._nova.pomdp_pbvi_execute_gpu(self.pomdpPtr, self, ct.byref(policy))
+        result = npp._nova.pomdp_pbvi_execute_gpu(self.pomdpPtr, self, policy)
         if result != 0:
             print("Failed to execute the 'nova' library's GPU POMDP solver.")
             raise Exception()
 
-        return policy.contents
+        return policy
 
     def __str__(self):
         """ Return the string of the POMDP PBVI.

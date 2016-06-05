@@ -31,6 +31,24 @@
 
 namespace nova {
 
+int pomdp_alpha_vectors_initialize(POMDPAlphaVectors *policy, unsigned int n, unsigned int m, unsigned int r)
+{
+    if (policy == nullptr || policy->Gamma != nullptr || policy->pi != nullptr || n == 0 || m == 0 || r == 0) {
+        fprintf(stderr, "Error[pomdp_alpha_vectors_initialize]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    policy->n = n;
+    policy->m = m;
+    policy->r = r;
+
+    policy->Gamma = new float[policy->r * policy->n];
+    policy->pi = new unsigned int[policy->r];
+
+    return NOVA_SUCCESS;
+}
+
+
 int pomdp_alpha_vectors_value_and_action(const POMDPAlphaVectors *policy,
     const float *b, float &Vb, unsigned int &a)
 {

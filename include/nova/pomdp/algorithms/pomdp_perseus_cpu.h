@@ -73,11 +73,11 @@ extern "C" int pomdp_perseus_initialize_cpu(const POMDP *pomdp, POMDPPerseusCPU 
  *  Step 2/3: Execute Perseus for the infinite horizon POMDP model specified.
  *  @param  pomdp       The POMDP object.
  *  @param  per         The POMDPPerseusCPU object containing algorithm variables.
- *  @param  policy      The resultant set of alpha-vectors. This will be created and modified.
+ *  @param  policy      The resultant set of alpha-vectors. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_perseus_execute_cpu(const POMDP *pomdp, POMDPPerseusCPU *per,
-        POMDPAlphaVectors *&policy);
+        POMDPAlphaVectors *policy);
 
 /**
  *  Step 3/3: The uninitialization step of Perseus. This sets up the Gamma and pi variables.
@@ -100,11 +100,11 @@ extern "C" int pomdp_perseus_update_cpu(const POMDP *pomdp, POMDPPerseusCPU *per
  *  corresponding actions (pi).
  *  @param  pomdp       The POMDP object.
  *  @param  per         The POMDPPerseusCPU object containing algorithm variables.
- *  @param  policy      The resultant set of alpha-vectors. This will be created and modified.
+ *  @param  policy      The resultant set of alpha-vectors. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPPerseusCPU *per,
-        POMDPAlphaVectors *&policy);
+        POMDPAlphaVectors *policy);
 
 };
 

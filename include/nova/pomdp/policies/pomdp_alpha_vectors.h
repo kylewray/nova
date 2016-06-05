@@ -45,6 +45,17 @@ typedef struct NovaPOMDPAlphaVectors {
 } POMDPAlphaVectors;
 
 /**
+ *  Assign variables and allocate the memory *only* for the policy's internal arrays given the parameters.
+ *  @param  policy  The set of alpha-vectors. Arrays within will be created.
+ *  @param  n       The number of states.
+ *  @param  m       The number of actions.
+ *  @param  r       The number of alpha vectors.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int pomdp_alpha_vectors_initialize(POMDPAlphaVectors *policy,
+        unsigned int n, unsigned int m, unsigned int r);
+
+/**
  *  Compute the value of a belief state.
  *  @param  policy  The POMDPAlphaVectors object.
  *  @param  b       The belief state (n array).

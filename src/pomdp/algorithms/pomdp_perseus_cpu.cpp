@@ -219,7 +219,7 @@ int pomdp_perseus_initialize_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
 }
 
 
-int pomdp_perseus_execute_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDPAlphaVectors *&policy)
+int pomdp_perseus_execute_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDPAlphaVectors *policy)
 {
     // The result from calling other functions.
     int result;
@@ -230,7 +230,7 @@ int pomdp_perseus_execute_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDPAlp
             pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
             pomdp->Z == nullptr || pomdp->B == nullptr ||
             pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
-            per == nullptr || per->GammaInitial == nullptr || policy != nullptr) {
+            per == nullptr || per->GammaInitial == nullptr || policy == nullptr) {
         fprintf(stderr, "Error[pomdp_perseus_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -429,32 +429,29 @@ int pomdp_perseus_update_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
 }
 
 
-int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDPAlphaVectors *&policy)
+int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDPAlphaVectors *policy)
 {
-    if (policy != nullptr) {
-        fprintf(stderr, "Error[pomdp_perseus_get_policy_cpu]: %s\n", "Invalid arguments. Policy must be undefined.");
+    if (pomdp == nullptr || per == nullptr || policy == nullptr) {
+        fprintf(stderr, "Error[pomdp_perseus_get_policy_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    policy = new POMDPAlphaVectors();
-
-    policy->n = pomdp->n;
-    policy->m = pomdp->m;
-
     // Copy the final (or intermediate) result of Gamma and pi to the variables.
     if (per->currentHorizon % 2 == 0) {
-        policy->r = per->rGamma;
-
-        policy->Gamma = new float[per->rGamma * pomdp->n];
-        policy->pi = new unsigned int[per->rGamma];
+        int result = pomdp_alpha_vectors_initialize(policy, pomdp->n, pomdp->m, per->rGamma);
+        if (result != NOVA_SUCCESS) {
+            fprintf(stderr, "Error[pomdp_perseus_get_policy_cpu]: %s\n", "Could not create the policy.");
+            return NOVA_ERROR_POLICY_CREATION;
+        }
 
         memcpy(policy->Gamma, per->Gamma, per->rGamma * pomdp->n * sizeof(float));
         memcpy(policy->pi, per->pi, per->rGamma * sizeof(unsigned int));
     } else {
-        policy->r = per->rGammaPrime;
-
-        policy->Gamma = new float[per->rGammaPrime * pomdp->n];
-        policy->pi = new unsigned int[per->rGammaPrime];
+        int result = pomdp_alpha_vectors_initialize(policy, pomdp->n, pomdp->m, per->rGammaPrime);
+        if (result != NOVA_SUCCESS) {
+            fprintf(stderr, "Error[pomdp_perseus_get_policy_cpu]: %s\n", "Could not create the policy.");
+            return NOVA_ERROR_POLICY_CREATION;
+        }
 
         memcpy(policy->Gamma, per->GammaPrime, per->rGammaPrime * pomdp->n * sizeof(float));
         memcpy(policy->pi, per->piPrime, per->rGammaPrime * sizeof(unsigned int));

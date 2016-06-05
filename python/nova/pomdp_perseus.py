@@ -97,14 +97,14 @@ class POMDPPerseusCPU(npper.NovaPOMDPPerseusCPU):
                 The POMDPAlphaVectors policy solution to the POMDP.
         """
 
-        policy = ct.POINTER(pav.POMDPAlphaVectors)()
+        policy = pav.POMDPAlphaVectors()
 
-        result = npper._nova.pomdp_perseus_execute_cpu(self.pomdpPtr, self, ct.byref(policy))
+        result = npper._nova.pomdp_perseus_execute_cpu(self.pomdpPtr, self, policy)
         if result != 0:
             print("Failed to execute the 'nova' library's CPU POMDP solver.")
             raise Exception()
 
-        return policy.contents
+        return policy
 
     def __str__(self):
         """ Return the string of the POMDP Perseus.
