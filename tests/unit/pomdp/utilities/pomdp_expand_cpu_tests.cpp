@@ -22,15 +22,15 @@
  */
 
 
-#include "utilities/pomdp_expand_cpu.h"
+#include <nova/pomdp/utilities/pomdp_expand_cpu.h>
 
 #include <gtest/gtest.h>
 
-#include "utilities/pomdp_model_cpu.h"
-#include "error_codes.h"
-#include "constants.h"
+#include <nova/pomdp/utilities/pomdp_model_cpu.h>
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
-#include "unit/pomdp/pomdp_tests.h"
+#include <unit/pomdp/pomdp_tests.h>
 
 namespace nova {
 namespace tests {

@@ -62,10 +62,10 @@ extern "C" int ssp_lao_star_initialize_cpu(const MDP *mdp, SSPLAOStarCPU *lao);
  *  Note we assume the rewards R are all positive costs or 0 for goal states.
  *  @param  mdp         The MDP object.
  *  @param  lao         The SSPLAOStarCPU object containing algorithm variables.
- *  @param  policy      The resulting value function policy. This will be created and modified.
+ *  @param  policy      The resulting value function policy. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int ssp_lao_star_execute_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunction *&policy);
+extern "C" int ssp_lao_star_execute_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunction *policy);
 
 /**
  *  Step 3/3: The uninitialization step of LAO*. This sets up the V and pi variables.
@@ -91,10 +91,10 @@ extern "C" int ssp_lao_star_update_cpu(const MDP *mdp, SSPLAOStarCPU *lao);
  *  Note we assume the rewards R are all positive costs or 0 for goal states.
  *  @param  mdp         The MDP object.
  *  @param  lao         The SSPLAOStarCPU object containing algorithm variables.
- *  @param  policy      The resulting value function policy. This will be created and modified.
+ *  @param  policy      The resulting value function policy. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int ssp_lao_star_get_policy_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunction *&policy);
+extern "C" int ssp_lao_star_get_policy_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunction *policy);
 
 };
 

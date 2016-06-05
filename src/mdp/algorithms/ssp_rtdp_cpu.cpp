@@ -30,9 +30,9 @@
 #include <algorithm>
 #include <math.h>
 
+#include <nova/mdp/policies/mdp_value_function.h>
 #include <nova/error_codes.h>
 #include <nova/constants.h>
-
 
 namespace nova {
 
@@ -169,14 +169,14 @@ int ssp_rtdp_initialize_cpu(const MDP *mdp, SSPRTDPCPU *rtdp)
 }
 
 
-int ssp_rtdp_execute_cpu(const MDP *mdp, SSPRTDPCPU *rtdp, MDPValueFunction *&policy)
+int ssp_rtdp_execute_cpu(const MDP *mdp, SSPRTDPCPU *rtdp, MDPValueFunction *policy)
 {
     // First, ensure data is valid.
     if (mdp == nullptr || mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
             mdp->horizon < 1 ||
             mdp->ng < 1 || mdp->goals == nullptr ||
-            rtdp == nullptr || rtdp->trials < 1 || policy != nullptr) {
+            rtdp == nullptr || rtdp->trials < 1 || policy == nullptr) {
         fprintf(stderr, "Error[ssp_rtdp_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -299,35 +299,32 @@ int ssp_rtdp_update_cpu(const MDP *mdp, SSPRTDPCPU *rtdp)
 }
 
 
-int ssp_rtdp_get_policy_cpu(const MDP *mdp, SSPRTDPCPU *rtdp, MDPValueFunction *&policy)
+int ssp_rtdp_get_policy_cpu(const MDP *mdp, SSPRTDPCPU *rtdp, MDPValueFunction *policy)
 {
-    if (mdp == nullptr || rtdp == nullptr || policy != nullptr) {
-        fprintf(stderr, "Error[ssp_rtdp_get_policy_cpu]: %s\n",
-                        "Invalid arguments. The policy must be undefined.");
+    if (mdp == nullptr || rtdp == nullptr || policy == nullptr) {
+        fprintf(stderr, "Error[ssp_rtdp_get_policy_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    policy = new MDPValueFunction();
-
-    policy->n = mdp->n;
-    policy->m = mdp->m;
-
     // First, count the number of states that are valid following the policy.
-    policy->r = 0;
+    unsigned int r = 0;
 
     for (unsigned int s = 0; s < mdp->n; s++) {
         // Only include the expanded (visited) states as part of the final policy.
         if (ssp_rtdp_is_expanded_cpu(mdp, rtdp, s)) {
-            policy->r++;
+            r++;
         }
     }
 
-    policy->S = new unsigned int[policy->r];
-    policy->V = new float[policy->r];
-    policy->pi = new unsigned int[policy->r];
+    // Initialize the policy, which allocates memory.
+    int result = mdp_value_function_initialize(policy, mdp->n, mdp->m, r);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[ssp_rtdp_get_policy_cpu]: %s\n", "Could not create the policy.");
+        return NOVA_ERROR_POLICY_CREATION;
+    }
 
     // Copy the final (or intermediate) result, both V and pi.
-    unsigned int r = 0;
+    r = 0;
 
     for (unsigned int s = 0; s < mdp->n; s++) {
         if (ssp_rtdp_is_expanded_cpu(mdp, rtdp, s)) {

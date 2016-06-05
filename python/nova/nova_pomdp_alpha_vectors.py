@@ -51,6 +51,10 @@ class NovaPOMDPAlphaVectors(ct.Structure):
 
 
 # Functions from 'pomdp_alpha_vectors.h'.
+_nova.pomdp_alpha_vectors_initialize.argtypes = (ct.POINTER(NovaPOMDPAlphaVectors),
+                                                 ct.c_uint,      # n
+                                                 ct.c_uint,      # m
+                                                 ct.c_uint)      # r
 _nova.pomdp_alpha_vectors_value_and_action.argtypes = (ct.POINTER(NovaPOMDPAlphaVectors),
                                         ct.POINTER(ct.c_float),                 # b
                                         ct.POINTER(ct.c_float),                 # Vb

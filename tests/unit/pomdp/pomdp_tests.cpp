@@ -22,12 +22,11 @@
  */
 
 
-#include "unit/pomdp/pomdp_tests.h"
+#include <unit/pomdp/pomdp_tests.h>
 
-#include "pomdp.h"
-#include "error_codes.h"
-#include "constants.h"
-
+#include <nova/pomdp/pomdp.h>
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
 namespace nova {
 namespace tests {

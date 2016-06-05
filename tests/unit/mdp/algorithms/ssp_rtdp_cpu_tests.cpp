@@ -22,16 +22,15 @@
  */
 
 
-#include "algorithms/ssp_rtdp_cpu.h"
+#include <nova/mdp/algorithms/ssp_rtdp_cpu.h>
 
 #include <gtest/gtest.h>
 
-#include "utilities/mdp_model_cpu.h"
-#include "error_codes.h"
-#include "constants.h"
+#include <nova/mdp/utilities/mdp_model_cpu.h>
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
-#include "unit/mdp/mdp_tests.h"
-
+#include <unit/mdp/mdp_tests.h>
 
 namespace nova {
 namespace tests {
@@ -150,7 +149,7 @@ TEST(SSPRTDPCPU, executionSimpleMDP)
     rtdp.VInitial = nullptr;
     rtdp.trials = 100;
 
-    nova::MDPValueFunction *policy = nullptr;
+    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     int result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -205,7 +204,7 @@ TEST(SSPRTDPCPU, executionThreeStateMDP)
     rtdp.VInitial = nullptr;
     rtdp.trials = 100;
 
-    nova::MDPValueFunction *policy = nullptr;
+    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     int result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -275,7 +274,7 @@ TEST(SSPRTDPCPU, badExecution)
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
     policy = new nova::MDPValueFunction();
-    result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
+    result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
     mdp->n = 0;
@@ -312,16 +311,6 @@ TEST(SSPRTDPCPU, badExecution)
     result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
     mdp->R = (float *)tempAddress;
-
-    mdp->gamma = -1.0f;
-    result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
-    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
-    mdp->gamma = 0.9f;
-
-    mdp->gamma = 2.0f;
-    result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
-    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
-    mdp->gamma = 0.9f;
 
     mdp->horizon = 0;
     result = nova::ssp_rtdp_execute_cpu(mdp, &rtdp, policy);
@@ -550,7 +539,7 @@ TEST(SSPRTDPCPU, getPolicy)
     rtdp.pi[0] = 50;
     rtdp.pi[1] = 60;
 
-    nova::MDPValueFunction *policy = nullptr;
+    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     int result = nova::ssp_rtdp_get_policy_cpu(&mdp, &rtdp, policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -601,18 +590,14 @@ TEST(SSPRTDPCPU, badGetPolicy)
     rtdp.VInitial = nullptr;
     rtdp.trials = 100;
 
-    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
-
-    int result = nova::ssp_rtdp_get_policy_cpu(nullptr, nullptr, policy);
+    int result = nova::ssp_rtdp_get_policy_cpu(nullptr, nullptr, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
-    result = nova::ssp_rtdp_get_policy_cpu(&mdp, nullptr, policy);
+    result = nova::ssp_rtdp_get_policy_cpu(&mdp, nullptr, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
-    result = nova::ssp_rtdp_get_policy_cpu(&mdp, &rtdp, policy);
+    result = nova::ssp_rtdp_get_policy_cpu(&mdp, &rtdp, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
-
-    delete policy;
 }
 
 }; // namespace tests

@@ -26,7 +26,7 @@
 #define POMDP_TESTS_H
 
 
-#include "pomdp.h"
+#include <nova/pomdp/pomdp.h>
 
 namespace nova {
 namespace tests {

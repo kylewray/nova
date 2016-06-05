@@ -61,7 +61,7 @@ _nova.ssp_rtdp_initialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
 
 _nova.ssp_rtdp_execute_cpu.argtypes = (ct.POINTER(mdp.MDP),
                                        ct.POINTER(NovaSSPRTDPCPU),
-                                       ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))
+                                       ct.POINTER(mvf.MDPValueFunction))
 
 _nova.ssp_rtdp_uninitialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
                                             ct.POINTER(NovaSSPRTDPCPU))
@@ -71,7 +71,7 @@ _nova.ssp_rtdp_update_cpu.argtypes = (ct.POINTER(mdp.MDP),
 
 _nova.ssp_rtdp_get_policy_cpu.argtypes = (ct.POINTER(mdp.MDP),
                                           ct.POINTER(NovaSSPRTDPCPU),
-                                          ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))
+                                          ct.POINTER(mvf.MDPValueFunction))
 
 
 

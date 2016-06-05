@@ -60,7 +60,7 @@ _nova.mdp_vi_initialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
 
 _nova.mdp_vi_execute_cpu.argtypes = (ct.POINTER(mdp.MDP),
                                     ct.POINTER(NovaMDPValueIterationCPU),
-                                    ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))
+                                    ct.POINTER(mvf.MDPValueFunction))
 
 _nova.mdp_vi_uninitialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
                                     ct.POINTER(NovaMDPValueIterationCPU))
@@ -70,7 +70,7 @@ _nova.mdp_vi_update_cpu.argtypes = (ct.POINTER(mdp.MDP),
 
 _nova.mdp_vi_get_policy_cpu.argtypes = (ct.POINTER(mdp.MDP),
                                         ct.POINTER(NovaMDPValueIterationCPU),
-                                        ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))
+                                        ct.POINTER(mvf.MDPValueFunction))
 
 
 class NovaMDPValueIterationGPU(ct.Structure):
@@ -90,7 +90,7 @@ _nova.mdp_vi_initialize_gpu.argtypes = (ct.POINTER(mdp.MDP),
 
 _nova.mdp_vi_execute_gpu.argtypes = (ct.POINTER(mdp.MDP),
                                     ct.POINTER(NovaMDPValueIterationGPU),
-                                    ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))
+                                    ct.POINTER(mvf.MDPValueFunction))
 
 _nova.mdp_vi_uninitialize_gpu.argtypes = (ct.POINTER(mdp.MDP),
                                     ct.POINTER(NovaMDPValueIterationGPU))
@@ -100,5 +100,5 @@ _nova.mdp_vi_update_gpu.argtypes = (ct.POINTER(mdp.MDP),
 
 _nova.mdp_vi_get_policy_gpu.argtypes = (ct.POINTER(mdp.MDP),
                                         ct.POINTER(NovaMDPValueIterationCPU),
-                                        ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))
+                                        ct.POINTER(mvf.MDPValueFunction))
 

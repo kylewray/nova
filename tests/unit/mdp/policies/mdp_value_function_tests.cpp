@@ -22,13 +22,12 @@
  */
 
 
-#include "policies/mdp_value_function.h"
+#include <nova/mdp/policies/mdp_value_function.h>
 
 #include <gtest/gtest.h>
 
-#include "error_codes.h"
-#include "constants.h"
-
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
 namespace nova {
 namespace tests {

@@ -22,17 +22,16 @@
  */
 
 
-#include "algorithms/mdp_vi_gpu.h"
+#include <nova/mdp/algorithms/mdp_vi_gpu.h>
 
 #include <gtest/gtest.h>
 
-#include "utilities/mdp_model_cpu.h"
-#include "utilities/mdp_model_gpu.h"
-#include "error_codes.h"
-#include "constants.h"
+#include <nova/mdp/utilities/mdp_model_cpu.h>
+#include <nova/mdp/utilities/mdp_model_gpu.h>
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
-#include "unit/mdp/mdp_tests.h"
-
+#include <unit/mdp/mdp_tests.h>
 
 namespace nova {
 namespace tests {
@@ -144,7 +143,7 @@ TEST(MDPVIGPU, executionSimpleMDP)
     vi.VInitial = nullptr;
     vi.numThreads = 512;
 
-    nova::MDPValueFunction *policy = nullptr;
+    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     result = nova::mdp_vi_execute_gpu(mdp, &vi, policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -197,7 +196,7 @@ TEST(MDPVIGPU, executionThreeStateMDP)
     vi.VInitial = nullptr;
     vi.numThreads = 512;
 
-    nova::MDPValueFunction *policy = nullptr;
+    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     result = nova::mdp_vi_execute_gpu(mdp, &vi, policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -265,7 +264,7 @@ TEST(MDPVIGPU, badExecution)
     vi.VInitial = nullptr;
     vi.numThreads = 512;
 
-    nova::MDPValueFunction *policy = nullptr;
+    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     result = nova::mdp_vi_execute_gpu(nullptr, &vi, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
@@ -274,7 +273,7 @@ TEST(MDPVIGPU, badExecution)
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
     policy = new nova::MDPValueFunction();
-    result = nova::mdp_vi_execute_gpu(mdp, &vi, policy);
+    result = nova::mdp_vi_execute_gpu(mdp, &vi, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
     mdp->n = 0;
@@ -392,7 +391,7 @@ TEST(MDPVIGPU, updateSimpleMDP)
     vi.VInitial = nullptr;
     vi.numThreads = 512;
 
-    nova::MDPValueFunction *policy = nullptr;
+    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     result = nova::mdp_vi_initialize_gpu(mdp, &vi);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -408,8 +407,6 @@ TEST(MDPVIGPU, updateSimpleMDP)
     EXPECT_EQ(policy->pi[0], 0);
     result = nova::mdp_value_function_uninitialize(policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
-    delete policy;
-    policy = nullptr;
 
     result = nova::mdp_vi_update_gpu(mdp, &vi);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -420,8 +417,6 @@ TEST(MDPVIGPU, updateSimpleMDP)
     EXPECT_EQ(policy->pi[0], 0);
     result = nova::mdp_value_function_uninitialize(policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
-    delete policy;
-    policy = nullptr;
 
     result = nova::mdp_vi_update_gpu(mdp, &vi);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -432,8 +427,6 @@ TEST(MDPVIGPU, updateSimpleMDP)
     EXPECT_EQ(policy->pi[0], 0);
     result = nova::mdp_value_function_uninitialize(policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
-    delete policy;
-    policy = nullptr;
 
     result = nova::mdp_vi_uninitialize_gpu(mdp, &vi);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -444,6 +437,7 @@ TEST(MDPVIGPU, updateSimpleMDP)
     result = nova::mdp_uninitialize_cpu(mdp);
     EXPECT_EQ(result, NOVA_SUCCESS);
 
+    delete policy;
     delete mdp;
 }
 
@@ -459,7 +453,7 @@ TEST(MDPVIGPU, updateThreeStateMDP)
     vi.VInitial = nullptr;
     vi.numThreads = 512;
 
-    nova::MDPValueFunction *policy = nullptr;
+    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     result = nova::mdp_vi_initialize_gpu(mdp, &vi);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -479,8 +473,6 @@ TEST(MDPVIGPU, updateThreeStateMDP)
     //EXPECT_EQ(policy->pi[2], 0);
     result = nova::mdp_value_function_uninitialize(policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
-    delete policy;
-    policy = nullptr;
 
     result = nova::mdp_vi_update_gpu(mdp, &vi);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -495,8 +487,6 @@ TEST(MDPVIGPU, updateThreeStateMDP)
     //EXPECT_EQ(policy->pi[2], 0);
     result = nova::mdp_value_function_uninitialize(policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
-    delete policy;
-    policy = nullptr;
 
     result = nova::mdp_vi_update_gpu(mdp, &vi);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -511,8 +501,6 @@ TEST(MDPVIGPU, updateThreeStateMDP)
     //EXPECT_EQ(policy->pi[2], 0);
     result = nova::mdp_value_function_uninitialize(policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
-    delete policy;
-    policy = nullptr;
 
     result = nova::mdp_vi_uninitialize_gpu(mdp, &vi);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -523,6 +511,7 @@ TEST(MDPVIGPU, updateThreeStateMDP)
     result = nova::mdp_uninitialize_cpu(mdp);
     EXPECT_EQ(result, NOVA_SUCCESS);
 
+    delete policy;
     delete mdp;
 }
 
@@ -547,7 +536,7 @@ TEST(MDPVIGPU, getPolicy)
     int result = nova::mdp_vi_initialize_gpu(&mdp, &vi);
     EXPECT_EQ(result, NOVA_SUCCESS);
 
-    nova::MDPValueFunction *policy = nullptr;
+    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     result = nova::mdp_vi_get_policy_gpu(&mdp, &vi, policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -594,18 +583,14 @@ TEST(MDPVIGPU, badGetPolicy)
     vi.VInitial = nullptr;
     vi.numThreads = 512;
 
-    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
-
-    int result = nova::mdp_vi_get_policy_gpu(nullptr, nullptr, policy);
+    int result = nova::mdp_vi_get_policy_gpu(nullptr, nullptr, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
-    result = nova::mdp_vi_get_policy_gpu(&mdp, nullptr, policy);
+    result = nova::mdp_vi_get_policy_gpu(&mdp, nullptr, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
-    result = nova::mdp_vi_get_policy_gpu(&mdp, &vi, policy);
+    result = nova::mdp_vi_get_policy_gpu(&mdp, &vi, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
-
-    delete policy;
 }
 
 }; // namespace tests

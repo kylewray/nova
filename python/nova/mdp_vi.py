@@ -89,14 +89,14 @@ class MDPValueIterationCPU(nmvi.NovaMDPValueIterationCPU):
                 The MDPValueFunction policy solution to the MDP.
         """
 
-        policy = ct.POINTER(mvf.MDPValueFunction)()
+        policy = mvf.MDPValueFunction()
 
-        result = nmvi._nova.mdp_vi_execute_cpu(self.mdpPtr, self, ct.byref(policy))
+        result = nmvi._nova.mdp_vi_execute_cpu(self.mdpPtr, self, policy)
         if result != 0:
             print("Failed to execute the 'nova' library's CPU MDP solver.")
             raise Exception()
 
-        return policy.contents
+        return policy
 
     def __str__(self):
         """ Return the string of the MDP value iteration.
@@ -178,14 +178,14 @@ class MDPValueIterationGPU(nmvi.NovaMDPValueIterationGPU):
                 The MDPValueFunction policy solution to the MDP.
         """
 
-        policy = ct.POINTER(mvf.MDPValueFunction)()
+        policy = mvf.MDPValueFunction()
 
-        result = nmvi._nova.mdp_vi_execute_gpu(self.mdpPtr, self, ct.byref(policy))
+        result = nmvi._nova.mdp_vi_execute_gpu(self.mdpPtr, self, policy)
         if result != 0:
             print("Failed to execute the 'nova' library's GPU MDP solver.")
             raise Exception()
 
-        return policy.contents
+        return policy
 
     def __str__(self):
         """ Return the string of the MDP value iteration.

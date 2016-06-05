@@ -39,7 +39,7 @@ namespace nova {
  *  @param  n   The number of states in the MDP.
  *  @param  m   The number of actions in the MDP.
  *  @param  r   The number of relevant states in the solution. If r == 0,
- *              then all states are used.
+ *              then all states are used, and S is null.
  *  @param  S   The set of relevant states (r array). If this r == 0,
  *              then this is null, and V and pi are n arrays.
  *  @param  V   The values of the relevant states (r array or n array).
@@ -53,6 +53,16 @@ typedef struct NovaMDPValueFunction {
     float *V;
     unsigned int *pi;
 } MDPValueFunction;
+
+/**
+ *  Assign variables and allocate the memory *only* for the policy's internal arrays given the parameters.
+ *  @param  n   The number of states.
+ *  @param  m   The number of actions.
+ *  @param  r   Optionally define the number of relevant states (r <= n). If r == 0, then all states are used.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int mdp_value_function_initialize(MDPValueFunction *policy,
+        unsigned int n, unsigned int m, unsigned int r);
 
 /**
  *  Free the memory for *only* the policy's internal arrays.

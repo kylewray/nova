@@ -59,7 +59,7 @@ _nova.ssp_lao_star_initialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
 
 _nova.ssp_lao_star_execute_cpu.argtypes = (ct.POINTER(mdp.MDP),
                                            ct.POINTER(NovaSSPLAOStarCPU),
-                                           ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))
+                                           ct.POINTER(mvf.MDPValueFunction))
 
 _nova.ssp_lao_star_uninitialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
                                                 ct.POINTER(NovaSSPLAOStarCPU))
@@ -69,6 +69,6 @@ _nova.ssp_lao_star_update_cpu.argtypes = (ct.POINTER(mdp.MDP),
 
 _nova.ssp_lao_star_get_policy_cpu.argtypes = (ct.POINTER(mdp.MDP),
                                               ct.POINTER(NovaSSPLAOStarCPU),
-                                              ct.POINTER(ct.POINTER(mvf.MDPValueFunction)))
+                                              ct.POINTER(mvf.MDPValueFunction))
 
 

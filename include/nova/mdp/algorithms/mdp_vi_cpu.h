@@ -61,10 +61,10 @@ extern "C" int mdp_vi_initialize_cpu(const MDP *mdp, MDPVICPU *vi);
  *  Step 2/3: Execute VI for the MDP model specified.
  *  @param  mdp         The MDP object.
  *  @param  vi          The MDPVICPU object containing algorithm variables.
- *  @param  policy      The resulting value function policy. This will be created and modified.
+ *  @param  policy      The resulting value function policy. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int mdp_vi_execute_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *&policy);
+extern "C" int mdp_vi_execute_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *policy);
 
 /**
  *  Step 3/3: The uninitialization step of VI. This sets up the V and pi variables.
@@ -87,10 +87,10 @@ extern "C" int mdp_vi_update_cpu(const MDP *mdp, MDPVICPU *vi);
  *  the corresponding actions at each state (pi).
  *  @param  mdp         The MDP object.
  *  @param  vi          The MDPVICPU object containing algorithm variables.
- *  @param  policy      The resulting value function policy. This will be created and modified.
+ *  @param  policy      The resulting value function policy. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int mdp_vi_get_policy_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *&policy);
+extern "C" int mdp_vi_get_policy_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *policy);
 
 };
 

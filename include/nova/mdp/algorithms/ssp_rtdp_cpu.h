@@ -68,10 +68,10 @@ extern "C" int ssp_rtdp_initialize_cpu(const MDP *mdp, SSPRTDPCPU *rtdp);
  *  assumes that the goal can be reached with non-zero probability from all states.
  *  @param  mdp         The MDP object.
  *  @param  rtdp        The SSPRTDPCPU object containing algorithm variables.
- *  @param  policy      The resulting value function policy. This will be created and modified.
+ *  @param  policy      The resulting value function policy. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int ssp_rtdp_execute_cpu(const MDP *mdp, SSPRTDPCPU *rtdp, MDPValueFunction *&policy);
+extern "C" int ssp_rtdp_execute_cpu(const MDP *mdp, SSPRTDPCPU *rtdp, MDPValueFunction *policy);
 
 /**
  *  Step 3/3: The uninitialization step of RTDP. This sets up the V and pi variables.
@@ -100,10 +100,10 @@ extern "C" int ssp_rtdp_update_cpu(const MDP *mdp, SSPRTDPCPU *rtdp);
  *  Note we assume the rewards R are all positive costs or 0 for goal states.
  *  @param  mdp         The MDP object.
  *  @param  rtdp        The SSPRTDPCPU object containing algorithm variables.
- *  @param  policy      The resulting value function policy. This will be created and modified.
+ *  @param  policy      The resulting value function policy. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int ssp_rtdp_get_policy_cpu(const MDP *mdp, SSPRTDPCPU *rtdp, MDPValueFunction *&policy);
+extern "C" int ssp_rtdp_get_policy_cpu(const MDP *mdp, SSPRTDPCPU *rtdp, MDPValueFunction *policy);
 
 };
 

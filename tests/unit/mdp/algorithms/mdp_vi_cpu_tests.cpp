@@ -22,16 +22,15 @@
  */
 
 
-#include "algorithms/mdp_vi_cpu.h"
+#include <nova/mdp/algorithms/mdp_vi_cpu.h>
 
 #include <gtest/gtest.h>
 
-#include "utilities/mdp_model_cpu.h"
-#include "error_codes.h"
-#include "constants.h"
+#include <nova/mdp/utilities/mdp_model_cpu.h>
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
-#include "unit/mdp/mdp_tests.h"
-
+#include <unit/mdp/mdp_tests.h>
 
 namespace nova {
 namespace tests {
@@ -153,7 +152,7 @@ TEST(MDPVICPU, executionSimpleMDP)
     nova::MDPVICPU vi;
     vi.VInitial = nullptr;
 
-    nova::MDPValueFunction *policy = nullptr;
+    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     int result = nova::mdp_vi_execute_cpu(mdp, &vi, policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -188,6 +187,7 @@ TEST(MDPVICPU, executionSimpleMDP)
     result = nova::mdp_uninitialize_cpu(mdp);
     EXPECT_EQ(result, NOVA_SUCCESS);
 
+    delete policy;
     delete mdp;
 }
 
@@ -199,7 +199,7 @@ TEST(MDPVICPU, executionThreeStateMDP)
     nova::MDPVICPU vi;
     vi.VInitial = nullptr;
 
-    nova::MDPValueFunction *policy = nullptr;
+    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     int result = nova::mdp_vi_execute_cpu(mdp, &vi, policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -260,7 +260,7 @@ TEST(MDPVICPU, badExecution)
     nova::MDPVICPU vi;
     vi.VInitial = nullptr;
 
-    nova::MDPValueFunction *policy = nullptr;
+    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     int result = nova::mdp_vi_execute_cpu(nullptr, &vi, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
@@ -269,7 +269,7 @@ TEST(MDPVICPU, badExecution)
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
     policy = new nova::MDPValueFunction();
-    result = nova::mdp_vi_execute_cpu(mdp, &vi, policy);
+    result = nova::mdp_vi_execute_cpu(mdp, &vi, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
     mdp->n = 0;
@@ -517,7 +517,7 @@ TEST(MDPVICPU, getPolicy)
     for (unsigned int i = 0; i < 5; i++) {
         vi.currentHorizon = i;
 
-        nova::MDPValueFunction *policy = nullptr;
+        nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
         int result = nova::mdp_vi_get_policy_cpu(&mdp, &vi, policy);
         EXPECT_EQ(result, NOVA_SUCCESS);
@@ -568,18 +568,14 @@ TEST(MDPVICPU, badGetPolicy)
     nova::MDPVICPU vi;
     vi.VInitial = nullptr;
 
-    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
-
-    int result = nova::mdp_vi_get_policy_cpu(nullptr, nullptr, policy);
+    int result = nova::mdp_vi_get_policy_cpu(nullptr, nullptr, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
-    result = nova::mdp_vi_get_policy_cpu(&mdp, nullptr, policy);
+    result = nova::mdp_vi_get_policy_cpu(&mdp, nullptr, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
-    result = nova::mdp_vi_get_policy_cpu(&mdp, &vi, policy);
+    result = nova::mdp_vi_get_policy_cpu(&mdp, &vi, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
-
-    delete policy;
 }
 
 }; // namespace tests

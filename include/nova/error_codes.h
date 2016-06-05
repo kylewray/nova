@@ -41,10 +41,11 @@ namespace nova {
 #define NOVA_ERROR_KERNEL_EXECUTION                 7
 #define NOVA_ERROR_DEVICE_SYNCHRONIZE               8
 
-// Other warnings which are possible during run time.
-#define NOVA_WARNING_INVALID_BELIEF                 9
-#define NOVA_CONVERGED                              10
+// Other results, warnings, or errors which are possible during run time.
+#define NOVA_CONVERGED                              9
+#define NOVA_WARNING_INVALID_BELIEF                 10
 #define NOVA_ERROR_OUT_OF_MEMORY                    11
+#define NOVA_ERROR_POLICY_CREATION                  12
 
 };
 

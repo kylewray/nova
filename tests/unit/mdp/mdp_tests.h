@@ -26,7 +26,7 @@
 #define MDP_TESTS_H
 
 
-#include "mdp.h"
+#include <nova/mdp/mdp.h>
 
 namespace nova {
 namespace tests {

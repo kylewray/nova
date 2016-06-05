@@ -30,9 +30,9 @@
 #include <algorithm>
 #include <math.h>
 
+#include <nova/mdp/policies/mdp_value_function.h>
 #include <nova/error_codes.h>
 #include <nova/constants.h>
-
 
 namespace nova {
 
@@ -356,14 +356,14 @@ int ssp_lao_star_initialize_cpu(const MDP *mdp, SSPLAOStarCPU *lao)
 }
 
 
-int ssp_lao_star_execute_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunction *&policy)
+int ssp_lao_star_execute_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunction *policy)
 {
     // First, ensure data is valid.
     if (mdp == nullptr || mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
             mdp->horizon < 1 || mdp->epsilon < 0.0f ||
             mdp->ng < 1 || mdp->goals == nullptr ||
-            lao == nullptr || policy != nullptr) {
+            lao == nullptr || policy == nullptr) {
         fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -492,39 +492,36 @@ int ssp_lao_star_update_cpu(const MDP *mdp, SSPLAOStarCPU *lao)
 }
 
 
-int ssp_lao_star_get_policy_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunction *&policy)
+int ssp_lao_star_get_policy_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunction *policy)
 {
-    if (mdp == nullptr || lao == nullptr || policy != nullptr) {
-        fprintf(stderr, "Error[ssp_lao_star_get_policy_cpu]: %s\n",
-                        "Invalid arguments. The policy must be undefined.");
+    if (mdp == nullptr || lao == nullptr || policy == nullptr) {
+        fprintf(stderr, "Error[ssp_lao_star_get_policy_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    policy = new MDPValueFunction();
-
-    policy->n = mdp->n;
-    policy->m = mdp->m;
-
     // First, count the number of states that are valid following the policy.
-    policy->r = 0;
+    unsigned int r = 0;
 
     for (unsigned int s = 0; s < mdp->n; s++) {
         // Only include the visited states as part of the final policy. These states are all reachable states
         // following the optimal policy. Recall that some states might be expanded early on in the process,
         // but are quickly abandoned.
         if (ssp_lao_star_is_visited_cpu(mdp, lao, s)) {
-            policy->r++;
+            r++;
         }
     }
 
-    policy->S = new unsigned int[policy->r];
-    policy->V = new float[policy->r];
-    policy->pi = new unsigned int[policy->r];
+    // Initialize the policy, which allocates memory.
+    int result = mdp_value_function_initialize(policy, mdp->n, mdp->m, r);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[ssp_lao_star_get_policy_cpu]: %s\n", "Could not create the policy.");
+        return NOVA_ERROR_POLICY_CREATION;
+    }
 
     // Copy the final (or intermediate) result, both V and pi. This assumes memory has been allocated
     // for the variables provided. Importantly, only the values of the visited states are copied.
     // The non-visited states are left alone.
-    unsigned int r = 0;
+    r = 0;
 
     for (unsigned int s = 0; s < mdp->n; s++) {
         // Only include the visited states as part of the final policy. These states are all reachable states

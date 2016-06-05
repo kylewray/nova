@@ -31,6 +31,32 @@
 
 namespace nova {
 
+int mdp_value_function_initialize(MDPValueFunction *policy, unsigned int n, unsigned int m, unsigned int r)
+{
+    if (policy == nullptr || policy->S != nullptr || policy->V != nullptr || policy->pi != nullptr ||
+            n == 0 || m == 0) {
+        fprintf(stderr, "Error[mdp_value_function_initialize]: %s\n", "Invalid input.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    policy->n = n;
+    policy->m = m;
+    policy->r = r;
+
+    if (policy->r > 0) {
+        policy->S = new unsigned int[policy->r];
+        policy->V = new float[policy->r];
+        policy->pi = new unsigned int[policy->r];
+    } else {
+        policy->S = nullptr;
+        policy->V = new float[policy->n];
+        policy->pi = new unsigned int[policy->n];
+    }
+
+    return NOVA_SUCCESS;
+}
+
+
 int mdp_value_function_uninitialize(MDPValueFunction *policy)
 {
     if (policy == nullptr) {
@@ -56,9 +82,6 @@ int mdp_value_function_uninitialize(MDPValueFunction *policy)
         delete [] policy->pi;
     }
     policy->pi = nullptr;
-
-    //delete policy;
-    //policy = nullptr;
 
     return NOVA_SUCCESS;
 }

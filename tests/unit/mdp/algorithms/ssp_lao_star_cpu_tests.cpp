@@ -22,16 +22,15 @@
  */
 
 
-#include "algorithms/ssp_lao_star_cpu.h"
+#include <nova/mdp/algorithms/ssp_lao_star_cpu.h>
 
 #include <gtest/gtest.h>
 
-#include "utilities/mdp_model_cpu.h"
-#include "error_codes.h"
-#include "constants.h"
+#include <nova/mdp/utilities/mdp_model_cpu.h>
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
-#include "unit/mdp/mdp_tests.h"
-
+#include <unit/mdp/mdp_tests.h>
 
 namespace nova {
 namespace tests {
@@ -139,7 +138,7 @@ TEST(SSPLAOStarCPU, executionSimpleMDP)
     nova::SSPLAOStarCPU lao;
     lao.VInitial = nullptr;
 
-    nova::MDPValueFunction *policy = nullptr;
+    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     int result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -190,7 +189,7 @@ TEST(SSPLAOStarCPU, executionThreeStateMDP)
     nova::SSPLAOStarCPU lao;
     lao.VInitial = nullptr;
 
-    nova::MDPValueFunction *policy = nullptr;
+    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     int result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -248,7 +247,7 @@ TEST(SSPLAOStarCPU, badExecution)
     nova::SSPLAOStarCPU lao;
     lao.VInitial = nullptr;
 
-    nova::MDPValueFunction *policy = nullptr;
+    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     int result = nova::ssp_lao_star_execute_cpu(nullptr, &lao, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
@@ -257,7 +256,7 @@ TEST(SSPLAOStarCPU, badExecution)
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
     policy = new nova::MDPValueFunction();
-    result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
+    result = nova::ssp_lao_star_execute_cpu(mdp, &lao, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
     mdp->n = 0;
@@ -294,16 +293,6 @@ TEST(SSPLAOStarCPU, badExecution)
     result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
     mdp->R = (float *)tempAddress;
-
-    mdp->gamma = -1.0f;
-    result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
-    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
-    mdp->gamma = 0.9f;
-
-    mdp->gamma = 2.0f;
-    result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
-    EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
-    mdp->gamma = 0.9f;
 
     mdp->horizon = 0;
     result = nova::ssp_lao_star_execute_cpu(mdp, &lao, policy);
@@ -545,7 +534,7 @@ TEST(SSPLAOStarCPU, getPolicy)
     lao.pi[0] = 50;
     lao.pi[1] = 60;
 
-    nova::MDPValueFunction *policy = nullptr;
+    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
 
     int result = nova::ssp_lao_star_get_policy_cpu(&mdp, &lao, policy);
     EXPECT_EQ(result, NOVA_SUCCESS);
@@ -593,18 +582,14 @@ TEST(SSPLAOStarCPU, badGetPolicy)
     nova::SSPLAOStarCPU lao;
     lao.VInitial = nullptr;
 
-    nova::MDPValueFunction *policy = new nova::MDPValueFunction();
-
-    int result = nova::ssp_lao_star_get_policy_cpu(nullptr, nullptr, policy);
+    int result = nova::ssp_lao_star_get_policy_cpu(nullptr, nullptr, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
-    result = nova::ssp_lao_star_get_policy_cpu(&mdp, nullptr, policy);
+    result = nova::ssp_lao_star_get_policy_cpu(&mdp, nullptr, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
 
-    result = nova::ssp_lao_star_get_policy_cpu(&mdp, &lao, policy);
+    result = nova::ssp_lao_star_get_policy_cpu(&mdp, &lao, nullptr);
     EXPECT_EQ(result, NOVA_ERROR_INVALID_DATA);
-
-    delete policy;
 }
 
 }; // namespace tests

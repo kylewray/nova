@@ -83,14 +83,14 @@ class SSPLAOStarCPU(nsls.NovaSSPLAOStarCPU):
                 The MDPValueFunction policy solution to the SSP MDP.
         """
 
-        policy = ct.POINTER(mvf.MDPValueFunction)()
+        policy = mvf.MDPValueFunction()
 
         result = nsls._nova.ssp_lao_star_execute_cpu(self.mdpPtr, self, ct.byref(policy))
         if result != 0:
             print("Failed to execute the 'nova' library's CPU LAO* solver.")
             raise Exception()
 
-        return policy.contents
+        return policy
 
     def __str__(self):
         """ Return the string of the SSP LAO* algorithm.

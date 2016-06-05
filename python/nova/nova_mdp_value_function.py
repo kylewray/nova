@@ -52,6 +52,10 @@ class NovaMDPValueFunction(ct.Structure):
 
 
 # Functions from 'mdp_value_function.h'.
+_nova.mdp_value_function_initialize.argtypes = (ct.POINTER(NovaMDPValueFunction),
+                                                ct.c_uint,      # n
+                                                ct.c_uint,      # m
+                                                ct.c_uint)      # r
 _nova.mdp_value_function_uninitialize.argtypes = tuple([ct.POINTER(NovaMDPValueFunction)])
 
 

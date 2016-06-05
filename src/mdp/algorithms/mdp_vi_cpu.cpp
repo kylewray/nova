@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <cstring>
 
+#include <nova/mdp/policies/mdp_value_function.h>
 #include <nova/error_codes.h>
 #include <nova/constants.h>
 
@@ -97,13 +98,13 @@ int mdp_vi_initialize_cpu(const MDP *mdp, MDPVICPU *vi)
 }
 
 
-int mdp_vi_execute_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *&policy)
+int mdp_vi_execute_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *policy)
 {
     // First, ensure data is valid.
     if (mdp == nullptr || mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
             mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
             mdp->gamma < 0.0f || mdp->gamma > 1.0f || mdp->horizon < 1 ||
-            vi == nullptr || policy != nullptr) {
+            vi == nullptr || policy == nullptr) {
         fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -195,23 +196,19 @@ int mdp_vi_update_cpu(const MDP *mdp, MDPVICPU *vi)
 }
 
 
-int mdp_vi_get_policy_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *&policy)
+int mdp_vi_get_policy_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *policy)
 {
-    if (mdp == nullptr || vi == nullptr || policy != nullptr) {
-        fprintf(stderr, "Error[mdp_vi_get_policy_cpu]: %s\n",
-                        "Invalid arguments. The policy must be undefined.");
+    if (mdp == nullptr || vi == nullptr || policy == nullptr) {
+        fprintf(stderr, "Error[mdp_vi_get_policy_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    policy = new MDPValueFunction();
-
-    policy->n = mdp->n;
-    policy->m = mdp->m;
-    policy->r = 0;
-
-    policy->S = nullptr;
-    policy->V = new float[mdp->n];
-    policy->pi = new unsigned int[mdp->n];
+    // Initialize the policy, which allocates memory.
+    int result = mdp_value_function_initialize(policy, mdp->n, mdp->m, 0);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[mdp_vi_get_policy_cpu]: %s\n", "Could not create the policy.");
+        return NOVA_ERROR_POLICY_CREATION;
+    }
 
     // Copy the final (or intermediate) result, both V and pi. This assumes memory has been allocated
     // for the variables provided.

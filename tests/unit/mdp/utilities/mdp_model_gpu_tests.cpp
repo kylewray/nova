@@ -22,16 +22,15 @@
  */
 
 
-#include "utilities/mdp_model_gpu.h"
+#include <nova/mdp/utilities/mdp_model_gpu.h>
 
 #include <gtest/gtest.h>
 
-#include "utilities/mdp_model_cpu.h"
-#include "error_codes.h"
-#include "constants.h"
+#include <nova/mdp/utilities/mdp_model_cpu.h>
+#include <nova/error_codes.h>
+#include <nova/constants.h>
 
-#include "unit/mdp/mdp_tests.h"
-
+#include <unit/mdp/mdp_tests.h>
 
 namespace nova {
 namespace tests {
