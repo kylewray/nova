@@ -70,56 +70,51 @@ class MDP(nm.NovaMDP):
         self.Rmin = None
         self.Rmax = None
 
+        self.cpuIsInitialized = False
         self.gpuIsInitialized = False
 
     def __del__(self):
         """ The deconstructor for the MDP class. """
 
         self.uninitialize_gpu()
+        self.uninitialize()
 
-    def load(self, filename, filetype='cassandra', scalarize=lambda x: x[0]):
-        """ Load a Multi-Objective POMDP file given the filename and optionally the file type.
+    def initialize(self, n, ns, m, gamma, horizon, epsilon, s0, ng):
+        """ Initialize the MDP object, allocating array memory, given the parameters.
 
-            Parameters:
-                filename    --  The name and path of the file to load.
-                filetype    --  Either 'cassandra' or 'raw'. Default is 'cassandra'.
-                scalarize   --  Optionally define a scalarization function. Only used for 'raw' files.
-                                Default returns the first reward.
+        Parameters:
+            n       --  The number of states.
+            ns      --  The maximum number of successor states.
+            m       --  The number of actions.
+            gamma   --  The discount factor between 0 and 1.
+            horizon --  The positive integer for the horizon.
+            epsilon --  The convergence criterion for some algorithms.
+            s0      --  The initial state index (if an SSP MDP).
+            ng      --  The positive integer for number of goals (if an SSP MDP) or 0 (otherwise).
         """
 
-        fileLoader = fl.FileLoader()
+        if self.cpuIsInitialized:
+            return
 
-        if filetype == 'cassandra':
-            fileLoader.load_cassandra(filename)
-        elif filetype == 'raw':
-            fileLoader.load_raw_mdp(filename, scalarize)
-        else:
-            print("Invalid file type '%s'." % (filetype))
+        result = nm._nova.mdp_initialize_cpu(self, n, ns, m, gamma, horizon, epsilon, s0, ng)
+        if result != 0:
+            print("Failed to initialize the MDP.")
             raise Exception()
 
-        self.n = fileLoader.n
-        self.ns = fileLoader.ns
-        self.m = fileLoader.m
+        self.cpuIsInitialized = True
 
-        self.s0 = fileLoader.s0
-        self.ng = fileLoader.ng
+    def uninitialize(self):
+        """ Uninitialize the MDP object, freeing the allocated memory. """
 
-        self.gamma = fileLoader.gamma
-        self.horizon = fileLoader.horizon
-        self.epsilon = fileLoader.epsilon
+        if not self.cpuIsInitialized:
+            return
 
-        self.Rmin = fileLoader.Rmin
-        self.Rmax = fileLoader.Rmax
+        result = nm._nova.mdp_uninitialize_cpu(self)
+        if result != 0:
+            print("Failed to uninitialize the MDP.")
+            raise Exception()
 
-        array_type_ng_uint = ct.c_uint * (self.ng)
-        array_type_nmns_int = ct.c_int * (self.n * self.m * self.ns)
-        array_type_nmns_float = ct.c_float * (self.n * self.m * self.ns)
-        array_type_nm_float = ct.c_float * (self.n * self.m)
-
-        self.goals = array_type_ng_uint(*fileLoader.goals.flatten())
-        self.S = array_type_nmns_int(*fileLoader.S.flatten())
-        self.T = array_type_nmns_float(*fileLoader.T.flatten())
-        self.R = array_type_nm_float(*fileLoader.R.flatten())
+        self.cpuIsInitialized = False
 
     def initialize_gpu(self):
         """ Initialize the GPU variables. This only needs to be called if GPU algorithms are used. """
@@ -158,6 +153,54 @@ class MDP(nm.NovaMDP):
             raise Exception()
 
         self.gpuIsInitialized = False
+
+    def load(self, filename, filetype='cassandra', scalarize=lambda x: x[0]):
+        """ Load a Multi-Objective POMDP file given the filename and optionally the file type.
+
+            Parameters:
+                filename    --  The name and path of the file to load.
+                filetype    --  Either 'cassandra' or 'raw'. Default is 'cassandra'.
+                scalarize   --  Optionally define a scalarization function. Only used for 'raw' files.
+                                Default returns the first reward.
+        """
+
+        # Before anything, uninitialize the current MDP.
+        self.uninitialize_gpu()
+        self.uninitialize()
+
+        # Now load the file based on the desired file type.
+        fileLoader = fl.FileLoader()
+
+        if filetype == 'cassandra':
+            fileLoader.load_cassandra(filename)
+        elif filetype == 'raw':
+            fileLoader.load_raw_mdp(filename, scalarize)
+        else:
+            print("Invalid file type '%s'." % (filetype))
+            raise Exception()
+
+        # Allocate the memory on the C-side. Note: Allocating on the Python-side will create managed pointers.
+        self.initialize(fileLoader.n, fileLoader.ns, fileLoader.m,
+                        fileLoader.gamma, fileLoader.horizon, fileLoader.epsilon,
+                        fileLoader.s0, fileLoader.ng)
+
+        # Flatten all of the file loader data.
+        fileLoader.goals = fileLoader.goals.flatten()
+        fileLoader.S = fileLoader.S.flatten()
+        fileLoader.T = fileLoader.T.flatten()
+        fileLoader.R = fileLoader.R.flatten()
+
+        # Copy all of the variables' data into these arrays.
+        for i in range(self.ng):
+            self.goals[i] = fileLoader.goals[i]
+        for i in range(self.n * self.m * self.ns):
+            self.S[i] = fileLoader.S[i]
+            self.T[i] = fileLoader.T[i]
+        for i in range(self.n * self.m):
+            self.R[i] = fileLoader.R[i]
+
+        self.Rmin = fileLoader.Rmin
+        self.Rmax = fileLoader.Rmax
 
     # TODO: REMOVE THIS. IT HAS BEEN REPLACED BY SEPARATE CLASSES.
     def solve(self, algorithm='vi', process='gpu', numThreads=1024, heuristic=None):

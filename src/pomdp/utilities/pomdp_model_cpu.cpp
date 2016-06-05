@@ -71,7 +71,8 @@ int pomdp_initialize_cpu(POMDP *pomdp, unsigned int n, unsigned int ns, unsigned
     pomdp->Z = new int[pomdp->r * pomdp->rz];
     pomdp->B = new float[pomdp->r * pomdp->rz];
     for (unsigned int i = 0; i < pomdp->r * pomdp->rz; i++) {
-        pomdp->R[i] = 0.0f;
+        pomdp->Z[i] = 0.0f;
+        pomdp->B[i] = 0.0f;
     }
 
     pomdp->d_S = nullptr;

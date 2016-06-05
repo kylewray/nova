@@ -74,59 +74,51 @@ class POMDP(npm.NovaPOMDP):
         self.Rmin = None
         self.Rmax = None
 
+        self.cpuIsInitialized = False
         self.gpuIsInitialized = False
 
     def __del__(self):
         """ The deconstructor for the POMDP class. """
 
         self.uninitialize_gpu()
+        self.uninitialize()
 
-    def load(self, filename, filetype='cassandra', scalarize=lambda x: x[0]):
-        """ Load a POMDP file given the filename and optionally the file type.
+    def initialize(self, n, ns, m, z, r, rz, gamma, horizon):
+        """ Initialize the POMDP's internal arrays, allocating memory.
 
             Parameters:
-                filename    --  The name and path of the file to load.
-                filetype    --  Either 'cassandra' or 'raw'. Default is 'cassandra'.
-                scalarize   --  Optionally define a scalarization function. Only used for 'raw' files.
-                                Default returns the first reward.
+                n       --  The number of states.
+                ns      --  The maximum number of successors.
+                m       --  The number of actions.
+                z       --  The number of observations.
+                r       --  The number of beliefs.
+                rz      --  The maximum number of non-zero values in belief points.
+                gamma   --  The discount factor between 0 and 1.
+                horizon --  The positive value for the horizon.
         """
 
-        fileLoader = fl.FileLoader()
+        if self.cpuIsInitialized:
+            return
 
-        if filetype == 'cassandra':
-            fileLoader.load_cassandra(filename)
-        elif filetype == 'raw':
-            fileLoader.load_raw_pomdp(filename, scalarize)
-        else:
-            print("Invalid file type '%s'." % (filetype))
+        result = npm._nova.pomdp_initialize_cpu(self, n, ns, m, z, r, rz, gamma, horizon)
+        if result != 0:
+            print("Failed to initialize the POMDP.")
             raise Exception()
 
-        self.n = fileLoader.n
-        self.ns = fileLoader.ns
-        self.m = fileLoader.m
-        self.z = fileLoader.z
-        self.r = fileLoader.r
-        self.rz = fileLoader.rz
+        self.cpuIsInitialized = True
 
-        self.gamma = fileLoader.gamma
-        self.horizon = fileLoader.horizon
+    def uninitialize(self):
+        """ Uninitialize the POMDP's internal arrays, freeing memory. """
 
-        self.Rmin = fileLoader.Rmin
-        self.Rmax = fileLoader.Rmax
+        if not self.cpuIsInitialized:
+            return
 
-        array_type_nmns_int = ct.c_int * (self.n * self.m * self.ns)
-        array_type_nmns_float = ct.c_float * (self.n * self.m * self.ns)
-        array_type_mnz_float = ct.c_float * (self.m * self.n * self.z)
-        array_type_nm_float = ct.c_float * (self.n * self.m)
-        array_type_rrz_int = ct.c_int * (self.r * self.rz)
-        array_type_rrz_float = ct.c_float * (self.r * self.rz)
+        result = npm._nova.pomdp_uninitialize_cpu(self)
+        if result != 0:
+            print("Failed to uninitialize the POMDP.")
+            raise Exception()
 
-        self.S = array_type_nmns_int(*fileLoader.S.flatten())
-        self.T = array_type_nmns_float(*fileLoader.T.flatten())
-        self.O = array_type_mnz_float(*fileLoader.O.flatten())
-        self.R = array_type_nm_float(*fileLoader.R.flatten())
-        self.Z = array_type_rrz_int(*fileLoader.Z.flatten())
-        self.B = array_type_rrz_float(*fileLoader.B.flatten())
+        self.cpuIsInitialized = False
 
     def initialize_gpu(self):
         """ Initialize the GPU variables. This only needs to be called if GPU algorithms are used. """
@@ -164,6 +156,59 @@ class POMDP(npm.NovaPOMDP):
 
         self.gpuIsInitialized = False
 
+    def load(self, filename, filetype='cassandra', scalarize=lambda x: x[0]):
+        """ Load a POMDP file given the filename and optionally the file type.
+
+            Parameters:
+                filename    --  The name and path of the file to load.
+                filetype    --  Either 'cassandra' or 'raw'. Default is 'cassandra'.
+                scalarize   --  Optionally define a scalarization function. Only used for 'raw' files.
+                                Default returns the first reward.
+        """
+
+        # Before anything, uninitialize the current POMDP.
+        self.uninitialize_gpu()
+        self.uninitialize()
+
+        # Now load the file based on the desired file type.
+        fileLoader = fl.FileLoader()
+
+        if filetype == 'cassandra':
+            fileLoader.load_cassandra(filename)
+        elif filetype == 'raw':
+            fileLoader.load_raw_pomdp(filename, scalarize)
+        else:
+            print("Invalid file type '%s'." % (filetype))
+            raise Exception()
+
+        # Allocate the memory on the C-side. Note: Allocating on the Python-side will create managed pointers.
+        self.initialize(fileLoader.n, fileLoader.ns, fileLoader.m,
+                        fileLoader.z, fileLoader.r, fileLoader.rz,
+                        fileLoader.gamma, fileLoader.horizon)
+
+        # Flatten all the file loader data.
+        fileLoader.S = fileLoader.S.flatten()
+        fileLoader.T = fileLoader.T.flatten()
+        fileLoader.O = fileLoader.O.flatten()
+        fileLoader.R = fileLoader.R.flatten()
+        fileLoader.Z = fileLoader.Z.flatten()
+        fileLoader.B = fileLoader.B.flatten()
+
+        # Copy all of the variables' data into these arrays.
+        for i in range(self.n * self.m * self.ns):
+            self.S[i] = fileLoader.S[i]
+            self.T[i] = fileLoader.T[i]
+        for i in range(self.m * self.n * self.z):
+            self.O[i] = fileLoader.O[i]
+        for i in range(self.n * self.m):
+            self.R[i] = fileLoader.R[i]
+        for i in range(self.r * self.rz):
+            self.Z[i] = fileLoader.Z[i]
+            self.B[i] = fileLoader.B[i]
+
+        self.Rmin = fileLoader.Rmin
+        self.Rmax = fileLoader.Rmax
+
     def expand(self, method='random', numBeliefsToAdd=1000, pemaPolicy=None, pemaAlgorithm=None):
         """ Expand the belief points by, for example, PBVI's original method, PEMA, or Perseus' random method.
 
@@ -193,6 +238,7 @@ class POMDP(npm.NovaPOMDP):
                 pemaPolicy = pemaAlgorithm.solve()
             npm._nova.pomdp_expand_pema_cpu(self, ct.byref(pemaPolicy))
 
+    # TODO: Fix the C++ code, then fix this to call that new method that automatically changes Bnew...
     def sigma_approximate(self, numDesiredNonZeroValues=1):
         """ Perform the sigma-approximation algorithm on the current set of beliefs.
 
