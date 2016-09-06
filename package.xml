@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<package>
+  <name>nova</name>
+  <version>0.1.0</version>
+  <description>A library for MDP (SSP), POMDP, and Dec-POMDP solvers.</description>
+  <maintainer email="wray@cs.umass.edu">Kyle Wray</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>catkin</buildtool_depend>
+</package>
