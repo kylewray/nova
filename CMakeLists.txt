@@ -1,10 +1,10 @@
-#cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 2.8.3)
 
-project(libnova)
+project(nova)
 
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 
-set(MODULE_NAME "libnova")
+set(MODULE_NAME "nova")
 set(LIB_NAME ${MODULE_NAME})
 set(DIR_NAME ${MODULE_NAME})
 set(EXPORT ${MODULE_NAME})

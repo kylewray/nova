@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>libnova</name>
+  <name>nova</name>
   <version>0.1.0</version>
   <description>A library for MDP (SSP), POMDP, and Dec-POMDP solvers.</description>
   <maintainer email="wray@cs.umass.edu">Kyle Wray</maintainer>
