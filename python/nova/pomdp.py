@@ -356,9 +356,9 @@ class POMDP(npm.NovaPOMDP):
         o = int(o)
 
         #bp = array_type_n_float(*np.zeros(self.n).flatten())
-        bp = ct.POINTER(array_type_n_float)()
+        bp = ct.POINTER(ct.c_float)()
 
-        result = npm._nova.pomdp_utilities_belief_update_cpu(self, b, a, o, ct.byref(bp))
+        result = npm._nova.pomdp_belief_update_cpu(self, b, a, o, ct.byref(bp))
         if result != 0:
             print("Failed to perform a belief update on the CPU.")
             raise Exception()

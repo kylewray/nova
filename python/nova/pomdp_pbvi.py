@@ -101,6 +101,30 @@ class POMDPPBVICPU(npp.NovaPOMDPPBVICPU):
 
         return policy
 
+    def update(self):
+        """ Update the POMDP by executing one step of the solver. """
+
+        result = npp._nova.pomdp_pbvi_update_cpu(self.pomdpPtr, self)
+        if result != 0:
+            print("Failed to update the 'nova' library's CPU POMDP solver.")
+            raise Exception()
+
+    def get_policy(self):
+        """ Get the policy computed by the solver.
+
+            Returns:
+                The POMDPAlphaVectors policy solution to the POMDP.
+        """
+
+        policy = pav.POMDPAlphaVectors()
+
+        result = npp._nova.pomdp_pbvi_get_policy_cpu(self.pomdpPtr, self, policy)
+        if result != 0:
+            print("Failed to get the policy for the 'nova' library's CPU POMDP solver.")
+            raise Exception()
+
+        return policy
+
     def __str__(self):
         """ Return the string of the POMDP PBVI.
 
