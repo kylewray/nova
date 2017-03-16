@@ -59,7 +59,7 @@ int pomdp_alpha_vectors_value_and_action(const POMDPAlphaVectors *policy,
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    Vb = FLT_MIN;
+    Vb = NOVA_FLT_MIN;
     a = 0;
 
     for (unsigned int i = 0; i < policy->r; i++) {

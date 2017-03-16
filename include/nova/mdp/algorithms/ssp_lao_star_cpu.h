@@ -36,7 +36,6 @@ namespace nova {
  *  @param  VInitial        The initial value function, mapping states (n-array) to floats.
  *  @param  currentHorizon  The current horizon updated after each iteration.
  *  @param  V               The value of the states (n-array).
- *  @param  Vprime          The value of the states (n-array) copy.
  *  @param  pi              The action to take at each state (n-array).
  */
 typedef struct NovaSSPLAOStarCPU {

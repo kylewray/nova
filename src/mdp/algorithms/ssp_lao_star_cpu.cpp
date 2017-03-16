@@ -30,6 +30,8 @@
 #include <algorithm>
 #include <math.h>
 
+#include <iostream>
+
 #include <nova/mdp/policies/mdp_value_function.h>
 #include <nova/error_codes.h>
 #include <nova/constants.h>
@@ -40,7 +42,7 @@ void ssp_lao_star_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned i
     const int *S, const float *T, const float *R, unsigned int s,
     float *V, unsigned int *pi)
 {
-    float VsPrime = FLT_MAX;
+    float VsPrime = NOVA_FLT_MAX;
 
     // Compute min_{a in A} Q(s, a). Recall, we are dealing with rewards R as positive costs.
     for (int a = 0; a < m; a++) {
@@ -116,22 +118,24 @@ bool ssp_lao_star_is_goal_cpu(const MDP *mdp, SSPLAOStarCPU *lao, unsigned int s
 void ssp_lao_star_stack_create_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
     unsigned int &stackSize, unsigned int *&stack)
 {
-    stackSize = 0;
     stack = new unsigned int[mdp->n];
+    stackSize = 0;
 }
 
 
 void ssp_lao_star_stack_pop_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
     unsigned int &stackSize, unsigned int *stack, unsigned int &s)
 {
-    s = stack[--stackSize];
+    s = stack[stackSize - 1];
+    stackSize--;
 }
 
 
 void ssp_lao_star_stack_push_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
     unsigned int &stackSize, unsigned int *stack, unsigned int s)
 {
-    stack[stackSize++] = s;
+    stack[stackSize] = s;
+    stackSize++;
 }
 
 
@@ -156,9 +160,9 @@ void ssp_lao_star_stack_push_successors_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
 void ssp_lao_star_stack_destroy_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
     unsigned int &stackSize, unsigned int *&stack)
 {
-    stackSize = 0;
     delete [] stack;
     stack = nullptr;
+    stackSize = 0;
 }
 
 
@@ -224,14 +228,16 @@ int ssp_lao_star_expand_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
 
         // Perform a Bellman update on this state.
         ssp_lao_star_bellman_update_cpu(mdp->n, mdp->ns, mdp->m,
-                                            mdp->S, mdp->T, mdp->R, s,
-                                            lao->V, lao->pi);
+                                        mdp->S, mdp->T, mdp->R, s,
+                                        lao->V, lao->pi);
     }
 
     lao->currentHorizon++;
 
     ssp_lao_star_stack_destroy_cpu(mdp, lao, fringeStackSize, fringeStack);
     ssp_lao_star_stack_destroy_cpu(mdp, lao, traversalStackSize, traversalStack);
+
+    return NOVA_SUCCESS;
 }
 
 

@@ -44,8 +44,8 @@ void pomdp_pbvi_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns, u
     unsigned int bestj;
 
     for (unsigned int o = 0; o < z; o++) {
-        value = FLT_MIN;
-        bestValue = FLT_MIN;
+        value = NOVA_FLT_MIN;
+        bestValue = NOVA_FLT_MIN;
 
         for (unsigned int j = 0; j < r; j++) {
             // Variable 'j' represents the alpha in Gamma^{t-1}. It is this variable that we will maximize over.
@@ -118,8 +118,8 @@ void pomdp_pbvi_update_step_cpu(unsigned int n, unsigned int ns, unsigned int m,
     for (unsigned int i = 0; i < r; i++) {
         // Variable 'i' refers to the current belief we are examining.
 
-        value = FLT_MIN;
-        bestValue = FLT_MIN;
+        value = NOVA_FLT_MIN;
+        bestValue = NOVA_FLT_MIN;
 
         // Compute the argmax alpha-vector over Gamma_B. Since Gamma_B is created from the
         // m actions, we iterate over a in A.

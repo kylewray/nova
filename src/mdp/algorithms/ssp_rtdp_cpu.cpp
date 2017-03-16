@@ -40,7 +40,7 @@ void ssp_rtdp_bellman_update_state_cpu(unsigned int n, unsigned int ns, unsigned
                             const int *S, const float *T, const float *R,
                             unsigned int s, float *V, unsigned int *pi)
 {
-    float Vprime = FLT_MAX;
+    float Vprime = NOVA_FLT_MAX;
 
     // Compute min_{a in A} Q(s, a). Recall, we are dealing with rewards R as positive costs.
     for (int a = 0; a < m; a++) {
@@ -284,12 +284,12 @@ int ssp_rtdp_update_cpu(const MDP *mdp, SSPRTDPCPU *rtdp)
     }
 
     // Assign the final state's value. Note that states marked as goals can, in fact, be
-    // dead ends if the MDP was improperly created. Thus, it would assign FLT_MAX as an override.
+    // dead ends if the MDP was improperly created. Thus, it would assign NOVA_FLT_MAX as an override.
     if (isGoal) {
         rtdp->V[s] = 0.0f;
     }
     if (isDeadEnd) {
-        rtdp->V[s] = FLT_MAX;
+        rtdp->V[s] = NOVA_FLT_MAX;
     }
 
     // Regardless, always mark the final state as expanded.

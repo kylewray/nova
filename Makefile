@@ -1,5 +1,5 @@
 COMMAND = nvcc
-FLAGS = -std=c++11 -O3 -use_fast_math -Xcompiler -fPIC -Iinclude -shared
+FLAGS = -std=c++11 -O3 -use_fast_math -Xcompiler -fPIC -Iinclude -shared -g
 #COMMAND = g++
 #FLAGS = -std=c++11 -O3 -use_fast_math -fPIC -Iinclude -shared
 

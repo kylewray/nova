@@ -53,10 +53,10 @@ void pomdp_perseus_compute_b_dot_alpha_cpu(unsigned int rz, const int *Z, const 
 void pomdp_perseus_compute_Vb_cpu(unsigned int n, unsigned int rz, const int *Z, const float *B, unsigned int bIndex,
     const float *Gamma, unsigned int rGamma, float *Vnb, unsigned int *alphaPrimeIndex)
 {
-    *Vnb = FLT_MIN;
+    *Vnb = NOVA_FLT_MIN;
 
     for (unsigned int i = 0; i < rGamma; i++) {
-        float bDotAlpha = FLT_MIN;
+        float bDotAlpha = NOVA_FLT_MIN;
 
         pomdp_perseus_compute_b_dot_alpha_cpu(rz, Z, B, bIndex, &Gamma[i * n], &bDotAlpha);
 
@@ -78,8 +78,8 @@ void pomdp_perseus_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns
     unsigned int bestj;
 
     for (unsigned int o = 0; o < z; o++) {
-        value = FLT_MIN;
-        bestValue = FLT_MIN;
+        value = NOVA_FLT_MIN;
+        bestValue = NOVA_FLT_MIN;
 
         for (unsigned int j = 0; j < rGamma; j++) {
             // Variable 'j' represents the alpha in Gamma^{t-1}. It is this variable that we will maximize over.
@@ -143,8 +143,8 @@ void pomdp_perseus_update_step_cpu(unsigned int n, unsigned int ns, unsigned int
     const float *Gamma, unsigned int rGamma,
     unsigned int bIndex, float *alphaPrime, unsigned int *aPrime)
 {
-    float value = FLT_MIN;
-    float bestValue = FLT_MIN;
+    float value = NOVA_FLT_MIN;
+    float bestValue = NOVA_FLT_MIN;
 
     float *alpha = new float[n];
 
