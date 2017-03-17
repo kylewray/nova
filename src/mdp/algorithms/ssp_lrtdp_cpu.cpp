@@ -438,8 +438,14 @@ int ssp_lrtdp_update_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp)
         }
     }
 
-    // If we got here, then we have solved the initial state and are done.
+    // If we got here, then we have solved the initial state or run out of time and are done.
     ssp_lrtdp_stack_destroy_cpu(mdp, lrtdp, visitedStackSize, visitedStack);
+
+    if (!ssp_lrtdp_is_solved_cpu(mdp, lrtdp, mdp->s0)) {
+        fprintf(stderr, "Warning[ssp_lrtdp_update_cpu]: %s\n", "Approximate solution due to early termination and/or dead ends.");
+        return NOVA_WARNING_APPROXIMATE_SOLUTION;
+    }
+
     return NOVA_CONVERGED;
 }
 
@@ -461,6 +467,13 @@ int ssp_lrtdp_get_policy_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, MDPValueFunctio
         }
     }
 
+    // If 'r' is 0, then return an error.
+    // TODO: Remove this once you finish the BPSG.
+    if (r == 0) {
+        fprintf(stderr, "Error[ssp_rtdp_get_policy_cpu]: %s\n", "Failed to create a policy with no solved states.");
+        return NOVA_ERROR_POLICY_CREATION;
+    }
+
     // Initialize the policy, which allocates memory.
     int result = mdp_value_function_initialize(policy, mdp->n, mdp->m, r);
     if (result != NOVA_SUCCESS) {
@@ -478,6 +491,14 @@ int ssp_lrtdp_get_policy_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, MDPValueFunctio
             policy->pi[r] = lrtdp->pi[s];
             r++;
         }
+    }
+
+    // If the initial state is not marked as solved, then do not return a policy.
+    // TODO: In the future, return the best partial solution graph (BPSG) instead.
+    // This enables an anytime version of LRTDP...
+    if (!ssp_lrtdp_is_solved_cpu(mdp, lrtdp, mdp->s0)) {
+        fprintf(stderr, "Error[ssp_lrtdp_get_policy_cpu]: %s\n", "Failed to create a policy without a solved initial state.");
+        return NOVA_WARNING_APPROXIMATE_SOLUTION;
     }
 
     return NOVA_SUCCESS;

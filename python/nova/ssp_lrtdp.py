@@ -88,7 +88,7 @@ class SSPLRTDPCPU(nsl.NovaSSPLRTDPCPU):
         policy = mvf.MDPValueFunction()
 
         result = nsl._nova.ssp_lrtdp_execute_cpu(self.mdpPtr, self, ct.byref(policy))
-        if result != 0:
+        if result != 0 and result != 13: # Success or approximate solution.
             print("Failed to execute the 'nova' library's CPU LRTDP solver.")
             raise Exception()
 

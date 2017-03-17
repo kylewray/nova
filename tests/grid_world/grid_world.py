@@ -65,7 +65,7 @@ for trial in trials:
     gridWorld = MDP()
     gridWorld.load(gridWorldFile, filetype=trial['filetype'])
 
-    gridWorld.horizon = 1000
+    gridWorld.horizon = 10000
     gridWorld.epsilon = 0.001
 
     if trial['process'] == "gpu":
@@ -85,7 +85,7 @@ for trial in trials:
         algorithm = SSPLAOStarCPU(gridWorld)
     elif trial['algorithm'] == "lrtdp" and trial['process'] == "cpu":
         algorithm = SSPLRTDPCPU(gridWorld)
-        algorithm.trials = 1000
+        algorithm.trials = 10000
 
     policy = algorithm.solve()
     #print(algorithm)

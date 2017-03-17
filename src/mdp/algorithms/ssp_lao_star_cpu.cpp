@@ -386,9 +386,10 @@ int ssp_lao_star_execute_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunctio
 
     // We continue the process of expanding and testing convergence until convergence occurs.
     result = NOVA_SUCCESS;
-    while (result != NOVA_CONVERGED) {
+    while (result != NOVA_CONVERGED && result != NOVA_WARNING_APPROXIMATE_SOLUTION) {
         result = ssp_lao_star_update_cpu(mdp, lao);
-        if (result != NOVA_SUCCESS && result != NOVA_CONVERGED) {
+        if (result != NOVA_SUCCESS && result != NOVA_CONVERGED
+                && result != NOVA_WARNING_APPROXIMATE_SOLUTION) {
             fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n",
                             "Failed to perform the update step of LAO*.");
 
@@ -404,7 +405,8 @@ int ssp_lao_star_execute_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunctio
 
     result = ssp_lao_star_get_policy_cpu(mdp, lao, policy);
     if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n", "Failed to get the policy.");
+        fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n",
+                        "Failed to get the policy.");
 
         int resultPrime = ssp_lao_star_uninitialize_cpu(mdp, lao);
         if (resultPrime != NOVA_SUCCESS) {
@@ -488,7 +490,10 @@ int ssp_lao_star_update_cpu(const MDP *mdp, SSPLAOStarCPU *lao)
     }
 
     // If we ran out of time, or converged without hitting a non-expanded state, then we are done.
-    if (lao->currentHorizon >= mdp->horizon || (converged && !nonExpandedTipStateFound)) {
+    if (lao->currentHorizon >= mdp->horizon) {
+        fprintf(stderr, "Warning[ssp_lao_star_update_cpu]: %s\n", "Approximate solution due to early termination and/or dead ends.");
+        return NOVA_WARNING_APPROXIMATE_SOLUTION;
+    } else if (converged && !nonExpandedTipStateFound) {
         return NOVA_CONVERGED;
     }
 
@@ -513,6 +518,13 @@ int ssp_lao_star_get_policy_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunc
         if (ssp_lao_star_is_visited_cpu(mdp, lao, s)) {
             r++;
         }
+    }
+
+    // If 'r' is 0, then return an error.
+    // TODO: Remove this once you finish the BPSG.
+    if (r == 0) {
+        fprintf(stderr, "Error[ssp_lao_star_get_policy_cpu]: %s\n", "Failed to create a policy with no visited states.");
+        return NOVA_ERROR_POLICY_CREATION;
     }
 
     // Initialize the policy, which allocates memory.
