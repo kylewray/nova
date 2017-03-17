@@ -1,6 +1,6 @@
 """ The MIT License (MIT)
 
-    Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
+    Copyright (c) 2017 Kyle Hollins Wray, University of Massachusetts
 
     Permission is hereby granted, free of charge, to any person obtaining a copy of
     this software and associated documentation files (the "Software"), to deal in
@@ -44,8 +44,8 @@ else:
                     "..", "..", "lib", "libnova.so"))
 
 
-class NovaSSPRTDPCPU(ct.Structure):
-    """ The C struct SSPRTDPCPU object. """
+class NovaSSPLRTDPCPU(ct.Structure):
+    """ The C struct SSPLRTDPCPU object. """
 
     _fields_ = [("VInitial", ct.POINTER(ct.c_float)),
                 ("trials", ct.c_uint),
@@ -56,21 +56,21 @@ class NovaSSPRTDPCPU(ct.Structure):
                 ]
 
 
-_nova.ssp_rtdp_initialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                          ct.POINTER(NovaSSPRTDPCPU))
+_nova.ssp_lrtdp_initialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
+                                          ct.POINTER(NovaSSPLRTDPCPU))
 
-_nova.ssp_rtdp_execute_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                       ct.POINTER(NovaSSPRTDPCPU),
+_nova.ssp_lrtdp_execute_cpu.argtypes = (ct.POINTER(mdp.MDP),
+                                       ct.POINTER(NovaSSPLRTDPCPU),
                                        ct.POINTER(mvf.MDPValueFunction))
 
-_nova.ssp_rtdp_uninitialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                            ct.POINTER(NovaSSPRTDPCPU))
+_nova.ssp_lrtdp_uninitialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
+                                            ct.POINTER(NovaSSPLRTDPCPU))
 
-_nova.ssp_rtdp_update_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                      ct.POINTER(NovaSSPRTDPCPU))
+_nova.ssp_lrtdp_update_cpu.argtypes = (ct.POINTER(mdp.MDP),
+                                      ct.POINTER(NovaSSPLRTDPCPU))
 
-_nova.ssp_rtdp_get_policy_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                          ct.POINTER(NovaSSPRTDPCPU),
+_nova.ssp_lrtdp_get_policy_cpu.argtypes = (ct.POINTER(mdp.MDP),
+                                          ct.POINTER(NovaSSPLRTDPCPU),
                                           ct.POINTER(mvf.MDPValueFunction))
 
 

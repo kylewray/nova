@@ -24,7 +24,7 @@ set(SOURCES
     src/pomdp/policies/pomdp_alpha_vectors.cpp
 #    src/mdp/utilities/mdp_model_gpu.cu
     src/mdp/utilities/mdp_model_cpu.cpp
-    src/mdp/algorithms/ssp_rtdp_cpu.cpp
+    src/mdp/algorithms/ssp_lrtdp_cpu.cpp
 #    src/mdp/algorithms/mdp_vi_gpu.cu
     src/mdp/algorithms/ssp_lao_star_cpu.cpp
     src/mdp/algorithms/mdp_vi_cpu.cpp
@@ -49,7 +49,7 @@ set(HEADERS
     include/nova/mdp/algorithms/mdp_vi_gpu.h
     include/nova/mdp/algorithms/ssp_lao_star_cpu.h
     include/nova/mdp/algorithms/mdp_vi_cpu.h
-    include/nova/mdp/algorithms/ssp_rtdp_cpu.h
+    include/nova/mdp/algorithms/ssp_lrtdp_cpu.h
     include/nova/mdp/policies/mdp_value_function.h
     include/nova/mdp/mdp.h
 )

@@ -30,8 +30,6 @@
 #include <algorithm>
 #include <math.h>
 
-#include <iostream>
-
 #include <nova/mdp/policies/mdp_value_function.h>
 #include <nova/error_codes.h>
 #include <nova/constants.h>
@@ -392,7 +390,7 @@ int ssp_lao_star_execute_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunctio
         result = ssp_lao_star_update_cpu(mdp, lao);
         if (result != NOVA_SUCCESS && result != NOVA_CONVERGED) {
             fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n",
-                        "Failed to perform the update step of LAO*.");
+                            "Failed to perform the update step of LAO*.");
 
             int resultPrime = ssp_lao_star_uninitialize_cpu(mdp, lao);
             if (resultPrime != NOVA_SUCCESS) {
