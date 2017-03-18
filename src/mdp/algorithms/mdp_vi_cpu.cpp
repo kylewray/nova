@@ -38,7 +38,7 @@ void mdp_vi_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, 
         float *VPrime, unsigned int *pi)
 {
     for (unsigned int s = 0; s < n; s++) {
-        VPrime[s] = -FLT_MAX;
+        VPrime[s] = -NOVA_FLT_MAX;
 
         // Compute max_{a in A} Q(s, a).
         for (int a = 0; a < m; a++) {

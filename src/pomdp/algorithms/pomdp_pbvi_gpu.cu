@@ -62,7 +62,7 @@ __global__ void pomdp_pbvi_compute_alphaBA_gpu(unsigned int n, unsigned int ns, 
     float *maxAlphaDotBeta = (float *)sdata;
     unsigned int *maxAlphaIndex = (unsigned int *)&maxAlphaDotBeta[blockDim.x];
 
-    maxAlphaDotBeta[threadIdx.x] = FLT_MIN;
+    maxAlphaDotBeta[threadIdx.x] = NOVA_FLT_MIN;
     maxAlphaIndex[threadIdx.x] = 0;
 
     __syncthreads();
@@ -175,7 +175,7 @@ __global__ void pomdp_pbvi_update_step_gpu(unsigned int n, unsigned int ns, unsi
 
     // We want to find the action that maximizes the value, store it in piPrime, as well as
     // its alpha-vector GammaPrime.
-    float maxActionValue = FLT_MIN;
+    float maxActionValue = NOVA_FLT_MIN;
 
     for (unsigned int action = 0; action < m; action++) {
         // Only execute if the action is available.

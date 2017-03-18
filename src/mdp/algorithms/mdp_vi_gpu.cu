@@ -57,7 +57,7 @@ __global__ void mdp_vi_bellman_update_gpu(unsigned int n, unsigned int ns, unsig
     }
 
     // Nvidia GPUs follow IEEE floating point standards, so this should be safe.
-    VPrime[s] = -FLT_MAX;
+    VPrime[s] = -NOVA_FLT_MAX;
 
     // Compute max_{a in A} Q(s, a).
     for (int a = 0; a < m; a++) {

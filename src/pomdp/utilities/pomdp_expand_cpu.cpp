@@ -193,7 +193,7 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp)
         pomdp_expand_construct_belief_cpu(pomdp, i, b);
 
         float *bpStar = new float[pomdp->n];
-        float bpStarValue = FLT_MIN;
+        float bpStarValue = NOVA_FLT_MIN;
 
         // For this belief point, find the action-observation pair that is most distinct
         // from the current set of beliefs B. This will be added to Bnew.
@@ -222,7 +222,7 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp)
                 }
 
                 // Compute min|b - b'| for all beliefs b in B.
-                float jStarValue = FLT_MAX;
+                float jStarValue = NOVA_FLT_MAX;
 
                 for (unsigned int j = 0; j < pomdp->r; j++) {
                     float *btmp = new float[pomdp->n];
@@ -286,11 +286,11 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy)
         Bnew[i] = 0.0f;
     }
 
-    float bStarEpsilonErrorBound = FLT_MIN;
+    float bStarEpsilonErrorBound = NOVA_FLT_MIN;
 
     // Compute Rmin and Rmax.
-    float Rmax = FLT_MIN;
-    float Rmin = FLT_MAX;
+    float Rmax = NOVA_FLT_MIN;
+    float Rmin = NOVA_FLT_MAX;
     for (unsigned int s = 0; s < pomdp->n; s++) {
         for (unsigned int a = 0; a < pomdp->m; a++) {
             if (Rmax < pomdp->R[s * pomdp->m + a]) {
@@ -308,7 +308,7 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy)
 
     for (unsigned int i = 0; i < pomdp->r; i++) {
         unsigned int aStar = 0;
-        float aStarValue = FLT_MIN;
+        float aStarValue = NOVA_FLT_MIN;
 
         pomdp_expand_construct_belief_cpu(pomdp, i, b);
 
@@ -316,7 +316,7 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy)
         // the maximal error, i.e., one with highest value of epsilon(b'(b, a, o)).
         for (unsigned int a = 0; a < pomdp->m; a++) {
             oStar[a] = 0;
-            oStarValue[a] = FLT_MIN;
+            oStarValue[a] = NOVA_FLT_MIN;
         }
 
         // At this belief b, select the action which maximizes the sum over observations
@@ -364,7 +364,7 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy)
                 // Compute the closest (1-norm) belief from b'.
                 unsigned int bClosestIndex = 0;
                 float *bClosest = new float[pomdp->n];
-                float bClosestStarDistance = FLT_MAX;
+                float bClosestStarDistance = NOVA_FLT_MAX;
 
                 for (unsigned int j = 0; j < pomdp->r; j++) {
                     float *bCheck = new float[pomdp->n];
@@ -385,7 +385,7 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy)
                 }
 
                 // Compute alpha = argmax_{alpha in Gamma} alpha * b.
-                float VbStar = FLT_MIN;
+                float VbStar = NOVA_FLT_MIN;
                 unsigned int alphaIndexStar = 0;
 
                 for (unsigned int j = 0; j < policy->r; j++) {

@@ -123,7 +123,7 @@ int pomdp_belief_update_cpu(const POMDP *pomdp, const float *b, unsigned int a, 
     // If the normalizing constant is exceedingly small, within error tolerances, then this is
     // very likely to be an invalid belief. In practice, this arises when there is a probabilistically
     // impossible observation, given the POMDP.
-    if (std::fabs(normalizingConstant) < FLT_ERR_TOL) {
+    if (std::fabs(normalizingConstant) < NOVA_FLT_ERR_TOL) {
         fprintf(stderr, "Error[pomdp_belief_update_cpu]: %s\n",
                 "Computed belief is invalid. The observation is impossible given the belief and action.");
         return NOVA_WARNING_INVALID_BELIEF;

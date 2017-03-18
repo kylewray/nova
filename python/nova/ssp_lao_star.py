@@ -86,7 +86,7 @@ class SSPLAOStarCPU(nsls.NovaSSPLAOStarCPU):
         policy = mvf.MDPValueFunction()
 
         result = nsls._nova.ssp_lao_star_execute_cpu(self.mdpPtr, self, ct.byref(policy))
-        if result != 0:
+        if result != 0 and result != 13: # Success or approximate solution.
             print("Failed to execute the 'nova' library's CPU LAO* solver.")
             raise Exception()
 

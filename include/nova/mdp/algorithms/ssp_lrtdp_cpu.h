@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2017 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -22,8 +22,8 @@
  */
 
 
-#ifndef NOVA_SSP_RTDP_CPU_H
-#define NOVA_SSP_RTDP_CPU_H
+#ifndef NOVA_SSP_LRTDP_CPU_H
+#define NOVA_SSP_LRTDP_CPU_H
 
 
 #include <nova/mdp/mdp.h>
@@ -32,7 +32,7 @@
 namespace nova {
 
 /**
- *  The necessary variables to perform value iteration on an RTDP within nova.
+ *  The necessary variables to perform value iteration on an LRTDP within nova.
  *  @param  VInitial        The initial value function, mapping states (n-array) to floats.
  *  @param  trials          The number of trials to perform.
  *  @param  currentTrial    The current trial.
@@ -41,7 +41,7 @@ namespace nova {
  *  @param  Vprime          The value of the states (n-array) copy.
  *  @param  pi              The action to take at each state (n-array).
  */
-typedef struct NovaSSPRTDPCPU {
+typedef struct NovaSSPLRTDPCPU {
     float *VInitial;
     unsigned int trials;
 
@@ -50,64 +50,64 @@ typedef struct NovaSSPRTDPCPU {
 
     float *V;
     unsigned int *pi;
-} SSPRTDPCPU;
+} SSPLRTDPCPU;
 
 /**
- *  Step 1/3: The initialization step of RTDP. This sets up the V and pi variables.
- *  Note we assume the rewards R are all positive costs or 0 for goal states. Importantly, RTDP also
+ *  Step 1/3: The initialization step of LRTDP. This sets up the V and pi variables.
+ *  Note we assume the rewards R are all positive costs or 0 for goal states. Importantly, LRTDP also
  *  assumes that the goal can be reached with non-zero probability from all states.
  *  @param  mdp         The MDP object.
- *  @param  rtdp        The SSPRTDPCPU object containing algorithm variables.
+ *  @param  lrtdp       The SSPLRTDPCPU object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int ssp_rtdp_initialize_cpu(const MDP *mdp, SSPRTDPCPU *rtdp);
+extern "C" int ssp_lrtdp_initialize_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp);
 
 /**
- *  Step 2/3: Execute RTDP for the SSP MDP model specified.
- *  Note we assume the rewards R are all positive costs or 0 for goal states. Importantly, RTDP also
+ *  Step 2/3: Execute LRTDP for the SSP MDP model specified.
+ *  Note we assume the rewards R are all positive costs or 0 for goal states. Importantly, LRTDP also
  *  assumes that the goal can be reached with non-zero probability from all states.
  *  @param  mdp         The MDP object.
- *  @param  rtdp        The SSPRTDPCPU object containing algorithm variables.
+ *  @param  lrtdp       The SSPLRTDPCPU object containing algorithm variables.
  *  @param  policy      The resulting value function policy. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int ssp_rtdp_execute_cpu(const MDP *mdp, SSPRTDPCPU *rtdp, MDPValueFunction *policy);
+extern "C" int ssp_lrtdp_execute_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, MDPValueFunction *policy);
 
 /**
- *  Step 3/3: The uninitialization step of RTDP. This sets up the V and pi variables.
- *  Note we assume the rewards R are all positive costs or 0 for goal states. Importantly, RTDP also
+ *  Step 3/3: The uninitialization step of LRTDP. This sets up the V and pi variables.
+ *  Note we assume the rewards R are all positive costs or 0 for goal states. Importantly, LRTDP also
  *  assumes that the goal can be reached with non-zero probability from all states.
  *  @param  mdp         The MDP object.
- *  @param  rtdp        The SSPRTDPCPU object containing algorithm variables.
+ *  @param  lrtdp       The SSPLRTDPCPU object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int ssp_rtdp_uninitialize_cpu(const MDP *mdp, SSPRTDPCPU *rtdp);
+extern "C" int ssp_lrtdp_uninitialize_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp);
 
 /**
- *  The update step of RTDP. This performs one complete trial of RTDP.
- *  Note we assume the rewards R are all positive costs or 0 for goal states. Importantly, RTDP also
+ *  The update step of LRTDP. This performs one complete trial of LRTDP.
+ *  Note we assume the rewards R are all positive costs or 0 for goal states. Importantly, LRTDP also
  *  assumes that the goal can be reached with non-zero probability from all states.
  *  @param  mdp         The MDP object.
- *  @param  rtdp        The SSPRTDPCPU object containing algorithm variables.
+ *  @param  lrtdp       The SSPLRTDPCPU object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int ssp_rtdp_update_cpu(const MDP *mdp, SSPRTDPCPU *rtdp);
+extern "C" int ssp_lrtdp_update_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp);
 
 /**
- *  The get resultant policy step of RTDP. This retrieves the values of states (V) and
+ *  The get resultant policy step of LRTDP. This retrieves the values of states (V) and
  *  the corresponding actions at each state (pi). Unexplored states s will have unchanged
  *  values V(s) and actions pi(s).
  *  Note we assume the rewards R are all positive costs or 0 for goal states.
  *  @param  mdp         The MDP object.
- *  @param  rtdp        The SSPRTDPCPU object containing algorithm variables.
+ *  @param  lrtdp       The SSPLRTDPCPU object containing algorithm variables.
  *  @param  policy      The resulting value function policy. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int ssp_rtdp_get_policy_cpu(const MDP *mdp, SSPRTDPCPU *rtdp, MDPValueFunction *policy);
+extern "C" int ssp_lrtdp_get_policy_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, MDPValueFunction *policy);
 
 };
 
 
-#endif // NOVA_SSP_RTDP_CPU_H
+#endif // NOVA_SSP_LRTDP_CPU_H
 
 
