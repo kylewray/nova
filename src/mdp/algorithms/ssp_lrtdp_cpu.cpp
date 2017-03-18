@@ -329,7 +329,7 @@ int ssp_lrtdp_execute_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, MDPValueFunction *
     }
 
     result = ssp_lrtdp_get_policy_cpu(mdp, lrtdp, policy);
-    if (result != NOVA_SUCCESS) {
+    if (result != NOVA_SUCCESS && result != NOVA_WARNING_APPROXIMATE_SOLUTION) {
         fprintf(stderr, "Error[ssp_lrtdp_execute_cpu]: %s\n", "Failed to get the policy.");
 
         unsigned int resultPrime = ssp_lrtdp_uninitialize_cpu(mdp, lrtdp);
@@ -341,10 +341,18 @@ int ssp_lrtdp_execute_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, MDPValueFunction *
         return result;
     }
 
+    bool approximateSolution = (result == NOVA_WARNING_APPROXIMATE_SOLUTION);
+
     result = ssp_lrtdp_uninitialize_cpu(mdp, lrtdp);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[ssp_lrtdp_execute_cpu]: %s\n", "Failed to uninitialize the CPU variables.");
         return result;
+    }
+
+    // If this was an approximate solution, return this warning. Otherwise, return success.
+    if (approximateSolution) {
+        fprintf(stderr, "Warning[ssp_lrtdp_execute_cpu]: %s\n", "Approximate solution due to early termination and/or dead ends.");
+        return NOVA_WARNING_APPROXIMATE_SOLUTION;
     }
 
     return NOVA_SUCCESS;
@@ -442,7 +450,6 @@ int ssp_lrtdp_update_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp)
     ssp_lrtdp_stack_destroy_cpu(mdp, lrtdp, visitedStackSize, visitedStack);
 
     if (!ssp_lrtdp_is_solved_cpu(mdp, lrtdp, mdp->s0)) {
-        fprintf(stderr, "Warning[ssp_lrtdp_update_cpu]: %s\n", "Approximate solution due to early termination and/or dead ends.");
         return NOVA_WARNING_APPROXIMATE_SOLUTION;
     }
 
@@ -457,47 +464,71 @@ int ssp_lrtdp_get_policy_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, MDPValueFunctio
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    // First, count the number of states that are valid following the policy.
-    unsigned int r = 0;
+    // First, find the best partial solution graph (nodes, which are states).
+    // This is stored in the closed state list (below).
 
-    for (unsigned int s = 0; s < mdp->n; s++) {
-        // Only include the solved states as part of the final policy.
-        if (ssp_lrtdp_is_solved_cpu(mdp, lrtdp, s)) {
-            r++;
+    // Create a open state list (stack).
+    unsigned int openStackSize = 0;
+    unsigned int *openStack = nullptr;
+    ssp_lrtdp_stack_create_cpu(mdp, lrtdp, mdp->n, openStackSize, openStack);
+    ssp_lrtdp_stack_push_cpu(mdp, lrtdp, openStackSize, openStack, mdp->s0);
+
+    // Create a closed state list (stack).
+    unsigned int closedStackSize = 0;
+    unsigned int *closedStack = nullptr;
+    ssp_lrtdp_stack_create_cpu(mdp, lrtdp, mdp->n, closedStackSize, closedStack);
+
+    // Iterate until there are no more elements in the open list.
+    while (openStackSize != 0) {
+        // Pop the last element off the stack.
+        unsigned int s = 0;
+        ssp_lrtdp_stack_pop_cpu(mdp, lrtdp, openStackSize, openStack, s);
+        ssp_lrtdp_stack_push_cpu(mdp, lrtdp, closedStackSize, closedStack, s);
+
+        // If this is a goal or dead end we do not add successors.
+        if (ssp_lrtdp_is_goal_cpu(mdp, lrtdp, s) || ssp_lrtdp_is_dead_end_cpu(mdp, lrtdp, s)) {
+            continue;
+        }
+
+        // Expand the successors, following the greedy action. Add all successors
+        // to the open list.
+        for (unsigned int i = 0; i < mdp->ns; i++) {
+            int sp = mdp->S[s * mdp->m * mdp->ns + lrtdp->pi[s] * mdp->ns + i];
+            if (sp < 0) {
+                break;
+            }
+
+            // Only add to the stack if it is not already in the open or closed lists.
+            if (!ssp_lrtdp_stack_in_cpu(mdp, lrtdp, openStackSize, openStack, sp)
+                    && !ssp_lrtdp_stack_in_cpu(mdp, lrtdp, closedStackSize, closedStack, sp)) {
+                ssp_lrtdp_stack_push_cpu(mdp, lrtdp, openStackSize, openStack, sp);
+            }
         }
     }
 
-    // If 'r' is 0, then return an error.
-    // TODO: Remove this once you finish the BPSG.
-    if (r == 0) {
-        fprintf(stderr, "Error[ssp_rtdp_get_policy_cpu]: %s\n", "Failed to create a policy with no solved states.");
-        return NOVA_ERROR_POLICY_CREATION;
-    }
-
-    // Initialize the policy, which allocates memory.
-    int result = mdp_value_function_initialize(policy, mdp->n, mdp->m, r);
+    // Now we know how many states are in the policy. So, initialize the policy,
+    // which allocates memory.
+    int result = mdp_value_function_initialize(policy, mdp->n, mdp->m, closedStackSize);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[ssp_lrtdp_get_policy_cpu]: %s\n", "Could not create the policy.");
         return NOVA_ERROR_POLICY_CREATION;
     }
 
     // Copy the final (or intermediate) result, both V and pi.
-    r = 0;
-
-    for (unsigned int s = 0; s < mdp->n; s++) {
-        if (ssp_lrtdp_is_solved_cpu(mdp, lrtdp, s)) {
-            policy->S[r] = s;
-            policy->V[r] = lrtdp->V[s];
-            policy->pi[r] = lrtdp->pi[s];
-            r++;
-        }
+    for (unsigned int i = 0; i < closedStackSize; i++) {
+        unsigned int s = closedStack[i];
+        policy->S[i] = s;
+        policy->V[i] = lrtdp->V[s];
+        policy->pi[i] = lrtdp->pi[s];
     }
 
-    // If the initial state is not marked as solved, then do not return a policy.
-    // TODO: In the future, return the best partial solution graph (BPSG) instead.
-    // This enables an anytime version of LRTDP...
+    ssp_lrtdp_stack_destroy_cpu(mdp, lrtdp, openStackSize, openStack);
+    ssp_lrtdp_stack_destroy_cpu(mdp, lrtdp, closedStackSize, closedStack);
+
+    // If the initial state is not marked as solved, then return a warning regarding the solution quality.
     if (!ssp_lrtdp_is_solved_cpu(mdp, lrtdp, mdp->s0)) {
-        fprintf(stderr, "Error[ssp_lrtdp_get_policy_cpu]: %s\n", "Failed to create a policy without a solved initial state.");
+        fprintf(stderr, "Warning[ssp_lrtdp_get_policy_cpu]: %s\n",
+                "Failed to create a policy without a solved initial state.");
         return NOVA_WARNING_APPROXIMATE_SOLUTION;
     }
 

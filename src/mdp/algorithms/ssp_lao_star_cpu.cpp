@@ -137,6 +137,18 @@ void ssp_lao_star_stack_push_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
 }
 
 
+bool ssp_lao_star_stack_in_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
+    unsigned int &stackSize, unsigned int *stack, unsigned int s)
+{
+    for (unsigned int i = 0; i < stackSize; i++) {
+        if (stack[i] == s) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 void ssp_lao_star_stack_push_successors_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
     unsigned int &stackSize, unsigned int *stack, unsigned int s)
 {
@@ -403,8 +415,10 @@ int ssp_lao_star_execute_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunctio
         }
     }
 
+    bool approximateSolution = (result == NOVA_WARNING_APPROXIMATE_SOLUTION);
+
     result = ssp_lao_star_get_policy_cpu(mdp, lao, policy);
-    if (result != NOVA_SUCCESS) {
+    if (result != NOVA_SUCCESS && result != NOVA_WARNING_APPROXIMATE_SOLUTION) {
         fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n",
                         "Failed to get the policy.");
 
@@ -421,6 +435,12 @@ int ssp_lao_star_execute_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunctio
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n", "Failed to uninitialize the CPU variables.");
         return result;
+    }
+
+    // If this was an approximate solution, return this warning. Otherwise, return success.
+    if (approximateSolution) {
+        fprintf(stderr, "Warning[ssp_lao_star_execute_cpu]: %s\n", "Approximate solution due to early termination and/or dead ends.");
+        return NOVA_WARNING_APPROXIMATE_SOLUTION;
     }
 
     return NOVA_SUCCESS;
@@ -491,7 +511,6 @@ int ssp_lao_star_update_cpu(const MDP *mdp, SSPLAOStarCPU *lao)
 
     // If we ran out of time, or converged without hitting a non-expanded state, then we are done.
     if (lao->currentHorizon >= mdp->horizon) {
-        fprintf(stderr, "Warning[ssp_lao_star_update_cpu]: %s\n", "Approximate solution due to early termination and/or dead ends.");
         return NOVA_WARNING_APPROXIMATE_SOLUTION;
     } else if (converged && !nonExpandedTipStateFound) {
         return NOVA_CONVERGED;
@@ -500,7 +519,7 @@ int ssp_lao_star_update_cpu(const MDP *mdp, SSPLAOStarCPU *lao)
     return NOVA_SUCCESS;
 }
 
-
+/*
 int ssp_lao_star_get_policy_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunction *policy)
 {
     if (mdp == nullptr || lao == nullptr || policy == nullptr) {
@@ -549,6 +568,86 @@ int ssp_lao_star_get_policy_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunc
             policy->pi[r] = lao->pi[s];
             r++;
         }
+    }
+
+    return NOVA_SUCCESS;
+}
+*/
+
+
+int ssp_lao_star_get_policy_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunction *policy)
+{
+    if (mdp == nullptr || lao == nullptr || policy == nullptr) {
+        fprintf(stderr, "Error[ssp_lao_star_get_policy_cpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    // First, find the best partial solution graph (nodes, which are states).
+    // This is stored in the closed state list (below).
+
+    // Create a open state list (stack).
+    unsigned int openStackSize = 0;
+    unsigned int *openStack = nullptr;
+    ssp_lao_star_stack_create_cpu(mdp, lao, openStackSize, openStack);
+    ssp_lao_star_stack_push_cpu(mdp, lao, openStackSize, openStack, mdp->s0);
+
+    // Create a closed state list (stack).
+    unsigned int closedStackSize = 0;
+    unsigned int *closedStack = nullptr;
+    ssp_lao_star_stack_create_cpu(mdp, lao, closedStackSize, closedStack);
+
+    // Iterate until there are no more elements in the open list.
+    while (openStackSize != 0) {
+        // Pop the last element off the stack.
+        unsigned int s = 0;
+        ssp_lao_star_stack_pop_cpu(mdp, lao, openStackSize, openStack, s);
+        ssp_lao_star_stack_push_cpu(mdp, lao, closedStackSize, closedStack, s);
+
+        // If this is a goal we do not add successors.
+        if (ssp_lao_star_is_goal_cpu(mdp, lao, s)) {
+            continue;
+        }
+
+        // Expand the successors, following the greedy action. Add all successors
+        // to the open list.
+        for (unsigned int i = 0; i < mdp->ns; i++) {
+            int sp = mdp->S[s * mdp->m * mdp->ns + lao->pi[s] * mdp->ns + i];
+            if (sp < 0) {
+                break;
+            }
+
+            // Only add to the stack if it is not already in the open or closed lists.
+            if (!ssp_lao_star_stack_in_cpu(mdp, lao, openStackSize, openStack, sp)
+                    && !ssp_lao_star_stack_in_cpu(mdp, lao, closedStackSize, closedStack, sp)) {
+                ssp_lao_star_stack_push_cpu(mdp, lao, openStackSize, openStack, sp);
+            }
+        }
+    }
+
+    // Now we know how many states are in the policy. So, initialize the policy,
+    // which allocates memory.
+    int result = mdp_value_function_initialize(policy, mdp->n, mdp->m, closedStackSize);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[ssp_lao_get_policy_cpu]: %s\n", "Could not create the policy.");
+        return NOVA_ERROR_POLICY_CREATION;
+    }
+
+    // Copy the final (or intermediate) result, both V and pi.
+    for (unsigned int i = 0; i < closedStackSize; i++) {
+        unsigned int s = closedStack[i];
+        policy->S[i] = s;
+        policy->V[i] = lao->V[s];
+        policy->pi[i] = lao->pi[s];
+    }
+
+    ssp_lao_star_stack_destroy_cpu(mdp, lao, openStackSize, openStack);
+    ssp_lao_star_stack_destroy_cpu(mdp, lao, closedStackSize, closedStack);
+
+    // If the number of iterations (before it converged) is too great, then return a warning regarding the solution quality.
+    if (lao->currentHorizon >= mdp->horizon) {
+        fprintf(stderr, "Warning[ssp_lao_star_get_policy_cpu]: %s\n",
+                "Failed to create a complete policy; maximum iterations exceeded without convergence.");
+        return NOVA_WARNING_APPROXIMATE_SOLUTION;
     }
 
     return NOVA_SUCCESS;

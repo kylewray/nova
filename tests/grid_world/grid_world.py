@@ -90,7 +90,7 @@ for trial in trials:
     policy = algorithm.solve()
     #print(algorithm)
 
-    prettyActions = ["L", "U", "R", "D"]
+    prettyActions = ["L", "U", "R", "D", "X"]
 
     if policy.r == 0:
         for y in range(trial['h']):
@@ -99,6 +99,7 @@ for trial in trials:
             print()
     else:
         S = [policy.S[i] for i in range(policy.r)]
+
         for y in range(trial['h']):
             for x in range(trial['w']):
                 try:
