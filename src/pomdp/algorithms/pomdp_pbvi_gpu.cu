@@ -273,6 +273,21 @@ int pomdp_pbvi_initialize_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi)
         pbvi->GammaInitial = nullptr;
     }
 
+    // Lastly, create a temporary variable to assign the default values of pi.
+    unsigned int *pi = new unsigned int[pomdp->r];
+    for (unsigned int i = 0; i < pomdp->r; i++) {
+        pi[i] = 0;
+    }
+
+    if (cudaMemcpy(pbvi->d_pi, pi, pomdp->r * sizeof(unsigned int), cudaMemcpyHostToDevice) != cudaSuccess) {
+        fprintf(stderr, "Error[pomdp_pbvi_initialize_gpu]: %s\n",
+                "Failed to copy memory from host to device for pi.");
+        return NOVA_ERROR_MEMCPY_TO_DEVICE;
+    }
+
+    delete [] pi;
+    pi = nullptr;
+
     return NOVA_SUCCESS;
 }
 
