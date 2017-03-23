@@ -257,10 +257,10 @@ int pomdp_perseus_execute_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDPAlp
     while (per->currentHorizon < pomdp->horizon) {
         //printf("Perseus (CPU Version) -- Iteration %i of %i\n", pomdp->currentHorizon, pomdp->horizon);
 
-        result = NOVA_SUCCESS;
-
         // Note: "Convergence" here means iterating until Btilde is empty, which is always guaranteed to
         // be at most r iterations (the number of belief points).
+        result = NOVA_SUCCESS;
+
         while (result != NOVA_CONVERGED) {
             result = pomdp_perseus_update_cpu(pomdp, per);
             if (result != NOVA_CONVERGED && result != NOVA_SUCCESS) {
@@ -471,7 +471,8 @@ int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDP
             (per->currentHorizon % 2 == 1 &&
                 (per->rGammaPrime == 0 || per->GammaPrime == nullptr || per->piPrime == nullptr)) ||
             policy == nullptr) {
-        fprintf(stderr, "Error[pomdp_perseus_get_policy_cpu]: %s\n", "Invalid arguments.");
+        fprintf(stderr, "Error[pomdp_perseus_get_policy_cpu]: %s\n",
+                        "Invalid arguments. Policy must be undefined.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
