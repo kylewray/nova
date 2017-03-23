@@ -136,7 +136,13 @@ int mdp_vi_initialize_gpu(const MDP *mdp, MDPVIGPU *vi)
         return NOVA_ERROR_MEMCPY_TO_DEVICE;
     }
 
-    // Copy zeros to the policy by using a temporary variable.
+    // If we created VInitial, then free it.
+    if (createdVInitial) {
+        delete [] vi->VInitial;
+        vi->VInitial = nullptr;
+    }
+
+    // Lastly, copy zeros to the policy by using a temporary variable.
     unsigned int *pi = new unsigned int[mdp->n];
     for (unsigned int i = 0; i < mdp->n; i++) {
         pi[i] = 0;
@@ -150,12 +156,6 @@ int mdp_vi_initialize_gpu(const MDP *mdp, MDPVIGPU *vi)
 
     delete [] pi;
     pi = nullptr;
-
-    // If we created VInitial, then free it.
-    if (createdVInitial) {
-        delete [] vi->VInitial;
-        vi->VInitial = nullptr;
-    }
 
     return NOVA_SUCCESS;
 }
