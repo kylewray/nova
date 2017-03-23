@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2017 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -39,13 +39,10 @@ void pomdp_pbvi_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns, u
     const int *S, const float *T, const float *O, const float *R, const int *Z, const float *B,
     const float *Gamma, unsigned int i, unsigned int a, float *alpha)
 {
-    float value;
-    float bestValue;
-    unsigned int bestj;
-
     for (unsigned int o = 0; o < z; o++) {
-        value = NOVA_FLT_MIN;
-        bestValue = NOVA_FLT_MIN;
+        float value = NOVA_FLT_MIN;
+        float bestValue = NOVA_FLT_MIN;
+        unsigned int bestAlphaIndex = 0;
 
         for (unsigned int j = 0; j < r; j++) {
             // Variable 'j' represents the alpha in Gamma^{t-1}. It is this variable that we will maximize over.
@@ -77,7 +74,7 @@ void pomdp_pbvi_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns, u
 
             // Assign this as the best alpha-vector if it is better.
             if (value > bestValue) {
-                bestj = j;
+                bestAlphaIndex = j;
                 bestValue = value;
             }
         }
@@ -93,7 +90,7 @@ void pomdp_pbvi_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns, u
                     break;
                 }
 
-                Vtk += O[a * n * z + sp * z + o] * T[s * m * ns + a * ns + l] * Gamma[bestj * n + sp];
+                Vtk += O[a * n * z + sp * z + o] * T[s * m * ns + a * ns + l] * Gamma[bestAlphaIndex * n + sp];
             }
             Vtk *= gamma;
 
@@ -164,6 +161,8 @@ void pomdp_pbvi_update_step_cpu(unsigned int n, unsigned int ns, unsigned int m,
 
 int pomdp_pbvi_initialize_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi)
 {
+    // TODO: Santize inputs.
+
     // Reset the current horizon.
     pbvi->currentHorizon = 0;
 
@@ -185,9 +184,6 @@ int pomdp_pbvi_initialize_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi)
 
 int pomdp_pbvi_execute_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVectors *policy)
 {
-    // The result from calling other functions.
-    int result;
-
     // Ensure the data is valid.
     if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
             pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
@@ -199,8 +195,11 @@ int pomdp_pbvi_execute_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVec
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    result = pomdp_pbvi_initialize_cpu(pomdp, pbvi);
+    // TODO: Remove GammaInitial == nullptr check and put defaulting behavior in like MDPs.
+
+    int result = pomdp_pbvi_initialize_cpu(pomdp, pbvi);
     if (result != NOVA_SUCCESS) {
+        // TODO: Print error...
         return result;
     }
 
@@ -211,17 +210,20 @@ int pomdp_pbvi_execute_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVec
 
         result = pomdp_pbvi_update_cpu(pomdp, pbvi);
         if (result != NOVA_SUCCESS) {
+            // TODO: Print error...
             return result;
         }
     }
 
     result = pomdp_pbvi_get_policy_cpu(pomdp, pbvi, policy);
     if (result != NOVA_SUCCESS) {
+        // TODO: Print error...
         return result;
     }
 
     result = pomdp_pbvi_uninitialize_cpu(pomdp, pbvi);
     if (result != NOVA_SUCCESS) {
+        // TODO: Print error...
         return result;
     }
 
@@ -231,6 +233,8 @@ int pomdp_pbvi_execute_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVec
 
 int pomdp_pbvi_uninitialize_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi)
 {
+    // TODO: Santize inputs.
+
     // Reset the current horizon.
     pbvi->currentHorizon = 0;
 
@@ -256,6 +260,8 @@ int pomdp_pbvi_uninitialize_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi)
 
 int pomdp_pbvi_update_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi)
 {
+    // TODO: Santize inputs.
+
     // We oscillate between Gamma and GammaPrime depending on the step.
     if (pbvi->currentHorizon % 2 == 0) {
         pomdp_pbvi_update_step_cpu(pomdp->n, pomdp->ns, pomdp->m, pomdp->z, pomdp->r, pomdp->rz, pomdp->gamma,

@@ -2,7 +2,7 @@ bin
 lib
 obj
 gcov
-nova_ve
+ve_nova
 *.swp
 *.pyc
 *.gc*

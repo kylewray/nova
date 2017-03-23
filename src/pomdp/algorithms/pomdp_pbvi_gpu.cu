@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2017 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -212,6 +212,8 @@ __global__ void pomdp_pbvi_update_step_gpu(unsigned int n, unsigned int ns, unsi
 
 int pomdp_pbvi_initialize_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi)
 {
+    // TODO: Santize inputs.
+
     // Reset the current horizon.
     pbvi->currentHorizon = 0;
 
@@ -259,9 +261,6 @@ int pomdp_pbvi_initialize_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi)
 
 int pomdp_pbvi_execute_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi, POMDPAlphaVectors *policy)
 {
-    // The result from calling other functions.
-    int result;
-
     // Ensure the data is valid.
     if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
             pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
@@ -279,8 +278,9 @@ int pomdp_pbvi_execute_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi, POMDPAlphaVec
         return NOVA_ERROR_INVALID_CUDA_PARAM;
     }
 
-    result = pomdp_pbvi_initialize_gpu(pomdp, pbvi);
+    int result = pomdp_pbvi_initialize_gpu(pomdp, pbvi);
     if (result != NOVA_SUCCESS) {
+        // TODO: Print error...
         return result;
     }
 
@@ -291,17 +291,20 @@ int pomdp_pbvi_execute_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi, POMDPAlphaVec
 
         result = pomdp_pbvi_update_gpu(pomdp, pbvi);
         if (result != NOVA_SUCCESS) {
+            // TODO: Print error...
             return result;
         }
     }
 
     result = pomdp_pbvi_get_policy_gpu(pomdp, pbvi, policy);
     if (result != NOVA_SUCCESS) {
+        // TODO: Print error...
         return result;
     }
 
     result = pomdp_pbvi_uninitialize_gpu(pomdp, pbvi);
     if (result != NOVA_SUCCESS) {
+        // TODO: Print error...
         return result;
     }
 
@@ -311,9 +314,9 @@ int pomdp_pbvi_execute_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi, POMDPAlphaVec
 
 int pomdp_pbvi_uninitialize_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi)
 {
-    int result;
+    // TODO: Santize inputs.
 
-    result = NOVA_SUCCESS;
+    int result = NOVA_SUCCESS;
 
     // Reset the current horizon.
     pbvi->currentHorizon = 0;
@@ -360,9 +363,7 @@ int pomdp_pbvi_uninitialize_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi)
 
 int pomdp_pbvi_update_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi)
 {
-    // The number of blocks in the main CUDA kernel call.
-    int numBlocks;
-
+    // Initialize the alphaBA with default values of the rewards R(*, a).
     pomdp_pbvi_initialize_alphaBA_gpu<<< dim3(pomdp->r, pomdp->m, 1), pbvi->numThreads >>>(
                                             pomdp->n, pomdp->m, pomdp->r, pomdp->d_R,
                                             pbvi->d_alphaBA);
@@ -405,7 +406,7 @@ int pomdp_pbvi_update_gpu(const POMDP *pomdp, POMDPPBVIGPU *pbvi)
     }
 
     // Compute the number of blocks.
-    numBlocks = (unsigned int)((float)pomdp->r / (float)pbvi->numThreads) + 1;
+    int numBlocks = (unsigned int)((float)pomdp->r / (float)pbvi->numThreads) + 1;
 
     // Execute a kernel for the first three stages of for-loops: B, A, Z, as a 3d-block,
     // and the 4th stage for-loop over Gamma as the threads.

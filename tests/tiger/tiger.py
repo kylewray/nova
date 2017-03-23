@@ -34,15 +34,15 @@ from nova.pomdp_perseus import*
 
 
 files = [
-        {'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': None},
-        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "random"},
-        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "distinct_beliefs"},
-        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "pema"},
+        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': None},
+        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "random"},
+        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "distinct_beliefs"},
+        ##{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "pema"},
 
-        {'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': None},
-        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "random"},
-        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "distinct_beliefs"},
-        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "pema"},
+        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': None},
+        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "random"},
+        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "distinct_beliefs"},
+        ##{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "pema"},
 
         # NOTE: Not implemented yet.
         #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'gpu', 'algorithm': 'perseus', 'expand': None},
@@ -53,10 +53,12 @@ files = [
         {'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'perseus', 'expand': None},
         {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "random"},
         {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "distinct_beliefs"},
-        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "pema"},
+        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "pema"},
         ]
 
 for f in files:
+    print("Loading File: %s" % (str(f)))
+
     tigerFile = os.path.join(thisFilePath, f['filename'])
     tiger = POMDP()
     tiger.load(tigerFile, filetype=f['filetype'])
@@ -90,7 +92,7 @@ for f in files:
     #print(policy)
 
     pylab.hold(True)
-    pylab.title("Alpha-Vectors for Tiger Problem (Expand: %s)" % (f['expand']))
+    pylab.title("Tiger Alpha-Vectors (Algorithm: %s, Expand: %s)" % (f['algorithm'], f['expand']))
     pylab.xlabel("Belief of State s2: b(s2)")
     pylab.ylabel("Value of Belief: V(b(s2))")
     for i in range(policy.r):
