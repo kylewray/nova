@@ -133,13 +133,6 @@ int mdp_vi_execute_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *policy)
     result = mdp_vi_get_policy_cpu(mdp, vi, policy);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Failed to get the policy.");
-
-        int resultPrime = mdp_vi_uninitialize_cpu(mdp, vi);
-        if (resultPrime != NOVA_SUCCESS) {
-            fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Failed to uninitialize the CPU variables.");
-        }
-
-        return result;
     }
 
     result = mdp_vi_uninitialize_cpu(mdp, vi);

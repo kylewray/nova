@@ -421,14 +421,6 @@ int ssp_lao_star_execute_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunctio
     if (result != NOVA_SUCCESS && result != NOVA_WARNING_APPROXIMATE_SOLUTION) {
         fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n",
                         "Failed to get the policy.");
-
-        int resultPrime = ssp_lao_star_uninitialize_cpu(mdp, lao);
-        if (resultPrime != NOVA_SUCCESS) {
-            fprintf(stderr, "Error[ssp_lao_star_execute_cpu]: %s\n",
-                            "Failed to uninitialize the CPU variables.");
-        }
-
-        return result;
     }
 
     result = ssp_lao_star_uninitialize_cpu(mdp, lao);
@@ -518,61 +510,6 @@ int ssp_lao_star_update_cpu(const MDP *mdp, SSPLAOStarCPU *lao)
 
     return NOVA_SUCCESS;
 }
-
-/*
-int ssp_lao_star_get_policy_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunction *policy)
-{
-    if (mdp == nullptr || lao == nullptr || policy == nullptr) {
-        fprintf(stderr, "Error[ssp_lao_star_get_policy_cpu]: %s\n", "Invalid arguments.");
-        return NOVA_ERROR_INVALID_DATA;
-    }
-
-    // First, count the number of states that are valid following the policy.
-    unsigned int r = 0;
-
-    for (unsigned int s = 0; s < mdp->n; s++) {
-        // Only include the visited states as part of the final policy. These states are all reachable states
-        // following the optimal policy. Recall that some states might be expanded early on in the process,
-        // but are quickly abandoned.
-        if (ssp_lao_star_is_visited_cpu(mdp, lao, s)) {
-            r++;
-        }
-    }
-
-    // If 'r' is 0, then return an error.
-    // TODO: Remove this once you finish the BPSG.
-    if (r == 0) {
-        fprintf(stderr, "Error[ssp_lao_star_get_policy_cpu]: %s\n", "Failed to create a policy with no visited states.");
-        return NOVA_ERROR_POLICY_CREATION;
-    }
-
-    // Initialize the policy, which allocates memory.
-    int result = mdp_value_function_initialize(policy, mdp->n, mdp->m, r);
-    if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[ssp_lao_star_get_policy_cpu]: %s\n", "Could not create the policy.");
-        return NOVA_ERROR_POLICY_CREATION;
-    }
-
-    // Copy the final (or intermediate) result, both V and pi. This assumes memory has been allocated
-    // for the variables provided. Importantly, only the values of the visited states are copied.
-    // The non-visited states are left alone.
-    r = 0;
-
-    for (unsigned int s = 0; s < mdp->n; s++) {
-        // Only include the visited states as part of the final policy. These states are all reachable states
-        // following the optimal policy. Recall that some states might be expanded early on in the process,
-        // but are quickly abandoned.
-        if (ssp_lao_star_is_visited_cpu(mdp, lao, s)) {
-            policy->S[r] = s;
-            policy->V[r] = lao->V[s];
-            policy->pi[r] = lao->pi[s];
-            r++;
-        }
-    }
-
-    return NOVA_SUCCESS;
-}
-*/
 
 
 int ssp_lao_star_get_policy_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunction *policy)

@@ -107,22 +107,28 @@ int mdp_vi_initialize_gpu(const MDP *mdp, MDPVIGPU *vi)
         createdVInitial = true;
     }
 
-    // Create the device-side V.
+    // Create (allocate the memory) for the device-side V, VPrime, and pi.
     if (cudaMalloc(&vi->d_V, mdp->n * sizeof(float)) != cudaSuccess) {
         fprintf(stderr, "Error[mdp_vi_initialize_gpu]: %s\n",
                 "Failed to allocate device-side memory for the value function.");
         return NOVA_ERROR_DEVICE_MALLOC;
     }
-    if (cudaMemcpy(vi->d_V, vi->VInitial, mdp->n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
-        fprintf(stderr, "Error[mdp_vi_initialize_gpu]: %s\n",
-                "Failed to copy memory from host to device for the value function.");
-        return NOVA_ERROR_MEMCPY_TO_DEVICE;
-    }
-
     if (cudaMalloc(&vi->d_VPrime, mdp->n * sizeof(float)) != cudaSuccess) {
         fprintf(stderr, "Error[mdp_vi_initialize_gpu]: %s\n",
                 "Failed to allocate device-side memory for the value function (prime).");
         return NOVA_ERROR_DEVICE_MALLOC;
+    }
+    if (cudaMalloc(&vi->d_pi, mdp->n * sizeof(unsigned int)) != cudaSuccess) {
+        fprintf(stderr, "Error[mdp_vi_initialize_gpu]: %s\n",
+                "Failed to allocate device-side memory for the policy (pi).");
+        return NOVA_ERROR_DEVICE_MALLOC;
+    }
+
+    // Copy the values of VInitial to the device-side V and VPrime.
+    if (cudaMemcpy(vi->d_V, vi->VInitial, mdp->n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+        fprintf(stderr, "Error[mdp_vi_initialize_gpu]: %s\n",
+                "Failed to copy memory from host to device for the value function.");
+        return NOVA_ERROR_MEMCPY_TO_DEVICE;
     }
     if (cudaMemcpy(vi->d_VPrime, vi->VInitial, mdp->n * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
         fprintf(stderr, "Error[mdp_vi_initialize_gpu]: %s\n",
@@ -130,13 +136,7 @@ int mdp_vi_initialize_gpu(const MDP *mdp, MDPVIGPU *vi)
         return NOVA_ERROR_MEMCPY_TO_DEVICE;
     }
 
-    // Create the device-side pi.
-    if (cudaMalloc(&vi->d_pi, mdp->n * sizeof(unsigned int)) != cudaSuccess) {
-        fprintf(stderr, "Error[mdp_vi_initialize_gpu]: %s\n",
-                "Failed to allocate device-side memory for the policy (pi).");
-        return NOVA_ERROR_DEVICE_MALLOC;
-    }
-
+    // Copy zeros to the policy by using a temporary variable.
     unsigned int *pi = new unsigned int[mdp->n];
     for (unsigned int i = 0; i < mdp->n; i++) {
         pi[i] = 0;
@@ -149,6 +149,7 @@ int mdp_vi_initialize_gpu(const MDP *mdp, MDPVIGPU *vi)
     }
 
     delete [] pi;
+    pi = nullptr;
 
     // If we created VInitial, then free it.
     if (createdVInitial) {
@@ -202,13 +203,6 @@ int mdp_vi_execute_gpu(const MDP *mdp, MDPVIGPU *vi, MDPValueFunction *policy)
     result = mdp_vi_get_policy_gpu(mdp, vi, policy);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s\n", "Failed to get the policy.");
-
-        int resultPrime = mdp_vi_uninitialize_gpu(mdp, vi);
-        if (resultPrime != NOVA_SUCCESS) {
-            fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s\n", "Failed to uninitialize the GPU variables.");
-        }
-
-        return result;
     }
 
     result = mdp_vi_uninitialize_gpu(mdp, vi);

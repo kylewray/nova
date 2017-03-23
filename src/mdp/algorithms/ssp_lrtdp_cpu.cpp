@@ -346,7 +346,6 @@ int ssp_lrtdp_execute_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, MDPValueFunction *
     result = ssp_lrtdp_uninitialize_cpu(mdp, lrtdp);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[ssp_lrtdp_execute_cpu]: %s\n", "Failed to uninitialize the CPU variables.");
-        return result;
     }
 
     // If this was an approximate solution, return this warning. Otherwise, return success.
