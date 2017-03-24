@@ -6,3 +6,4 @@ ve_nova
 *.swp
 *.pyc
 *.gc*
+*.o
