@@ -45,11 +45,11 @@ void ssp_lrtdp_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int 
     float Vprime = NOVA_FLT_MAX;
 
     // Compute min_{a in A} Q(s, a). Recall, we are dealing with rewards R as positive costs.
-    for (int a = 0; a < m; a++) {
+    for (unsigned int a = 0; a < m; a++) {
         // Compute Q(s, a) for this action.
         float Qsa = R[s * m + a];
 
-        for (int i = 0; i < ns; i++) {
+        for (unsigned int i = 0; i < ns; i++) {
             int sp = S[s * m * ns + a * ns + i];
             if (sp < 0) {
                 break;
