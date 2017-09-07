@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2017 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -73,13 +73,10 @@ void pomdp_perseus_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns
     const int *S, const float *T, const float *O, const float *R, const int *Z, const float *B,
     unsigned int bIndex, const float *Gamma, unsigned int rGamma, unsigned int a, float *alpha)
 {
-    float value;
-    float bestValue;
-    unsigned int bestj;
-
     for (unsigned int o = 0; o < z; o++) {
-        value = NOVA_FLT_MIN;
-        bestValue = NOVA_FLT_MIN;
+        float value = NOVA_FLT_MIN;
+        float bestValue = NOVA_FLT_MIN;
+        unsigned int bestAlphaIndex = 0;
 
         for (unsigned int j = 0; j < rGamma; j++) {
             // Variable 'j' represents the alpha in Gamma^{t-1}. It is this variable that we will maximize over.
@@ -111,7 +108,7 @@ void pomdp_perseus_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns
 
             // Assign this as the best alpha-vector if it is better.
             if (value > bestValue) {
-                bestj = j;
+                bestAlphaIndex = j;
                 bestValue = value;
             }
         }
@@ -127,7 +124,7 @@ void pomdp_perseus_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns
                     break;
                 }
 
-                Vtk += O[a * n * z + sp * z + o] * T[s * m * ns + a * ns + l] * Gamma[bestj * n + sp];
+                Vtk += O[a * n * z + sp * z + o] * T[s * m * ns + a * ns + l] * Gamma[bestAlphaIndex * n + sp];
             }
             Vtk *= gamma;
 
@@ -182,21 +179,37 @@ void pomdp_perseus_update_step_cpu(unsigned int n, unsigned int ns, unsigned int
 
 int pomdp_perseus_initialize_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
 {
+    if (pomdp == nullptr || pomdp->r == 0 || pomdp->n == 0 || per == nullptr) {
+        fprintf(stderr, "Error[pomdp_perseus_initialize_cpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     // Reset the current horizon.
     per->currentHorizon = 0;
 
     // Create the variables.
-    per->Gamma = new float[pomdp->r *pomdp->n];
+    per->Gamma = new float[pomdp->r * pomdp->n];
     per->GammaPrime = new float[pomdp->r * pomdp->n];
     per->pi = new unsigned int[pomdp->r];
     per->piPrime = new unsigned int[pomdp->r];
 
-    // Copy the data form the Gamma provided, and set the default values for pi.
-    memcpy(per->Gamma, per->GammaInitial, pomdp->r * pomdp->n * sizeof(float));
-    memcpy(per->GammaPrime, per->GammaInitial, pomdp->r * pomdp->n * sizeof(float));
-    for (unsigned int i = 0; i < pomdp->r; i++) {
-        per->pi[i] = 0;
-        per->piPrime[i] = 0;
+    // If provided, copy the data form the Gamma provided, and set the default values for pi.
+    if (per->GammaInitial != nullptr) {
+        memcpy(per->Gamma, per->GammaInitial, pomdp->r * pomdp->n * sizeof(float));
+        memcpy(per->GammaPrime, per->GammaInitial, pomdp->r * pomdp->n * sizeof(float));
+        for (unsigned int i = 0; i < pomdp->r; i++) {
+            per->pi[i] = 0;
+            per->piPrime[i] = 0;
+        }
+    } else {
+        for (unsigned int i = 0; i < pomdp->r * pomdp->n; i++) {
+            per->Gamma[i] = 0.0f;
+            per->GammaPrime[i] = 0.0f;
+        }
+        for (unsigned int i = 0; i < pomdp->r; i++) {
+            per->pi[i] = 0;
+            per->piPrime[i] = 0;
+        }
     }
 
     // For Perseus, we might have a lot fewer alpha-vectors. The actual number is
@@ -221,22 +234,20 @@ int pomdp_perseus_initialize_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
 
 int pomdp_perseus_execute_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDPAlphaVectors *policy)
 {
-    // The result from calling other functions.
-    int result;
-
     // Ensure the data is valid.
     if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
             pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
             pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
             pomdp->Z == nullptr || pomdp->B == nullptr ||
             pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
-            per == nullptr || per->GammaInitial == nullptr || policy == nullptr) {
+            per == nullptr || policy == nullptr) {
         fprintf(stderr, "Error[pomdp_perseus_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    result = pomdp_perseus_initialize_cpu(pomdp, per);
+    int result = pomdp_perseus_initialize_cpu(pomdp, per);
     if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[pomdp_perseus_execute_cpu]: %s\n", "Failed to initialize CPU variables.");
         return result;
     }
 
@@ -246,11 +257,14 @@ int pomdp_perseus_execute_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDPAlp
     while (per->currentHorizon < pomdp->horizon) {
         //printf("Perseus (CPU Version) -- Iteration %i of %i\n", pomdp->currentHorizon, pomdp->horizon);
 
+        // Note: "Convergence" here means iterating until Btilde is empty, which is always guaranteed to
+        // be at most r iterations (the number of belief points).
         result = NOVA_SUCCESS;
 
         while (result != NOVA_CONVERGED) {
             result = pomdp_perseus_update_cpu(pomdp, per);
             if (result != NOVA_CONVERGED && result != NOVA_SUCCESS) {
+                fprintf(stderr, "Error[pomdp_perseus_execute_cpu]: %s\n", "Failed to perform Perseus update step.");
                 return result;
             }
         }
@@ -258,11 +272,12 @@ int pomdp_perseus_execute_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDPAlp
 
     result = pomdp_perseus_get_policy_cpu(pomdp, per, policy);
     if (result != NOVA_SUCCESS) {
-        return result;
+        fprintf(stderr, "Error[pomdp_perseus_execute_cpu]: %s\n", "Failed to get the policy.");
     }
 
     result = pomdp_perseus_uninitialize_cpu(pomdp, per);
     if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[pomdp_perseus_execute_cpu]: %s\n", "Failed to uninitialize the CPU variables.");
         return result;
     }
 
@@ -272,6 +287,11 @@ int pomdp_perseus_execute_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDPAlp
 
 int pomdp_perseus_uninitialize_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
 {
+    if (pomdp == nullptr || per == nullptr) {
+        fprintf(stderr, "Error[pomdp_perseus_uninitialize_cpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     // Reset the current horizon.
     per->currentHorizon = 0;
 
@@ -311,6 +331,19 @@ int pomdp_perseus_uninitialize_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
 
 int pomdp_perseus_update_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
 {
+    // Ensure the data is valid.
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
+            pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
+            pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
+            pomdp->Z == nullptr || pomdp->B == nullptr ||
+            pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
+            per == nullptr || per->rTilde > pomdp->r || per->BTilde == nullptr ||
+            per->Gamma == nullptr || per->GammaPrime == nullptr ||
+            per->pi == nullptr || per->piPrime == nullptr) {
+        fprintf(stderr, "Error[pomdp_perseus_update_cpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     // For convenience, define a variable pointing to the proper Gamma and rGamma variables.
     // Note: Gamma == V_n and GammPrime == V_{n+1} from the paper.
     float *Gamma = nullptr;
@@ -374,6 +407,7 @@ int pomdp_perseus_update_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
     (*rGammaPrime)++;
 
     delete [] alpha;
+    alpha = nullptr;
 
     if (*rGammaPrime > pomdp->r) {
         fprintf(stderr, "Error[pomdp_perseus_update_cpu]: %s\n", "Out of memory. Too many alpha-vectors added.");
@@ -431,8 +465,14 @@ int pomdp_perseus_update_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
 
 int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDPAlphaVectors *policy)
 {
-    if (pomdp == nullptr || per == nullptr || policy == nullptr) {
-        fprintf(stderr, "Error[pomdp_perseus_get_policy_cpu]: %s\n", "Invalid arguments.");
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->m == 0 ||
+            per == nullptr || (per->currentHorizon % 2 == 0 &&
+                (per->rGamma == 0 || per->Gamma == nullptr  || per->pi == nullptr)) ||
+            (per->currentHorizon % 2 == 1 &&
+                (per->rGammaPrime == 0 || per->GammaPrime == nullptr || per->piPrime == nullptr)) ||
+            policy == nullptr) {
+        fprintf(stderr, "Error[pomdp_perseus_get_policy_cpu]: %s\n",
+                        "Invalid arguments. Policy must be undefined.");
         return NOVA_ERROR_INVALID_DATA;
     }
 

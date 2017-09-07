@@ -22,7 +22,7 @@
  */
 
 
-#include <nova/pomdp/algorithms/pomdp_pbvi_cpu.h>
+#include <nova/pomdp/algorithms/pomdp_hsvi2_cpu.h>
 
 #include <stdio.h>
 #include <cstring>
@@ -34,7 +34,7 @@
 
 namespace nova {
 
-void pomdp_pbvi_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
+void pomdp_hsvi2_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
     unsigned int r, unsigned int rz, float gamma,
     const int *S, const float *T, const float *O, const float *R, const int *Z, const float *B,
     const float *Gamma, unsigned int i, unsigned int a, float *alpha)
@@ -100,7 +100,7 @@ void pomdp_pbvi_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns, u
 }
 
 
-void pomdp_pbvi_update_step_cpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
+void pomdp_hsvi2_update_step_cpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
     unsigned int r, unsigned int rz, float gamma,
     const int *S, const float *T, const float *O, const float *R, const int *Z, const float *B,
     const float *Gamma, float *GammaPrime, unsigned int *piPrime)
@@ -127,7 +127,7 @@ void pomdp_pbvi_update_step_cpu(unsigned int n, unsigned int ns, unsigned int m,
             }
 
             // First, compute the argmax_{alpha in Gamma_{a,omega}} for each observation.
-            pomdp_pbvi_update_compute_best_alpha_cpu(n, ns, m, z, r, rz, gamma,
+            pomdp_hsvi2_update_compute_best_alpha_cpu(n, ns, m, z, r, rz, gamma,
                                                         S, T, O, R, Z, B, Gamma,
                                                         i, a, alpha);
 
@@ -156,35 +156,35 @@ void pomdp_pbvi_update_step_cpu(unsigned int n, unsigned int ns, unsigned int m,
 }
 
 
-int pomdp_pbvi_initialize_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi)
+int pomdp_hsvi2_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
 {
-    if (pomdp == nullptr || pomdp->r == 0 || pomdp->n == 0 || pbvi == nullptr) {
-        fprintf(stderr, "Error[pomdp_pbvi_initialize_cpu]: %s\n", "Invalid arguments.");
+    if (pomdp == nullptr || pomdp->r == 0 || pomdp->n == 0 || hsvi2 == nullptr) {
+        fprintf(stderr, "Error[pomdp_hsvi2_initialize_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
     // Reset the current horizon.
-    pbvi->currentHorizon = 0;
+    hsvi2->currentHorizon = 0;
 
     // Create the variables.
-    pbvi->Gamma = new float[pomdp->r *pomdp->n];
-    pbvi->GammaPrime = new float[pomdp->r * pomdp->n];
-    pbvi->pi = new unsigned int[pomdp->r];
+    hsvi2->Gamma = new float[pomdp->r *pomdp->n];
+    hsvi2->GammaPrime = new float[pomdp->r * pomdp->n];
+    hsvi2->pi = new unsigned int[pomdp->r];
 
     // If provided, copy the data form the Gamma provided, and set the default values for pi.
-    if (pbvi->GammaInitial != nullptr) {
-        memcpy(pbvi->Gamma, pbvi->GammaInitial, pomdp->r * pomdp->n * sizeof(float));
-        memcpy(pbvi->GammaPrime, pbvi->GammaInitial, pomdp->r * pomdp->n * sizeof(float));
+    if (hsvi2->GammaInitial != nullptr) {
+        memcpy(hsvi2->Gamma, hsvi2->GammaInitial, pomdp->r * pomdp->n * sizeof(float));
+        memcpy(hsvi2->GammaPrime, hsvi2->GammaInitial, pomdp->r * pomdp->n * sizeof(float));
         for (unsigned int i = 0; i < pomdp->r; i++) {
-            pbvi->pi[i] = 0;
+            hsvi2->pi[i] = 0;
         }
     } else {
         for (unsigned int i = 0; i < pomdp->r * pomdp->n; i++) {
-            pbvi->Gamma[i] = 0.0f;
-            pbvi->GammaPrime[i] = 0.0f;
+            hsvi2->Gamma[i] = 0.0f;
+            hsvi2->GammaPrime[i] = 0.0f;
         }
         for (unsigned int i = 0; i < pomdp->r; i++) {
-            pbvi->pi[i] = 0;
+            hsvi2->pi[i] = 0;
         }
     }
 
@@ -192,7 +192,7 @@ int pomdp_pbvi_initialize_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi)
 }
 
 
-int pomdp_pbvi_execute_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVectors *policy)
+int pomdp_hsvi2_execute_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, POMDPAlphaVectors *policy)
 {
     // Ensure the data is valid.
     if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
@@ -200,37 +200,37 @@ int pomdp_pbvi_execute_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVec
             pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
             pomdp->Z == nullptr || pomdp->B == nullptr ||
             pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
-            pbvi == nullptr || policy == nullptr) {
-        fprintf(stderr, "Error[pomdp_pbvi_execute_cpu]: %s\n", "Invalid arguments.");
+            hsvi2 == nullptr || policy == nullptr) {
+        fprintf(stderr, "Error[pomdp_hsvi2_execute_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    int result = pomdp_pbvi_initialize_cpu(pomdp, pbvi);
+    int result = pomdp_hsvi2_initialize_cpu(pomdp, hsvi2);
     if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[pomdp_pbvi_execute_cpu]: %s\n", "Failed to initialize CPU variables.");
+        fprintf(stderr, "Error[pomdp_hsvi2_execute_cpu]: %s\n", "Failed to initialize CPU variables.");
         return result;
     }
 
-    // For each of the updates, run PBVI. Note that the currentHorizon is initialized to zero
+    // For each of the updates, run HSVI2. Note that the currentHorizon is initialized to zero
     // above, and is updated in the update function below.
-    while (pbvi->currentHorizon < pomdp->horizon) {
-        //printf("PBVI (CPU Version) -- Iteration %i of %i\n", pomdp->currentHorizon, pomdp->horizon);
+    while (hsvi2->currentHorizon < pomdp->horizon) {
+        //printf("HSVI2 (CPU Version) -- Iteration %i of %i\n", pomdp->currentHorizon, pomdp->horizon);
 
-        result = pomdp_pbvi_update_cpu(pomdp, pbvi);
+        result = pomdp_hsvi2_update_cpu(pomdp, hsvi2);
         if (result != NOVA_SUCCESS) {
-            fprintf(stderr, "Error[pomdp_pbvi_execute_cpu]: %s\n", "Failed to perform PBVI update step.");
+            fprintf(stderr, "Error[pomdp_hsvi2_execute_cpu]: %s\n", "Failed to perform HSVI2 update step.");
             return result;
         }
     }
 
-    result = pomdp_pbvi_get_policy_cpu(pomdp, pbvi, policy);
+    result = pomdp_hsvi2_get_policy_cpu(pomdp, hsvi2, policy);
     if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[pomdp_pbvi_execute_cpu]: %s\n", "Failed to get the policy.");
+        fprintf(stderr, "Error[pomdp_hsvi2_execute_cpu]: %s\n", "Failed to get the policy.");
     }
 
-    result = pomdp_pbvi_uninitialize_cpu(pomdp, pbvi);
+    result = pomdp_hsvi2_uninitialize_cpu(pomdp, hsvi2);
     if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[pomdp_pbvi_execute_cpu]: %s\n", "Failed to uninitialize the CPU variables.");
+        fprintf(stderr, "Error[pomdp_hsvi2_execute_cpu]: %s\n", "Failed to uninitialize the CPU variables.");
         return result;
     }
 
@@ -238,37 +238,37 @@ int pomdp_pbvi_execute_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVec
 }
 
 
-int pomdp_pbvi_uninitialize_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi)
+int pomdp_hsvi2_uninitialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
 {
-    if (pomdp == nullptr || pbvi == nullptr) {
-        fprintf(stderr, "Error[pomdp_pbvi_uninitialize_cpu]: %s\n", "Invalid arguments.");
+    if (pomdp == nullptr || hsvi2 == nullptr) {
+        fprintf(stderr, "Error[pomdp_hsvi2_uninitialize_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
     // Reset the current horizon.
-    pbvi->currentHorizon = 0;
+    hsvi2->currentHorizon = 0;
 
     // Free the memory for Gamma, GammaPrime, and pi.
-    if (pbvi->Gamma != nullptr) {
-        delete [] pbvi->Gamma;
+    if (hsvi2->Gamma != nullptr) {
+        delete [] hsvi2->Gamma;
     }
-    pbvi->Gamma = nullptr;
+    hsvi2->Gamma = nullptr;
 
-    if (pbvi->GammaPrime != nullptr) {
-        delete [] pbvi->GammaPrime;
+    if (hsvi2->GammaPrime != nullptr) {
+        delete [] hsvi2->GammaPrime;
     }
-    pbvi->GammaPrime = nullptr;
+    hsvi2->GammaPrime = nullptr;
 
-    if (pbvi->pi != nullptr) {
-        delete [] pbvi->pi;
+    if (hsvi2->pi != nullptr) {
+        delete [] hsvi2->pi;
     }
-    pbvi->pi = nullptr;
+    hsvi2->pi = nullptr;
 
     return NOVA_SUCCESS;
 }
 
 
-int pomdp_pbvi_update_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi)
+int pomdp_hsvi2_update_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
 {
     // Ensure the data is valid.
     if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
@@ -276,35 +276,35 @@ int pomdp_pbvi_update_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi)
             pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
             pomdp->Z == nullptr || pomdp->B == nullptr ||
             pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
-            pbvi == nullptr || pbvi->Gamma == nullptr || pbvi->GammaPrime == nullptr || pbvi->pi == nullptr) {
-        fprintf(stderr, "Error[pomdp_pbvi_update_cpu]: %s\n", "Invalid arguments.");
+            hsvi2 == nullptr || hsvi2->Gamma == nullptr || hsvi2->GammaPrime == nullptr || hsvi2->pi == nullptr) {
+        fprintf(stderr, "Error[pomdp_hsvi2_update_cpu]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
     // We oscillate between Gamma and GammaPrime depending on the step.
-    if (pbvi->currentHorizon % 2 == 0) {
-        pomdp_pbvi_update_step_cpu(pomdp->n, pomdp->ns, pomdp->m, pomdp->z, pomdp->r, pomdp->rz, pomdp->gamma,
+    if (hsvi2->currentHorizon % 2 == 0) {
+        pomdp_hsvi2_update_step_cpu(pomdp->n, pomdp->ns, pomdp->m, pomdp->z, pomdp->r, pomdp->rz, pomdp->gamma,
                     pomdp->S, pomdp->T, pomdp->O, pomdp->R, pomdp->Z, pomdp->B,
-                    pbvi->Gamma, pbvi->GammaPrime, pbvi->pi);
+                    hsvi2->Gamma, hsvi2->GammaPrime, hsvi2->pi);
     } else {
-        pomdp_pbvi_update_step_cpu(pomdp->n, pomdp->ns, pomdp->m, pomdp->z, pomdp->r, pomdp->rz, pomdp->gamma,
+        pomdp_hsvi2_update_step_cpu(pomdp->n, pomdp->ns, pomdp->m, pomdp->z, pomdp->r, pomdp->rz, pomdp->gamma,
                     pomdp->S, pomdp->T, pomdp->O, pomdp->R, pomdp->Z, pomdp->B,
-                    pbvi->GammaPrime, pbvi->Gamma, pbvi->pi);
+                    hsvi2->GammaPrime, hsvi2->Gamma, hsvi2->pi);
     }
 
-    pbvi->currentHorizon++;
+    hsvi2->currentHorizon++;
 
     return NOVA_SUCCESS;
 }
 
 
-int pomdp_pbvi_get_policy_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVectors *policy)
+int pomdp_hsvi2_get_policy_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, POMDPAlphaVectors *policy)
 {
     if (pomdp == nullptr || pomdp->n == 0 || pomdp->m == 0 || pomdp->r == 0 ||
-            pbvi == nullptr || (pbvi->currentHorizon % 2 == 0 && pbvi->Gamma == nullptr) ||
-            (pbvi->currentHorizon % 2 == 1 && pbvi->GammaPrime == nullptr) || pbvi->pi == nullptr ||
+            hsvi2 == nullptr || (hsvi2->currentHorizon % 2 == 0 && hsvi2->Gamma == nullptr) ||
+            (hsvi2->currentHorizon % 2 == 1 && hsvi2->GammaPrime == nullptr) || hsvi2->pi == nullptr ||
             policy == nullptr) {
-        fprintf(stderr, "Error[pomdp_pbvi_get_policy_cpu]: %s\n",
+        fprintf(stderr, "Error[pomdp_hsvi2_get_policy_cpu]: %s\n",
                         "Invalid arguments. Policy must be undefined.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -312,20 +312,21 @@ int pomdp_pbvi_get_policy_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlpha
     // Initialize the policy, which allocates memory.
     int result = pomdp_alpha_vectors_initialize(policy, pomdp->n, pomdp->m, pomdp->r);
     if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[pomdp_pbvi_get_policy_cpu]: %s\n", "Could not create the policy.");
+        fprintf(stderr, "Error[pomdp_hsvi2_get_policy_cpu]: %s\n", "Could not create the policy.");
         return NOVA_ERROR_POLICY_CREATION;
     }
 
     // Copy the final (or intermediate) result of Gamma and pi to the variables.
-    if (pbvi->currentHorizon % 2 == 0) {
-        memcpy(policy->Gamma, pbvi->Gamma, pomdp->r * pomdp->n * sizeof(float));
+    if (hsvi2->currentHorizon % 2 == 0) {
+        memcpy(policy->Gamma, hsvi2->Gamma, pomdp->r * pomdp->n * sizeof(float));
     } else {
-        memcpy(policy->Gamma, pbvi->GammaPrime, pomdp->r * pomdp->n * sizeof(float));
+        memcpy(policy->Gamma, hsvi2->GammaPrime, pomdp->r * pomdp->n * sizeof(float));
     }
-    memcpy(policy->pi, pbvi->pi, pomdp->r * sizeof(unsigned int));
+    memcpy(policy->pi, hsvi2->pi, pomdp->r * sizeof(unsigned int));
 
     return NOVA_SUCCESS;
 }
 
 }; // namespace nova
+
 

@@ -1,6 +1,6 @@
 """ The MIT License (MIT)
 
-    Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
+    Copyright (c) 2017 Kyle Hollins Wray, University of Massachusetts
 
     Permission is hereby granted, free of charge, to any person obtaining a copy of
     this software and associated documentation files (the "Software"), to deal in
@@ -32,20 +32,20 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import pomdp
 import pomdp_alpha_vectors as pav
 
-import nova_pomdp_pbvi as npp
+import nova_pomdp_hsvi2 as nph
 
 
-class POMDPPBVICPU(npp.NovaPOMDPPBVICPU):
+class POMDPHSVI2CPU(nph.NovaPOMDPHSVI2CPU):
     """ The point-based value iteration solver for POMDPs.
 
         This class provides a clean python wrapper for simple interactions with this solver.
     """
 
     def __init__(self, pomdpObject, GammaInitial=None):
-        """ The constructor for the POMDPPBVICPU class.
+        """ The constructor for the POMDPHSVI2CPU class.
 
             Parameters:
-                pomdpObject     --  The POMDP object on which to run PBVI.
+                pomdpObject     --  The POMDP object on which to run HSVI2.
                 GammaInitial    --  The initial values for each belief state. If undefined, then it is
                                     zero for gamma = 1.0, and Rmin / (1 - gamma) otherwise.
         """
@@ -72,17 +72,17 @@ class POMDPPBVICPU(npp.NovaPOMDPPBVICPU):
         self.pi = ct.POINTER(ct.c_uint)()
 
         # Attempt to initialize the algorithm.
-        result = npp._nova.pomdp_pbvi_initialize_cpu(self.pomdpPtr, self)
+        result = nph._nova.pomdp_hsvi2_initialize_cpu(self.pomdpPtr, self)
         if result != 0:
-            print("Failed to initialize the PBVI (CPU) algorithm.")
+            print("Failed to initialize the HSVI2 (CPU) algorithm.")
             raise Exception()
 
     def __del__(self):
-        """ The deconstructor for the POMDPPBVICPU class which automatically frees memory. """
+        """ The deconstructor for the POMDPHSVI2CPU class which automatically frees memory. """
 
-        result = npp._nova.pomdp_pbvi_uninitialize_cpu(self.pomdpPtr, self)
+        result = nph._nova.pomdp_hsvi2_uninitialize_cpu(self.pomdpPtr, self)
         if result != 0:
-            print("Failed to free the PBVI (CPU) algorithm.")
+            print("Failed to free the HSVI2 (CPU) algorithm.")
             raise Exception()
 
     def solve(self):
@@ -94,7 +94,7 @@ class POMDPPBVICPU(npp.NovaPOMDPPBVICPU):
 
         policy = pav.POMDPAlphaVectors()
 
-        result = npp._nova.pomdp_pbvi_execute_cpu(self.pomdpPtr, self, policy)
+        result = nph._nova.pomdp_hsvi2_execute_cpu(self.pomdpPtr, self, policy)
         if result != 0:
             print("Failed to execute the 'nova' library's CPU POMDP solver.")
             raise Exception()
@@ -104,7 +104,7 @@ class POMDPPBVICPU(npp.NovaPOMDPPBVICPU):
     def update(self):
         """ Update the POMDP by executing one step of the solver. """
 
-        result = npp._nova.pomdp_pbvi_update_cpu(self.pomdpPtr, self)
+        result = nph._nova.pomdp_hsvi2_update_cpu(self.pomdpPtr, self)
         if result != 0:
             print("Failed to update the 'nova' library's CPU POMDP solver.")
             raise Exception()
@@ -118,7 +118,7 @@ class POMDPPBVICPU(npp.NovaPOMDPPBVICPU):
 
         policy = pav.POMDPAlphaVectors()
 
-        result = npp._nova.pomdp_pbvi_get_policy_cpu(self.pomdpPtr, self, policy)
+        result = nph._nova.pomdp_hsvi2_get_policy_cpu(self.pomdpPtr, self, policy)
         if result != 0:
             print("Failed to get the policy for the 'nova' library's CPU POMDP solver.")
             raise Exception()
@@ -126,10 +126,10 @@ class POMDPPBVICPU(npp.NovaPOMDPPBVICPU):
         return policy
 
     def __str__(self):
-        """ Return the string of the POMDP PBVI.
+        """ Return the string of the POMDP HSVI2.
 
             Returns:
-                The string of the POMDP PBVI.
+                The string of the POMDP HSVI2.
         """
 
         result = "GammaInitial:\n%s" % (str(np.array([[self.GammaInitial[j * self.pomdp.n + i] \
@@ -151,89 +151,4 @@ class POMDPPBVICPU(npp.NovaPOMDPPBVICPU):
 
         return result
 
-
-class POMDPPBVIGPU(npp.NovaPOMDPPBVIGPU):
-    """ The point-based value iteration solver for POMDPs.
-
-        This class provides a clean python wrapper for simple interactions with this solver.
-    """
-
-    def __init__(self, pomdpObject, numThreads=1024, GammaInitial=None):
-        """ The constructor for the MDPValueIterationGPU class.
-
-            Parameters:
-                pomdpObject     --  The POMDP object on which to run PBVI.
-                numThreads      --  The number of CUDA threads to execute (multiple of 32). Default is 1024.
-                GammaInitial    --  The initial values for each belief state. If undefined, then it is
-                                    zero for gamma = 1.0, and Rmin / (1 - gamma) otherwise.
-        """
-
-        self.pomdp = pomdpObject
-        self.pomdpPtr = ct.POINTER(pomdp.POMDP)(self.pomdp)
-
-        self.GammaInitial = GammaInitial
-        if GammaInitial is None:
-            if self.pomdp.gamma < 1.0:
-                GammaInitial = np.array([[float(self.pomdp.Rmin / (1.0 - self.pomdp.gamma))
-                                        for s in range(self.pomdp.n)] \
-                                    for i in range(self.pomdp.r)])
-            else:
-                GammaInitial = np.array([[0.0 for s in range(self.pomdp.n)] for b in range(self.pomdp.r)])
-            GammaInitial = GammaInitial.flatten()
-
-            array_type_rn_float = ct.c_float * (self.pomdp.r * self.pomdp.n)
-            self.GammaInitial = array_type_rn_float(*GammaInitial)
-
-        self.currentHorizon = int(0)
-        self.numThreads = numThreads
-        self.d_Gamma = ct.POINTER(ct.c_float)()
-        self.d_GammaPrime = ct.POINTER(ct.c_float)()
-        self.d_pi = ct.POINTER(ct.c_uint)()
-        self.d_alphaBA = ct.POINTER(ct.c_float)()
-
-        # Attempt to initialize the algorithm.
-        result = npp._nova.pomdp_pbvi_initialize_gpu(self.pomdpPtr, self)
-        if result != 0:
-            print("Failed to initialize the PBVI (GPU) algorithm.")
-            raise Exception()
-
-    def __del__(self):
-        """ The deconstructor for the POMDPPBVIGPU class which automatically frees memory. """
-
-        result = npp._nova.pomdp_pbvi_uninitialize_gpu(self.pomdpPtr, self)
-        if result != 0:
-            print("Failed to free the PBVI (GPU) algorithm.")
-            raise Exception()
-
-    def solve(self):
-        """ Solve the POMDP by executing the solver.
-
-            Returns:
-                The POMDPAlphaVectors policy solution to the POMDP.
-        """
-
-        policy = pav.POMDPAlphaVectors()
-
-        result = npp._nova.pomdp_pbvi_execute_gpu(self.pomdpPtr, self, policy)
-        if result != 0:
-            print("Failed to execute the 'nova' library's GPU POMDP solver.")
-            raise Exception()
-
-        return policy
-
-    def __str__(self):
-        """ Return the string of the POMDP PBVI.
-
-            Returns:
-                The string of the POMDP PBVI.
-        """
-
-        result = "GammaInitial:\n%s" % (str(np.array([[self.GammaInitial[j * self.pomdp.n + i] \
-                        for j in range(self.pomdp.r)] \
-                    for i in range(self.pomdp.n)]))) + "\n\n"
-
-        result += "currentHorizon: %i" % (self.currentHorizon) + "\n\n"
-        result += "numThreads: %i" % (self.numThreads) + "\n\n"
-
-        return result
 
