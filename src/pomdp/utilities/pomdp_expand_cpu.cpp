@@ -362,7 +362,7 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy)
                 }
 
                 // Compute the closest (1-norm) belief from b'.
-                unsigned int bClosestIndex = 0;
+                //unsigned int bClosestIndex = 0;
                 float *bClosest = new float[pomdp->n];
                 float bClosestStarDistance = NOVA_FLT_MAX;
 
@@ -376,7 +376,7 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy)
                     }
 
                     if (bCheckDistance < bClosestStarDistance) {
-                        bClosestIndex = j;
+                        //bClosestIndex = j;
                         memcpy(bClosest, bCheck, pomdp->n * sizeof(float));
                         bClosestStarDistance = bCheckDistance;
                     }

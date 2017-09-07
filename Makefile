@@ -1,12 +1,12 @@
 COMMAND = nvcc
-FLAGS = -std=c++11 -O3 -use_fast_math -Xcompiler -fPIC -Iinclude -shared -g
+FLAGS = -std=c++11 -O3 -use_fast_math -Xcompiler -fPIC -Iinclude -shared -g -Wno-deprecated-gpu-targets
 #COMMAND = g++
 #FLAGS = -std=c++11 -O3 -use_fast_math -fPIC -Iinclude -shared
 
 CUDA_INSTALL_DIR = /usr/local/cuda
 
 CUDA_COMMAND = $(CUDA_INSTALL_DIR)/bin/nvcc
-CUDA_FLAGS = -std=c++11 -O3 -use_fast_math -Xcompiler -fPIC -Iinclude -shared
+CUDA_FLAGS = -std=c++11 -O3 -use_fast_math -Xcompiler -fPIC -Iinclude -shared -Wno-deprecated-gpu-targets
 
 NOVAT_COMMAND = g++
 NOVAT_FLAGS = -std=c++11 -O3 -use_fast_math -fPIC -fprofile-arcs -ftest-coverage -Iinclude -shared

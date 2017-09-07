@@ -224,6 +224,8 @@ int pomdp_add_new_raw_beliefs_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd, fl
     pomdp->rz = rzFinal;
     pomdp->Z = Zfinal;
     pomdp->B = Bfinal;
+
+    return NOVA_SUCCESS;
 }
 
 
