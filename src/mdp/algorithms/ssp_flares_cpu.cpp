@@ -54,7 +54,7 @@ int ssp_flares_check_solved_cpu(const MDP *mdp, SSPFlaresCPU *flares, unsigned i
 {
     solved = true;
 
-    // Create a open state list (stack).
+    // Create a open state list (stack). Also, create a parallel stack for this state's depth.
     SSPStack open;
     open.maxStackSize = mdp->n;
     open.stackSize = 0;
@@ -62,7 +62,14 @@ int ssp_flares_check_solved_cpu(const MDP *mdp, SSPFlaresCPU *flares, unsigned i
 
     ssp_stack_create_cpu(open);
 
-    // Create a closed state list (stack).
+    SSPStack openDepth;
+    openDepth.maxStackSize = mdp->n;
+    openDepth.stackSize = 0;
+    openDepth.stack = nullptr;
+
+    ssp_stack_create_cpu(openDepth);
+
+    // Create a closed state list (stack). Also, create a parallel stack for this state's depth.
     SSPStack closed;
     closed.maxStackSize = mdp->n;
     closed.stackSize = 0;
@@ -70,24 +77,43 @@ int ssp_flares_check_solved_cpu(const MDP *mdp, SSPFlaresCPU *flares, unsigned i
 
     ssp_stack_create_cpu(closed);
 
-    // If the initial state is not solved, then push it.
+    SSPStack closedDepth;
+    closedDepth.maxStackSize = mdp->n;
+    closedDepth.stackSize = 0;
+    closedDepth.stack = nullptr;
+
+    ssp_stack_create_cpu(closedDepth);
+
+    // If the initial state is not depth-t-solved, then push it.
     if (!ssp_flares_is_solved_cpu(mdp, flares, s0)) {
         ssp_stack_push_cpu(open, s0);
+        ssp_stack_push_cpu(openDepth, 0);
     }
 
     // Iterate until there are no more elements in the open list.
     while (open.stackSize != 0) {
-        // Pop the last element off the stack.
+        // Pop the last element off the open stacks. If we have reached a depth
+        // beyond 2t, then we are not solved and continue. Otherwise, keep
+        // going and push it on the closed stack.
         unsigned int s = 0;
+        unsigned int d = 0;
+
         ssp_stack_pop_cpu(open, s);
+        ssp_stack_pop_cpu(openDepth, d);
+
+        if (d >= 2 * flares->t) {
+            solved = false;
+            continue;
+        }
+
         ssp_stack_push_cpu(closed, s);
+        ssp_stack_push_cpu(closedDepth, d);
 
         // Perform a Bellman update on this state if it is not already solved.
         float Vs = flares->V[s];
         if (!ssp_flares_is_solved_cpu(mdp, flares, s)) {
-            ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m,
-                                         mdp->S, mdp->T, mdp->R, s,
-                                         flares->V, flares->pi);
+            ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->S, mdp->T, mdp->R,
+                                   s, flares->V, flares->pi);
 
             // This lets us compute the residual. We are not solved if it is too large.
             float residual = std::fabs(std::fabs(flares->V[s]) - std::fabs(Vs));
@@ -108,6 +134,7 @@ int ssp_flares_check_solved_cpu(const MDP *mdp, SSPFlaresCPU *flares, unsigned i
                     && !ssp_stack_in_cpu(open, sp)
                     && !ssp_stack_in_cpu(closed, sp)) {
                 ssp_stack_push_cpu(open, sp);
+                ssp_stack_push_cpu(openDepth, d + 1);
             }
         }
     }
@@ -116,18 +143,28 @@ int ssp_flares_check_solved_cpu(const MDP *mdp, SSPFlaresCPU *flares, unsigned i
     // Otherwise, update all of these states.
     while (closed.stackSize != 0) {
         unsigned int s = 0;
+        unsigned int d = 0;
+
         ssp_stack_pop_cpu(closed, s);
+        ssp_stack_pop_cpu(closedDepth, d);
+
+        // Note: We require all states to have low residual up to depth 2t. Since successors
+        // are only added if the states are not already marked as solved, it will essentially
+        // make a tree of max height 2t and label all states less than depth t as solved.
         if (solved) {
-            ssp_flares_mark_solved_cpu(mdp, flares, s);
+            if (d <= flares->t) {
+                ssp_flares_mark_solved_cpu(mdp, flares, s);
+            }
         } else {
-            ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m,
-                                         mdp->S, mdp->T, mdp->R, s,
-                                         flares->V, flares->pi);
+            ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->S, mdp->T, mdp->R,
+                                   s, flares->V, flares->pi);
         }
     }
 
     ssp_stack_destroy_cpu(open);
+    ssp_stack_destroy_cpu(openDepth);
     ssp_stack_destroy_cpu(closed);
+    ssp_stack_destroy_cpu(closedDepth);
 
     return NOVA_SUCCESS;
 }

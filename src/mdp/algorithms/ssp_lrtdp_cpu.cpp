@@ -50,7 +50,7 @@ void ssp_lrtdp_mark_solved_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, unsigned int 
 }
 
 
-int ssp_lrtdp_check_solved_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, unsigned int s0, bool &solved)
+int ssp_lrtdp_check_depth_limited_solved_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, unsigned int s0, bool &solved)
 {
     solved = true;
 
@@ -85,9 +85,8 @@ int ssp_lrtdp_check_solved_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, unsigned int 
         // Perform a Bellman update on this state if it is not already solved.
         float Vs = lrtdp->V[s];
         if (!ssp_lrtdp_is_solved_cpu(mdp, lrtdp, s)) {
-            ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m,
-                                         mdp->S, mdp->T, mdp->R, s,
-                                         lrtdp->V, lrtdp->pi);
+            ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->S, mdp->T, mdp->R,
+                                   s, lrtdp->V, lrtdp->pi);
 
             // This lets us compute the residual. We are not solved if it is too large.
             float residual = std::fabs(std::fabs(lrtdp->V[s]) - std::fabs(Vs));
@@ -120,9 +119,8 @@ int ssp_lrtdp_check_solved_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, unsigned int 
         if (solved) {
             ssp_lrtdp_mark_solved_cpu(mdp, lrtdp, s);
         } else {
-            ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m,
-                                         mdp->S, mdp->T, mdp->R, s,
-                                         lrtdp->V, lrtdp->pi);
+            ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->S, mdp->T, mdp->R,
+                                   s, lrtdp->V, lrtdp->pi);
         }
     }
 
@@ -312,7 +310,7 @@ int ssp_lrtdp_update_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp)
 
         // Keep checking if we "solved" these states; just return if we find one that is not.
         bool solved = false;
-        int result = ssp_lrtdp_check_solved_cpu(mdp, lrtdp, s, solved);
+        int result = ssp_lrtdp_check_depth_limited_solved_cpu(mdp, lrtdp, s, solved);
         if (result != NOVA_SUCCESS) {
             fprintf(stderr, "Error[ssp_lrtdp_update_cpu]: %s\n", "Failed to check solved.");
             ssp_stack_destroy_cpu(visited);

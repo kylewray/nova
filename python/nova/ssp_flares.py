@@ -59,6 +59,7 @@ class SSPFlaresCPU(nsl.NovaSSPFlaresCPU):
             self.VInitial = array_type_n_float(*VInitial)
 
         self.trials = int(1)
+        self.t = int(1)
         self.currentTrial = int(0)
         self.currentHorizon = int(0)
         self.V = ct.POINTER(ct.c_float)()
@@ -105,6 +106,8 @@ class SSPFlaresCPU(nsl.NovaSSPFlaresCPU):
                     for i in range(self.mdp.n)]))) + "\n\n"
 
         result += "trials: %i" % (self.trials) + "\n\n"
+
+        result += "t: %i" % (self.t) + "\n\n"
 
         result += "currentTrial: %i" % (self.currentTrial) + "\n\n"
 
