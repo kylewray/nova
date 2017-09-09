@@ -24,49 +24,18 @@
 
 #include <nova/mdp/algorithms/ssp_lao_star_cpu.h>
 
+#include <nova/mdp/policies/mdp_value_function.h>
+#include <nova/mdp/utilities/ssp_functions_cpu.h>
+#include <nova/error_codes.h>
+#include <nova/constants.h>
+
 #include <stdio.h>
 #include <cstring>
 #include <cmath>
 #include <algorithm>
 #include <math.h>
 
-#include <nova/mdp/policies/mdp_value_function.h>
-#include <nova/error_codes.h>
-#include <nova/constants.h>
-
 namespace nova {
-
-void ssp_lao_star_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, 
-    const int *S, const float *T, const float *R, unsigned int s,
-    float *V, unsigned int *pi)
-{
-    float VsPrime = NOVA_FLT_MAX;
-
-    // Compute min_{a in A} Q(s, a). Recall, we are dealing with rewards R as positive costs.
-    for (unsigned int a = 0; a < m; a++) {
-        // Compute Q(s, a) for this action.
-        float Qsa = R[s * m + a];
-
-        for (unsigned int i = 0; i < ns; i++) {
-            int sp = S[s * m * ns + a * ns + i];
-            if (sp < 0) {
-                break;
-            }
-
-            // Note: V is marked with a negative based on visitation. If it had not been
-            // visited, then it means it is using the heuristic value.
-            Qsa += T[s * m * ns + a * ns + i] * std::fabs(V[sp]);
-        }
-
-        if (a == 0 || Qsa < VsPrime) {
-            VsPrime = Qsa;
-            pi[s] = a;
-        }
-    }
-
-    V[s] = VsPrime;
-}
-
 
 bool ssp_lao_star_is_expanded_cpu(const MDP *mdp, SSPLAOStarCPU *lao, unsigned int s)
 {
@@ -102,55 +71,8 @@ void ssp_lao_star_mark_visited_cpu(const MDP *mdp, SSPLAOStarCPU *lao, unsigned 
 }
 
 
-bool ssp_lao_star_is_goal_cpu(const MDP *mdp, SSPLAOStarCPU *lao, unsigned int s)
-{
-    for (unsigned int i = 0; i < mdp->ng; i++) {
-        if (s == mdp->goals[i]) {
-            return true;
-        }
-    }
-    return false;
-}
-
-
-void ssp_lao_star_stack_create_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
-    unsigned int &stackSize, unsigned int *&stack)
-{
-    stack = new unsigned int[mdp->n];
-    stackSize = 0;
-}
-
-
-void ssp_lao_star_stack_pop_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
-    unsigned int &stackSize, unsigned int *stack, unsigned int &s)
-{
-    s = stack[stackSize - 1];
-    stackSize--;
-}
-
-
-void ssp_lao_star_stack_push_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
-    unsigned int &stackSize, unsigned int *stack, unsigned int s)
-{
-    stack[stackSize] = s;
-    stackSize++;
-}
-
-
-bool ssp_lao_star_stack_in_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
-    unsigned int &stackSize, unsigned int *stack, unsigned int s)
-{
-    for (unsigned int i = 0; i < stackSize; i++) {
-        if (stack[i] == s) {
-            return true;
-        }
-    }
-    return false;
-}
-
-
-void ssp_lao_star_stack_push_successors_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
-    unsigned int &stackSize, unsigned int *stack, unsigned int s)
+void ssp_lao_star_push_successors_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
+    SSPStack &stack, unsigned int s)
 {
     for (unsigned int i = 0; i < mdp->ns; i++) {
         int sp = mdp->S[s * mdp->m * mdp->ns + lao->pi[s] * mdp->ns + i];
@@ -161,23 +83,13 @@ void ssp_lao_star_stack_push_successors_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
         // Only add it to the stack if we have not visited it yet. Putting this here
         // will ensure our stack will never overflow.
         if (!ssp_lao_star_is_visited_cpu(mdp, lao, sp)) {
-            ssp_lao_star_stack_push_cpu(mdp, lao, stackSize, stack, sp);
+            ssp_stack_push_cpu(stack, sp);
         }
     }
 }
 
 
-void ssp_lao_star_stack_destroy_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
-    unsigned int &stackSize, unsigned int *&stack)
-{
-    delete [] stack;
-    stack = nullptr;
-    stackSize = 0;
-}
-
-
-int ssp_lao_star_expand_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
-    unsigned int &numNewlyExpandedStates)
+int ssp_lao_star_expand_cpu(const MDP *mdp, SSPLAOStarCPU *lao, unsigned int &numNewlyExpandedStates)
 {
     numNewlyExpandedStates = 0;
 
@@ -185,21 +97,27 @@ int ssp_lao_star_expand_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
     ssp_lao_star_reset_visited_cpu(mdp, lao);
 
     // Create a fringe state list (stack) variable, with just state s0.
-    unsigned int fringeStackSize = 0;
-    unsigned int *fringeStack = nullptr;
-    ssp_lao_star_stack_create_cpu(mdp, lao, fringeStackSize, fringeStack);
-    ssp_lao_star_stack_push_cpu(mdp, lao, fringeStackSize, fringeStack, mdp->s0);
+    SSPStack fringe;
+    fringe.maxStackSize = mdp->n;
+    fringe.stackSize = 0;
+    fringe.stack = nullptr;
+
+    ssp_stack_create_cpu(fringe);
+    ssp_stack_push_cpu(fringe, mdp->s0);
 
     // Create a traversal stack used for post order traversal Bellman updates.
-    unsigned int traversalStackSize = 0;
-    unsigned int *traversalStack = nullptr;
-    ssp_lao_star_stack_create_cpu(mdp, lao, traversalStackSize, traversalStack);
+    SSPStack traversal;
+    traversal.maxStackSize = mdp->n;
+    traversal.stackSize = 0;
+    traversal.stack = nullptr;
+
+    ssp_stack_create_cpu(traversal);
 
     // Iterate until there are no more elements on the fringe.
-    while (fringeStackSize != 0) {
+    while (fringe.stackSize != 0) {
         // Pop the last element off the stack.
         unsigned int s = 0;
-        ssp_lao_star_stack_pop_cpu(mdp, lao, fringeStackSize, fringeStack, s);
+        ssp_stack_pop_cpu(fringe, s);
 
         // Check if this state has been visited. If so, continue.
         if (ssp_lao_star_is_visited_cpu(mdp, lao, s)) {
@@ -208,10 +126,10 @@ int ssp_lao_star_expand_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
 
         // Mark it as visited and push the state on the traversal stack for later updates.
         ssp_lao_star_mark_visited_cpu(mdp, lao, s);
-        ssp_lao_star_stack_push_cpu(mdp, lao, traversalStackSize, traversalStack, s);
+        ssp_stack_push_cpu(traversal, s);
 
         // Check if this state is a goal. If so, continue.
-        if (ssp_lao_star_is_goal_cpu(mdp, lao, s)) {
+        if (ssp_is_goal_cpu(mdp, s)) {
             continue;
         }
 
@@ -220,32 +138,32 @@ int ssp_lao_star_expand_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
             numNewlyExpandedStates++;
 
             // This is a newly expanded state. Perform a Bellman update.
-            ssp_lao_star_bellman_update_cpu(mdp->n, mdp->ns, mdp->m,
+            ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m,
                                                 mdp->S, mdp->T, mdp->R, s,
                                                 lao->V, lao->pi);
         } else {
             // Otherwise, add all of its children to the fringe, as long as they are not already there, and the
             // overall set of expanded states. This follows the best action computed so far.
-            ssp_lao_star_stack_push_successors_cpu(mdp, lao, fringeStackSize, fringeStack, s);
+            ssp_lao_star_push_successors_cpu(mdp, lao, fringe, s);
         }
     }
 
     // At the end, in post order traversal, perform Bellman updates.
-    while (traversalStackSize != 0) {
+    while (traversal.stackSize != 0) {
         // Pop the node off of the traversal stack.
         unsigned int s = 0;
-        ssp_lao_star_stack_pop_cpu(mdp, lao, traversalStackSize, traversalStack, s);
+        ssp_stack_pop_cpu(traversal, s);
 
         // Perform a Bellman update on this state.
-        ssp_lao_star_bellman_update_cpu(mdp->n, mdp->ns, mdp->m,
+        ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m,
                                         mdp->S, mdp->T, mdp->R, s,
                                         lao->V, lao->pi);
     }
 
     lao->currentHorizon++;
 
-    ssp_lao_star_stack_destroy_cpu(mdp, lao, fringeStackSize, fringeStack);
-    ssp_lao_star_stack_destroy_cpu(mdp, lao, traversalStackSize, traversalStack);
+    ssp_stack_destroy_cpu(fringe);
+    ssp_stack_destroy_cpu(traversal);
 
     return NOVA_SUCCESS;
 }
@@ -261,21 +179,27 @@ int ssp_lao_star_check_convergence_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
     ssp_lao_star_reset_visited_cpu(mdp, lao);
 
     // Create a fringe state list (stack) variable, with just state s0.
-    unsigned int fringeStackSize = 0;
-    unsigned int *fringeStack = nullptr;
-    ssp_lao_star_stack_create_cpu(mdp, lao, fringeStackSize, fringeStack);
-    ssp_lao_star_stack_push_cpu(mdp, lao, fringeStackSize, fringeStack, mdp->s0);
+    SSPStack fringe;
+    fringe.maxStackSize = mdp->n;
+    fringe.stackSize = 0;
+    fringe.stack = nullptr;
+
+    ssp_stack_create_cpu(fringe);
+    ssp_stack_push_cpu(fringe, mdp->s0);
 
     // Create a traversal stack used for post order traversal Bellman updates.
-    unsigned int traversalStackSize = 0;
-    unsigned int *traversalStack = nullptr;
-    ssp_lao_star_stack_create_cpu(mdp, lao, traversalStackSize, traversalStack);
+    SSPStack traversal;
+    traversal.maxStackSize = mdp->n;
+    traversal.stackSize = 0;
+    traversal.stack = nullptr;
+
+    ssp_stack_create_cpu(traversal);
 
     // Iterate until there are no more elements on the fringe.
-    while (fringeStackSize != 0) {
+    while (fringe.stackSize != 0) {
         // Pop the last element off the stack.
         unsigned int s = 0;
-        ssp_lao_star_stack_pop_cpu(mdp, lao, fringeStackSize, fringeStack, s);
+        ssp_stack_pop_cpu(fringe, s);
 
         // Check if this state has been visited. If so, continue.
         if (ssp_lao_star_is_visited_cpu(mdp, lao, s)) {
@@ -284,10 +208,10 @@ int ssp_lao_star_check_convergence_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
 
         // Mark it as visited and push the state on the traversal stack for later updates.
         ssp_lao_star_mark_visited_cpu(mdp, lao, s);
-        ssp_lao_star_stack_push_cpu(mdp, lao, traversalStackSize, traversalStack, s);
+        ssp_stack_push_cpu(traversal, s);
 
         // Check if this state is a goal. If so, continue.
-        if (ssp_lao_star_is_goal_cpu(mdp, lao, s)) {
+        if (ssp_is_goal_cpu(mdp, s)) {
             continue;
         }
 
@@ -297,7 +221,7 @@ int ssp_lao_star_check_convergence_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
         } else {
             // Otherwise, add all of its children to the fringe, as long as they are not already there, and the
             // overall set of expanded states. This follows the best action computed so far.
-            ssp_lao_star_stack_push_successors_cpu(mdp, lao, fringeStackSize, fringeStack, s);
+            ssp_lao_star_push_successors_cpu(mdp, lao, fringe, s);
         }
     }
 
@@ -305,16 +229,16 @@ int ssp_lao_star_check_convergence_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
     bool anActionHasChanged = false;
     float residual = 0.0f;
 
-    while (traversalStackSize != 0) {
+    while (traversal.stackSize != 0) {
         // Pop the node off of the traversal stack.
         unsigned int s = 0;
-        ssp_lao_star_stack_pop_cpu(mdp, lao, traversalStackSize, traversalStack, s);
+        ssp_stack_pop_cpu(traversal, s);
 
         float Vs = lao->V[s];
         unsigned int pis = lao->pi[s];
 
         // Perform a Bellman update on this state.
-        ssp_lao_star_bellman_update_cpu(mdp->n, mdp->ns, mdp->m,
+        ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m,
                                         mdp->S, mdp->T, mdp->R, s,
                                         lao->V, lao->pi);
 
@@ -333,8 +257,8 @@ int ssp_lao_star_check_convergence_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
 
     lao->currentHorizon++;
 
-    ssp_lao_star_stack_destroy_cpu(mdp, lao, fringeStackSize, fringeStack);
-    ssp_lao_star_stack_destroy_cpu(mdp, lao, traversalStackSize, traversalStack);
+    ssp_stack_destroy_cpu(fringe);
+    ssp_stack_destroy_cpu(traversal);
 
     return NOVA_SUCCESS;
 }
@@ -523,25 +447,31 @@ int ssp_lao_star_get_policy_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunc
     // This is stored in the closed state list (below).
 
     // Create a open state list (stack).
-    unsigned int openStackSize = 0;
-    unsigned int *openStack = nullptr;
-    ssp_lao_star_stack_create_cpu(mdp, lao, openStackSize, openStack);
-    ssp_lao_star_stack_push_cpu(mdp, lao, openStackSize, openStack, mdp->s0);
+    SSPStack open;
+    open.maxStackSize = mdp->n;
+    open.stackSize = 0;
+    open.stack = nullptr;
+
+    ssp_stack_create_cpu(open);
+    ssp_stack_push_cpu(open, mdp->s0);
 
     // Create a closed state list (stack).
-    unsigned int closedStackSize = 0;
-    unsigned int *closedStack = nullptr;
-    ssp_lao_star_stack_create_cpu(mdp, lao, closedStackSize, closedStack);
+    SSPStack closed;
+    closed.maxStackSize = mdp->n;
+    closed.stackSize = 0;
+    closed.stack = nullptr;
+
+    ssp_stack_create_cpu(closed);
 
     // Iterate until there are no more elements in the open list.
-    while (openStackSize != 0) {
+    while (open.stackSize != 0) {
         // Pop the last element off the stack.
         unsigned int s = 0;
-        ssp_lao_star_stack_pop_cpu(mdp, lao, openStackSize, openStack, s);
-        ssp_lao_star_stack_push_cpu(mdp, lao, closedStackSize, closedStack, s);
+        ssp_stack_pop_cpu(open, s);
+        ssp_stack_push_cpu(closed, s);
 
         // If this is a goal we do not add successors.
-        if (ssp_lao_star_is_goal_cpu(mdp, lao, s)) {
+        if (ssp_is_goal_cpu(mdp, s)) {
             continue;
         }
 
@@ -554,31 +484,30 @@ int ssp_lao_star_get_policy_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunc
             }
 
             // Only add to the stack if it is not already in the open or closed lists.
-            if (!ssp_lao_star_stack_in_cpu(mdp, lao, openStackSize, openStack, sp)
-                    && !ssp_lao_star_stack_in_cpu(mdp, lao, closedStackSize, closedStack, sp)) {
-                ssp_lao_star_stack_push_cpu(mdp, lao, openStackSize, openStack, sp);
+            if (!ssp_stack_in_cpu(open, sp) && !ssp_stack_in_cpu(closed, sp)) {
+                ssp_stack_push_cpu(open, sp);
             }
         }
     }
 
     // Now we know how many states are in the policy. So, initialize the policy,
     // which allocates memory.
-    int result = mdp_value_function_initialize(policy, mdp->n, mdp->m, closedStackSize);
+    int result = mdp_value_function_initialize(policy, mdp->n, mdp->m, closed.stackSize);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[ssp_lao_get_policy_cpu]: %s\n", "Could not create the policy.");
         return NOVA_ERROR_POLICY_CREATION;
     }
 
     // Copy the final (or intermediate) result, both V and pi.
-    for (unsigned int i = 0; i < closedStackSize; i++) {
-        unsigned int s = closedStack[i];
+    for (unsigned int i = 0; i < closed.stackSize; i++) {
+        unsigned int s = closed.stack[i];
         policy->S[i] = s;
         policy->V[i] = lao->V[s];
         policy->pi[i] = lao->pi[s];
     }
 
-    ssp_lao_star_stack_destroy_cpu(mdp, lao, openStackSize, openStack);
-    ssp_lao_star_stack_destroy_cpu(mdp, lao, closedStackSize, closedStack);
+    ssp_stack_destroy_cpu(open);
+    ssp_stack_destroy_cpu(closed);
 
     // If the number of iterations (before it converged) is too great, then return a warning regarding the solution quality.
     if (lao->currentHorizon >= mdp->horizon) {

@@ -33,6 +33,7 @@ from nova.mdp import *
 from nova.mdp_vi import *
 from nova.ssp_lao_star import *
 from nova.ssp_lrtdp import *
+from nova.ssp_flares import *
 
 
 trials = [
@@ -40,16 +41,17 @@ trials = [
          {'name': "VI GPU", 'filename': "domains/grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 4, 'h': 3},
          {'name': "LAO* CPU", 'filename': "domains/grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 4, 'h': 3},
          {'name': "LRTDP CPU", 'filename': "domains/grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lrtdp", 'process': "cpu", 'w': 4, 'h': 3},
+         {'name': "Flares CPU", 'filename': "domains/grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "flares", 'process': "cpu", 'w': 4, 'h': 3},
 
-         {'name': "VI CPU (Another)", 'filename': "domains/another_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 10, 'h': 10},
-         {'name': "VI GPU (Another)", 'filename': "domains/another_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 10, 'h': 10},
-         {'name': "LAO* CPU (Another)", 'filename': "domains/another_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 10, 'h': 10},
-         {'name': "LRTDP CPU (Another)", 'filename': "domains/another_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lrtdp", 'process': "cpu", 'w': 10, 'h': 10},
+         #{'name': "VI CPU (Another)", 'filename': "domains/another_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 10, 'h': 10},
+         #{'name': "VI GPU (Another)", 'filename': "domains/another_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 10, 'h': 10},
+         #{'name': "LAO* CPU (Another)", 'filename': "domains/another_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 10, 'h': 10},
+         #{'name': "LRTDP CPU (Another)", 'filename': "domains/another_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lrtdp", 'process': "cpu", 'w': 10, 'h': 10},
 
-         {'name': "VI CPU (Intense)", 'filename': "domains/intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 50, 'h': 50},
-         {'name': "VI GPU (Intense)", 'filename': "domains/intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 50, 'h': 50},
-         {'name': "LAO* CPU (Intense)", 'filename': "domains/intense_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 50, 'h': 50},
-         {'name': "LRTDP CPU (Intense)", 'filename': "domains/intense_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lrtdp", 'process': "cpu", 'w': 50, 'h': 50},
+         #{'name': "VI CPU (Intense)", 'filename': "domains/intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 50, 'h': 50},
+         #{'name': "VI GPU (Intense)", 'filename': "domains/intense_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 50, 'h': 50},
+         #{'name': "LAO* CPU (Intense)", 'filename': "domains/intense_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lao*", 'process': "cpu", 'w': 50, 'h': 50},
+         #{'name': "LRTDP CPU (Intense)", 'filename': "domains/intense_grid_world_ssp.raw", 'filetype': "raw", 'algorithm': "lrtdp", 'process': "cpu", 'w': 50, 'h': 50},
 
          #{'name': "VI CPU (Massive)", 'filename': "domains/massive_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "cpu", 'w': 75, 'h': 75},
          #{'name': "VI GPU (Massive)", 'filename': "domains/massive_grid_world_mdp.raw", 'filetype': "raw", 'algorithm': "vi", 'process': "gpu", 'w': 75, 'h': 75},
@@ -69,7 +71,10 @@ for trial in trials:
     gridWorld.epsilon = 0.001
 
     if trial['process'] == "gpu":
-        gridWorld.initialize_gpu()
+        try:
+            gridWorld.initialize_gpu()
+        except:
+            continue
 
     # The heuristic (admissible) is the manhattan distance to the goal, which is always the upper right corner.
     #h = np.array([abs(y) + abs(trial['w'] - 1 - x) for y, x in it.product(range(trial['h']), range(trial['w']))] + [0.0]).flatten()
@@ -85,6 +90,9 @@ for trial in trials:
         algorithm = SSPLAOStarCPU(gridWorld)
     elif trial['algorithm'] == "lrtdp" and trial['process'] == "cpu":
         algorithm = SSPLRTDPCPU(gridWorld)
+        algorithm.trials = 10000
+    elif trial['algorithm'] == "flares" and trial['process'] == "cpu":
+        algorithm = SSPFlaresCPU(gridWorld)
         algorithm.trials = 10000
 
     policy = algorithm.solve()
