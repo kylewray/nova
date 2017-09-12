@@ -47,6 +47,7 @@ namespace nova {
 #define NOVA_ERROR_OUT_OF_MEMORY                    11
 #define NOVA_ERROR_POLICY_CREATION                  12
 #define NOVA_WARNING_APPROXIMATE_SOLUTION           13
+#define NOVA_ERROR_EMPTY_CONTAINER                  14
 
 };
 

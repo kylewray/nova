@@ -56,14 +56,14 @@ int ssp_flares_check_solved_cpu(const MDP *mdp, SSPFlaresCPU *flares, unsigned i
 
     // Create a open state list (stack). Also, create a parallel stack for this state's depth.
     SSPStack open;
-    open.maxStackSize = mdp->n;
+    open.maxStackSize = flares->maxStackSize; //mdp->n;
     open.stackSize = 0;
     open.stack = nullptr;
 
     ssp_stack_create_cpu(open);
 
     SSPStack openDepth;
-    openDepth.maxStackSize = mdp->n;
+    openDepth.maxStackSize = flares->maxStackSize; //mdp->n;
     openDepth.stackSize = 0;
     openDepth.stack = nullptr;
 
@@ -71,14 +71,14 @@ int ssp_flares_check_solved_cpu(const MDP *mdp, SSPFlaresCPU *flares, unsigned i
 
     // Create a closed state list (stack). Also, create a parallel stack for this state's depth.
     SSPStack closed;
-    closed.maxStackSize = mdp->n;
+    closed.maxStackSize = flares->maxStackSize; //mdp->n;
     closed.stackSize = 0;
     closed.stack = nullptr;
 
     ssp_stack_create_cpu(closed);
 
     SSPStack closedDepth;
-    closedDepth.maxStackSize = mdp->n;
+    closedDepth.maxStackSize = flares->maxStackSize; //mdp->n;
     closedDepth.stackSize = 0;
     closedDepth.stack = nullptr;
 
@@ -301,7 +301,7 @@ int ssp_flares_update_cpu(const MDP *mdp, SSPFlaresCPU *flares)
 {
     // Create a visited state list (stack) variable, with just state s0.
     SSPStack visited;
-    visited.maxStackSize = mdp->horizon;
+    visited.maxStackSize = mdp->horizon; // flares->maxStackSize;
     visited.stackSize = 0;
     visited.stack = nullptr;
 
@@ -384,7 +384,7 @@ int ssp_flares_get_policy_cpu(const MDP *mdp, SSPFlaresCPU *flares, MDPValueFunc
 
     // Create a open state list (stack).
     SSPStack open;
-    open.maxStackSize = mdp->n;
+    open.maxStackSize = flares->maxStackSize; //mdp->n;
     open.stackSize = 0;
     open.stack = nullptr;
 
@@ -393,7 +393,7 @@ int ssp_flares_get_policy_cpu(const MDP *mdp, SSPFlaresCPU *flares, MDPValueFunc
 
     // Create a closed state list (stack).
     SSPStack closed;
-    closed.maxStackSize = mdp->n;
+    closed.maxStackSize = flares->maxStackSize; //mdp->n;
     closed.stackSize = 0;
     closed.stack = nullptr;
 

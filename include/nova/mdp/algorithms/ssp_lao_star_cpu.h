@@ -34,12 +34,14 @@ namespace nova {
 /**
  *  The necessary variables to perform value iteration on an LAO* within nova.
  *  @param  VInitial        The initial value function, mapping states (n-array) to floats.
+ *  @param  maxStackSize    The maximum stack size for the depth of trials, etc.
  *  @param  currentHorizon  The current horizon updated after each iteration.
  *  @param  V               The value of the states (n-array).
  *  @param  pi              The action to take at each state (n-array).
  */
 typedef struct NovaSSPLAOStarCPU {
     float *VInitial;
+    unsigned int maxStackSize;
 
     unsigned int currentHorizon;
 

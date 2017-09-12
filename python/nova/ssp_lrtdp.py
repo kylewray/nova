@@ -59,12 +59,12 @@ class SSPLRTDPCPU(nsl.NovaSSPLRTDPCPU):
             self.VInitial = array_type_n_float(*VInitial)
 
         self.trials = int(1)
+        self.maxStackSize = int(self.mdp.n)
         self.currentTrial = int(0)
         self.currentHorizon = int(0)
         self.V = ct.POINTER(ct.c_float)()
         self.pi = ct.POINTER(ct.c_uint)()
 
-        # Attempt to initialize the algorithm.
         result = nsl._nova.ssp_lrtdp_initialize_cpu(self.mdpPtr, self)
         if result != 0:
             print("Failed to initialize the LRTDP (CPU) algorithm.")

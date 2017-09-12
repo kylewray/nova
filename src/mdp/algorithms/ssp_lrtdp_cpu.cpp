@@ -50,13 +50,13 @@ void ssp_lrtdp_mark_solved_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, unsigned int 
 }
 
 
-int ssp_lrtdp_check_depth_limited_solved_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, unsigned int s0, bool &solved)
+int ssp_lrtdp_check_solved_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, unsigned int s0, bool &solved)
 {
     solved = true;
 
     // Create a open state list (stack).
     SSPStack open;
-    open.maxStackSize = mdp->n;
+    open.maxStackSize = lrtdp->maxStackSize; //mdp->n;
     open.stackSize = 0;
     open.stack = nullptr;
 
@@ -64,7 +64,7 @@ int ssp_lrtdp_check_depth_limited_solved_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp,
 
     // Create a closed state list (stack).
     SSPStack closed;
-    closed.maxStackSize = mdp->n;
+    closed.maxStackSize = lrtdp->maxStackSize; //mdp->n;
     closed.stackSize = 0;
     closed.stack = nullptr;
 
@@ -263,7 +263,7 @@ int ssp_lrtdp_update_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp)
 {
     // Create a visited state list (stack) variable, with just state s0.
     SSPStack visited;
-    visited.maxStackSize = mdp->horizon;
+    visited.maxStackSize = mdp->horizon; // flares->maxStackSize;
     visited.stackSize = 0;
     visited.stack = nullptr;
 
@@ -310,7 +310,7 @@ int ssp_lrtdp_update_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp)
 
         // Keep checking if we "solved" these states; just return if we find one that is not.
         bool solved = false;
-        int result = ssp_lrtdp_check_depth_limited_solved_cpu(mdp, lrtdp, s, solved);
+        int result = ssp_lrtdp_check_solved_cpu(mdp, lrtdp, s, solved);
         if (result != NOVA_SUCCESS) {
             fprintf(stderr, "Error[ssp_lrtdp_update_cpu]: %s\n", "Failed to check solved.");
             ssp_stack_destroy_cpu(visited);
@@ -346,7 +346,7 @@ int ssp_lrtdp_get_policy_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, MDPValueFunctio
 
     // Create a open state list (stack).
     SSPStack open;
-    open.maxStackSize = mdp->n;
+    open.maxStackSize = lrtdp->maxStackSize; //mdp->n;
     open.stackSize = 0;
     open.stack = nullptr;
 
@@ -355,7 +355,7 @@ int ssp_lrtdp_get_policy_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, MDPValueFunctio
 
     // Create a closed state list (stack).
     SSPStack closed;
-    closed.maxStackSize = mdp->n;
+    closed.maxStackSize = lrtdp->maxStackSize; //mdp->n;
     closed.stackSize = 0;
     closed.stack = nullptr;
 

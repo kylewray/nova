@@ -48,6 +48,7 @@ class NovaSSPLAOStarCPU(ct.Structure):
     """ The C struct SSPLAOStarCPU object. """
 
     _fields_ = [("VInitial", ct.POINTER(ct.c_float)),
+                ("maxStackSize", ct.c_uint),
                 ("currentHorizon", ct.c_uint),
                 ("V", ct.POINTER(ct.c_float)),
                 ("pi", ct.POINTER(ct.c_uint)),

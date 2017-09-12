@@ -57,12 +57,12 @@ class SSPLAOStarCPU(nsls.NovaSSPLAOStarCPU):
             VInitial = np.array([0.0 for s in range(self.mdp.n)])
             array_type_n_float = ct.c_float * self.mdp.n
             self.VInitial = array_type_n_float(*VInitial)
+        self.maxStackSize = int(self.mdp.n)
 
         self.currentHorizon = int(0)
         self.V = ct.POINTER(ct.c_float)()
         self.pi = ct.POINTER(ct.c_uint)()
 
-        # Attempt to initialize the algorithm.
         result = nsls._nova.ssp_lao_star_initialize_cpu(self.mdpPtr, self)
         if result != 0:
             print("Failed to initialize the LAO* (CPU) algorithm.")

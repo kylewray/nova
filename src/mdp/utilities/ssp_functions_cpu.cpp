@@ -69,8 +69,14 @@ void ssp_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m,
 }
 
 
-void ssp_random_successor_cpu(const MDP *mdp, unsigned int s, unsigned int a, unsigned int &sp)
+int ssp_random_successor_cpu(const MDP *mdp, unsigned int s, unsigned int a, unsigned int &sp)
 {
+    if (mdp == nullptr || mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
+            mdp->S == nullptr || mdp->T == nullptr) {
+        fprintf(stderr, "Error[ssp_random_successor_cpu]: %s\n", "Invalid data.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     sp = mdp->S[s * mdp->m * mdp->ns + a * mdp->ns + 0];
 
     float target = (float)rand() / (float)RAND_MAX;
@@ -89,6 +95,8 @@ void ssp_random_successor_cpu(const MDP *mdp, unsigned int s, unsigned int a, un
             break;
         }
     }
+
+    return NOVA_SUCCESS;
 }
 
 
@@ -120,43 +128,79 @@ bool ssp_is_dead_end_cpu(const MDP *mdp, unsigned int s)
 }
 
 
-void ssp_stack_create_cpu(SSPStack &stack)
+int ssp_stack_create_cpu(SSPStack &stack)
 {
+    if (stack.stack != nullptr || stack.maxStackSize == 0) {
+        fprintf(stderr, "Error[ssp_stack_create_cpu]: %s\n", "Invalid data.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     stack.stack = new unsigned int[stack.maxStackSize];
     stack.stackSize = 0;
+
+    return NOVA_SUCCESS;
 }
 
 
-void ssp_stack_pop_cpu(SSPStack &stack, unsigned int &s)
+int ssp_stack_pop_cpu(SSPStack &stack, unsigned int &s)
 {
+    if (stack.stack == nullptr || stack.stackSize == 0) {
+        fprintf(stderr, "Error[ssp_stack_pop_cpu]: %s\n", "Stack is empty.");
+        return NOVA_ERROR_EMPTY_CONTAINER;
+    }
+
     s = stack.stack[stack.stackSize - 1];
     stack.stackSize--;
+
+    return NOVA_SUCCESS;
 }
 
 
-void ssp_stack_push_cpu(SSPStack &stack, unsigned int s)
+int ssp_stack_push_cpu(SSPStack &stack, unsigned int s)
 {
+    if (stack.stack == nullptr || stack.stackSize >= stack.maxStackSize) {
+        fprintf(stderr, "Error[ssp_stack_push_cpu]: %s\n",
+                "Stack is full. Out of memory reserved for it.");
+        return NOVA_ERROR_OUT_OF_MEMORY;
+    }
+
     stack.stack[stack.stackSize] = s;
     stack.stackSize++;
+
+    return NOVA_SUCCESS;
 }
 
 
 bool ssp_stack_in_cpu(SSPStack &stack, unsigned int s)
 {
+    if (stack.stack == nullptr) {
+        fprintf(stderr, "Warning[ssp_stack_in_cpu]: %s\n",
+                "Stack has not yet been created. Trivially, the element is not in the stack.");
+    }
+
     for (unsigned int i = 0; i < stack.stackSize; i++) {
         if (stack.stack[i] == s) {
             return true;
         }
     }
+
     return false;
 }
 
 
-void ssp_stack_destroy_cpu(SSPStack &stack)
+int ssp_stack_destroy_cpu(SSPStack &stack)
 {
+    if (stack.stack == nullptr) {
+        fprintf(stderr, "Error[ssp_stack_destroy_cpu]: %s\n",
+                "Stack has not yet been created. There is nothing to destroy.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     delete [] stack.stack;
     stack.stack = nullptr;
     stack.stackSize = 0;
+
+    return NOVA_SUCCESS;
 }
 
 }; // namespace nova

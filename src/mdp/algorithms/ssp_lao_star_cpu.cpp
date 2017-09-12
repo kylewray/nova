@@ -98,7 +98,7 @@ int ssp_lao_star_expand_cpu(const MDP *mdp, SSPLAOStarCPU *lao, unsigned int &nu
 
     // Create a fringe state list (stack) variable, with just state s0.
     SSPStack fringe;
-    fringe.maxStackSize = mdp->n;
+    fringe.maxStackSize = lao->maxStackSize; //mdp->n;
     fringe.stackSize = 0;
     fringe.stack = nullptr;
 
@@ -107,7 +107,7 @@ int ssp_lao_star_expand_cpu(const MDP *mdp, SSPLAOStarCPU *lao, unsigned int &nu
 
     // Create a traversal stack used for post order traversal Bellman updates.
     SSPStack traversal;
-    traversal.maxStackSize = mdp->n;
+    traversal.maxStackSize = lao->maxStackSize; //mdp->n;
     traversal.stackSize = 0;
     traversal.stack = nullptr;
 
@@ -138,9 +138,8 @@ int ssp_lao_star_expand_cpu(const MDP *mdp, SSPLAOStarCPU *lao, unsigned int &nu
             numNewlyExpandedStates++;
 
             // This is a newly expanded state. Perform a Bellman update.
-            ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m,
-                                                mdp->S, mdp->T, mdp->R, s,
-                                                lao->V, lao->pi);
+            ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->S, mdp->T, mdp->R,
+                                   s, lao->V, lao->pi);
         } else {
             // Otherwise, add all of its children to the fringe, as long as they are not already there, and the
             // overall set of expanded states. This follows the best action computed so far.
@@ -155,9 +154,8 @@ int ssp_lao_star_expand_cpu(const MDP *mdp, SSPLAOStarCPU *lao, unsigned int &nu
         ssp_stack_pop_cpu(traversal, s);
 
         // Perform a Bellman update on this state.
-        ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m,
-                                        mdp->S, mdp->T, mdp->R, s,
-                                        lao->V, lao->pi);
+        ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->S, mdp->T, mdp->R,
+                               s, lao->V, lao->pi);
     }
 
     lao->currentHorizon++;
@@ -180,7 +178,7 @@ int ssp_lao_star_check_convergence_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
 
     // Create a fringe state list (stack) variable, with just state s0.
     SSPStack fringe;
-    fringe.maxStackSize = mdp->n;
+    fringe.maxStackSize = lao->maxStackSize; //mdp->n;
     fringe.stackSize = 0;
     fringe.stack = nullptr;
 
@@ -189,7 +187,7 @@ int ssp_lao_star_check_convergence_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
 
     // Create a traversal stack used for post order traversal Bellman updates.
     SSPStack traversal;
-    traversal.maxStackSize = mdp->n;
+    traversal.maxStackSize = lao->maxStackSize; //mdp->n;
     traversal.stackSize = 0;
     traversal.stack = nullptr;
 
@@ -238,9 +236,8 @@ int ssp_lao_star_check_convergence_cpu(const MDP *mdp, SSPLAOStarCPU *lao,
         unsigned int pis = lao->pi[s];
 
         // Perform a Bellman update on this state.
-        ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m,
-                                        mdp->S, mdp->T, mdp->R, s,
-                                        lao->V, lao->pi);
+        ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->S, mdp->T, mdp->R,
+                               s, lao->V, lao->pi);
 
         // Compute the max residual.
         residual = std::max(residual, std::fabs(std::fabs(lao->V[s]) - std::fabs(Vs)));
@@ -448,7 +445,7 @@ int ssp_lao_star_get_policy_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunc
 
     // Create a open state list (stack).
     SSPStack open;
-    open.maxStackSize = mdp->n;
+    open.maxStackSize = lao->maxStackSize; //mdp->n;
     open.stackSize = 0;
     open.stack = nullptr;
 
@@ -457,7 +454,7 @@ int ssp_lao_star_get_policy_cpu(const MDP *mdp, SSPLAOStarCPU *lao, MDPValueFunc
 
     // Create a closed state list (stack).
     SSPStack closed;
-    closed.maxStackSize = mdp->n;
+    closed.maxStackSize = lao->maxStackSize; //mdp->n;
     closed.stackSize = 0;
     closed.stack = nullptr;
 

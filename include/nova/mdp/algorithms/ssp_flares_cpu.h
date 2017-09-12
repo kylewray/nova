@@ -36,6 +36,7 @@ namespace nova {
  *  @param  VInitial        The initial value function, mapping states (n-array) to floats.
  *  @param  trials          The number of trials to perform.
  *  @param  t               The depth of the tree to label states as depth-t-solved.
+ *  @param  maxStackSize    The maximum stack size for the depth of trials, etc.
  *  @param  currentTrial    The current trial.
  *  @param  currentHorizon  The current horizon updated after each iteration.
  *  @param  V               The value of the states (n-array).
@@ -46,6 +47,7 @@ typedef struct NovaSSPFlaresCPU {
     float *VInitial;
     unsigned int trials;
     unsigned int t;
+    unsigned int maxStackSize;
 
     unsigned int currentTrial;
     unsigned int currentHorizon;

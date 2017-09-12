@@ -50,6 +50,7 @@ class NovaSSPFlaresCPU(ct.Structure):
     _fields_ = [("VInitial", ct.POINTER(ct.c_float)),
                 ("trials", ct.c_uint),
                 ("t", ct.c_uint),
+                ("maxStackSize", ct.c_uint),
                 ("currentTrial", ct.c_uint),
                 ("currentHorizon", ct.c_uint),
                 ("V", ct.POINTER(ct.c_float)),
