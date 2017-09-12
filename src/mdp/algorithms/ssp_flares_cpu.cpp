@@ -101,8 +101,7 @@ int ssp_flares_check_solved_cpu(const MDP *mdp, SSPFlaresCPU *flares, unsigned i
         ssp_stack_pop_cpu(open, s);
         ssp_stack_pop_cpu(openDepth, d);
 
-        if (d >= 2 * flares->t) {
-            solved = false;
+        if (d > 2 * flares->t) {
             continue;
         }
 
@@ -327,8 +326,8 @@ int ssp_flares_update_cpu(const MDP *mdp, SSPFlaresCPU *flares)
 
         // Take a greedy action and update the value of this state.
         ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m,
-                                     mdp->S, mdp->T, mdp->R,
-                                     s, flares->V, flares->pi);
+                               mdp->S, mdp->T, mdp->R,
+                               s, flares->V, flares->pi);
 
         // Randomly explore the state space using the greedy action.
         unsigned int sp = 0;

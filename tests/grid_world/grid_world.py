@@ -95,10 +95,13 @@ for trial in trials:
     elif trial['algorithm'] == "flares" and trial['process'] == "cpu":
         #array_type_n_float = ct.c_float * gridWorld.n
         #heuristic = array_type_n_float(*manhattanHeuristic)
+        #algorithm = SSPFlaresCPU(gridWorld, VInitial=heuristic)
+        #algorithm.trials = 10000
+        #algorithm.t = 2
 
-        algorithm = SSPFlaresCPU(gridWorld) #, VInitial=heuristic)
+        algorithm = SSPFlaresCPU(gridWorld)
         algorithm.trials = 10000
-        algorithm.t = 1 #int(gridWorld.n / 8)
+        algorithm.t = 2
 
     policy = algorithm.solve()
     #print(algorithm)
