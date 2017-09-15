@@ -33,36 +33,33 @@ namespace nova {
 
 /**
  *  The necessary variables to perform heuristic search value iteration (v2) on a POMDP within nova.
- *  @param  GammaInitial    The initial values for alpha-vectors (r-n-array).
- *  @param  trials          The number of trials to try at a maximum.
- *  @param  epsilon         The convergence criterion for the early termination of trials.
- *  @param  currentHorizon  The current horizon updated after each iteration.
- *  @param  Gamma           The value of the states (n-array).
- *  @param  GammaPrime      The value of the states (n-array) copy.
- *  @param  pi              The action to take at each state (n-array).
+ *  @param  trials              The number of trials to try at a maximum.
+ *  @param  epsilon             The convergence criterion for the early termination of trials.
+ *  @param  pruneGrowth         The percentage value (e.g., 0.1 = 10%) of growth after which alpha-vectors are pruned.
+ *  @param  maxAlphaVectors     The maximum number of alpha-vectors <= trials * horizon.
+ *  @param  currentTrial        The current trial updated in the outer loop of each iteration.
+ *  @param  lowerGammaSize      The size of the lower Gamma alpha-vector arrays.
+ *  @param  lowerGamma          The lower bound value of the beliefs as alpha-vectors (maxAlphaVectors-n-array).
+ *  @param  lowerPi             The lower bound action to take at each state (maxAlphaVectors-array).
+ *  @param  upperGammaSize      The size of the upper Gamma point set arrays.
+ *  @param  upperGammaB         The upper bound beliefs in the point set (maxAlphaVectors-n-array).
+ *  @param  upperGammaHVb       The upper bound value of the corresponding belief in the point set (maxAlphaVectors-n-array).
  */
 typedef struct NovaPOMDPHSVI2CPU {
-    float *GammaInitial;
     unsigned int trials;
     float epsilon;
-    float pruneGrowthPercentageThreshold;
+    float pruneGrowth;
+    unsigned int maxAlphaVectors;
 
     unsigned int currentTrial;
-    unsigned int currentHorizon;
 
-    // Lowerbound = Set of Alpha-vectors each w/ an action = (num states) * (num current trials) * (num current horizon steps [depth])
+    unsigned int lowerGammaSize;
     float *lowerGamma;
-    float *lowerGammaPrime;
     unsigned int *lowerPi;
 
-    // Upperbound = Point set = (num states + 1 for HV(b)) * (num current trials) * (num current horizon steps [depth])
-    // Note: Compute HV(b) using that convex hull projection.
-    float *upperGamma;
-    float *upperGammaPrime;
-
-    // Initial lower bound variables = A single alpha-vector for lower and upper. This is only used once...
-    float *lowerInitialAlpha;
-    float *upperInitialAlpha;
+    unsigned int upperGammaSize;
+    float *upperGammaB;
+    float *upperGammaHVb;
 } POMDPHSVI2CPU;
 
 /**
@@ -108,7 +105,7 @@ extern "C" int pomdp_hsvi2_update_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2);
  */
 extern "C" int pomdp_hsvi2_get_policy_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, POMDPAlphaVectors *policy);
 
-};
+}; // namespace nova
 
  
 #endif // NOVA_POMDP_HSVI2_CPU_H

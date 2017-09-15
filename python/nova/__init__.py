@@ -28,6 +28,7 @@ __all__ = ["nova_mdp", "mdp",
            "nova_pomdp", "pomdp",
            "nova_pomdp_pbvi", "pomdp_pbvi",
            "nova_pomdp_perseus", "pomdp_perseus",
+           "nova_pomdp_hsvi2", "pomdp_hsvi2",
            "nova_pomdp_alpha_vectors", "pomdp_alpha_vectors",
            "file_loader"]
 
