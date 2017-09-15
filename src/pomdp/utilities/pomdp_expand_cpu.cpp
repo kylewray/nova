@@ -141,6 +141,7 @@ int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd)
             pomdp_belief_update_cpu(pomdp, b, a, o, bp);
             memcpy(b, bp, pomdp->n * sizeof(float));
             delete [] bp;
+            bp = nullptr;
 
             // Assign the computed belief for this trajectory.
             memcpy(&Bnew[i * pomdp->n], b, pomdp->n * sizeof(float));
@@ -158,6 +159,8 @@ int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd)
 
     delete [] b;
     delete [] Bnew;
+    b = nullptr;
+    Bnew = nullptr;
 
     return NOVA_SUCCESS;
 }
@@ -217,6 +220,7 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp)
                 if (result != NOVA_SUCCESS) {
                     if (bp != nullptr) {
                         delete [] bp;
+                        bp = nullptr;
                     }
                     continue;
                 }
@@ -238,6 +242,7 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp)
                     }
 
                     delete [] btmp;
+                    btmp = nullptr;
                 }
 
                 // Now, determine if this was the largest b' we found so far. If so, remember it.
@@ -247,6 +252,7 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp)
                 }
 
                 delete [] bp;
+                bp = nullptr;
             }
         }
 
@@ -254,6 +260,7 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp)
         memcpy(&Bnew[i * pomdp->n], bpStar, pomdp->n * sizeof(float));
 
         delete [] bpStar;
+        bpStar = nullptr;
     }
 
     // Finally, we update r, rz, and B with Bnew.
@@ -261,6 +268,8 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp)
 
     delete [] b;
     delete [] Bnew;
+    b = nullptr;
+    Bnew = nullptr;
 
     return NOVA_SUCCESS;
 }
@@ -357,6 +366,7 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy)
                 if (result != NOVA_SUCCESS) {
                     if (bp != nullptr) {
                         delete [] bp;
+                        bp = nullptr;
                     }
                     continue;
                 }
@@ -382,6 +392,7 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy)
                     }
 
                     delete [] bCheck;
+                    bCheck = nullptr;
                 }
 
                 // Compute alpha = argmax_{alpha in Gamma} alpha * b.
@@ -424,6 +435,8 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy)
 
                 delete [] bp;
                 delete [] bClosest;
+                bp = nullptr;
+                bClosest = nullptr;
             }
 
             if (aValue > aStarValue) {
@@ -447,20 +460,24 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy)
 
             if (bp != nullptr) {
                 delete [] bp;
+                bp = nullptr;
             }
 
             bStarEpsilonErrorBound = aStarValue;
         }
     }
 
-    delete [] b;
-    delete [] oStar;
-    delete [] oStarValue;
-
     // Finally, we update r, rz, and B with Bnew.
     pomdp_add_new_raw_beliefs_cpu(pomdp, numBeliefsToAdd, Bnew);
 
+    delete [] b;
+    delete [] oStar;
+    delete [] oStarValue;
     delete [] Bnew;
+    b = nullptr;
+    oStar = nullptr;
+    oStarValue = nullptr;
+    Bnew = nullptr;
 
     return NOVA_SUCCESS;
 }

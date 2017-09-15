@@ -34,6 +34,8 @@ namespace nova {
 /**
  *  The necessary variables to perform heuristic search value iteration (v2) on a POMDP within nova.
  *  @param  GammaInitial    The initial values for alpha-vectors (r-n-array).
+ *  @param  trials          The number of trials to try at a maximum.
+ *  @param  epsilon         The convergence criterion for the early termination of trials.
  *  @param  currentHorizon  The current horizon updated after each iteration.
  *  @param  Gamma           The value of the states (n-array).
  *  @param  GammaPrime      The value of the states (n-array) copy.
@@ -41,12 +43,26 @@ namespace nova {
  */
 typedef struct NovaPOMDPHSVI2CPU {
     float *GammaInitial;
+    unsigned int trials;
+    float epsilon;
+    float pruneGrowthPercentageThreshold;
 
+    unsigned int currentTrial;
     unsigned int currentHorizon;
 
-    float *Gamma;
-    float *GammaPrime;
-    unsigned int *pi;
+    // Lowerbound = Set of Alpha-vectors each w/ an action = (num states) * (num current trials) * (num current horizon steps [depth])
+    float *lowerGamma;
+    float *lowerGammaPrime;
+    unsigned int *lowerPi;
+
+    // Upperbound = Point set = (num states + 1 for HV(b)) * (num current trials) * (num current horizon steps [depth])
+    // Note: Compute HV(b) using that convex hull projection.
+    float *upperGamma;
+    float *upperGammaPrime;
+
+    // Initial lower bound variables = A single alpha-vector for lower and upper. This is only used once...
+    float *lowerInitialAlpha;
+    float *upperInitialAlpha;
 } POMDPHSVI2CPU;
 
 /**

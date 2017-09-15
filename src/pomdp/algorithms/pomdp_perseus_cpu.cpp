@@ -378,9 +378,8 @@ int pomdp_perseus_update_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
     unsigned int alphaAction = 0;
 
     pomdp_perseus_update_step_cpu(pomdp->n, pomdp->ns, pomdp->m, pomdp->z, pomdp->r, pomdp->rz, pomdp->gamma,
-                pomdp->S, pomdp->T, pomdp->O, pomdp->R, pomdp->Z, pomdp->B,
-                Gamma, *rGamma,
-                bIndex, alpha, &alphaAction);
+                                  pomdp->S, pomdp->T, pomdp->O, pomdp->R, pomdp->Z, pomdp->B,
+                                  Gamma, *rGamma, bIndex, alpha, &alphaAction);
 
     // First compute the value of this *new* alpha-vector at this belief.
     float bDotAlpha = 0.0f;
