@@ -35,17 +35,177 @@
 #include <cstdlib>
 #include <time.h>
 #include <algorithm>
+#include <iostream>
 
 namespace nova {
 
 int pomdp_hsvi2_lower_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
 {
+    if (hsvi2->maxAlphaVectors < pomdp->m) {
+        fprintf(stderr, "Error[pomdp_hsvi2_lower_bound_initialize_cpu]: Cannot initialize upper bound. Not enough memory.");
+        return NOVA_ERROR_OUT_OF_MEMORY;
+    }
+
+    // First, we compute the lowerbound on R = max_a min_s R(s, a) / (1 - gamma).
+    float maxminR = NOVA_FLT_MIN;
+    for (unsigned int a = 0; a < pomdp->m; a++) {
+        float minR = pomdp->R[0 * pomdp->m + a];
+        for (unsigned int s = 0; s < pomdp->n; s++) {
+            if (pomdp->R[s * pomdp->m + a] < minR) {
+                minR = pomdp->R[s * pomdp->m + a];
+            }
+        }
+
+        if (a == 0 || minR > maxminR) {
+            maxminR = minR;
+        }
+    }
+
+    // Assign alpha^a_0 = maxminR / (1 - gamma) to all initial alpha values.
+    for (unsigned int a = 0; a < pomdp->m; a++) {
+        for (unsigned int s = 0; s < pomdp->n; s++) {
+            hsvi2->lowerGamma[a * pomdp->n + s] = maxminR / (1.0f - pomdp->gamma);
+        }
+    }
+    hsvi2->lowerGammaSize = pomdp->m;
+
+    // Perform updates until convergence or a maximum number of iterations is reached equal to the horizon.
+    // Note: Because this is essentially an MDP, we perform this operation on the same set of values.
+    // It is essentially asynchronous value iteration, converging to a unique fixed point anyway.
+    for (unsigned int a = 0; a < pomdp->m; a++) {
+        float residual = hsvi2->epsilon + 1.0f;
+
+        for (unsigned int i = 0; i < pomdp->horizon && residual >= hsvi2->epsilon; i++) {
+            residual = 0.0f;
+
+            for (unsigned int s = 0; s < pomdp->n; s++) {
+                float value = 0.0f;
+
+                for (unsigned int j = 0; j < pomdp->ns; j++) {
+                    int sp = pomdp->S[s * pomdp->m * pomdp->ns + a * pomdp->ns + j];
+                    if (sp < 0) {
+                        break;
+                    }
+                    value += pomdp->T[s * pomdp->m * pomdp->ns + a * pomdp->ns + j] * hsvi2->lowerGamma[a * pomdp->n + sp];
+                }
+
+                value = pomdp->R[s * pomdp->m + a] + pomdp->gamma * value;
+
+                residual = std::max(residual, std::fabs(hsvi2->lowerGamma[a * pomdp->n + s] - value));
+
+                hsvi2->lowerGamma[a * pomdp->n + s] = value;
+            }
+        }
+    }
+
     return NOVA_SUCCESS;
 }
 
 
 int pomdp_hsvi2_upper_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
 {
+    if (hsvi2->maxAlphaVectors < pomdp->n) {
+        fprintf(stderr, "Error[pomdp_hsvi2_upper_bound_initialize_cpu]: Cannot initialize upper bound. Not enough memory.");
+        return NOVA_ERROR_OUT_OF_MEMORY;
+    }
+
+    // Note: This has a slightly different, improved computation of the initial alpha^a_0. Instead of solving an MDP,
+    // we just use the maximum possible value in that MDP. Then, we do the HSVI2 convergence. Since it is a fixed point,
+    // and we just want the values to monotonically decrease to this point, we can use this faster initial value.
+
+    // First, we compute the absolute maximum values possible V_max = max_a max_s R(s, a) / (1 - gamma).
+    float maxV = NOVA_FLT_MIN;
+    for (unsigned int a = 0; a < pomdp->m; a++) {
+        for (unsigned int s = 0; s < pomdp->n; s++) {
+            if (pomdp->R[s * pomdp->m + a] > maxV) {
+                double value = pomdp->R[s * pomdp->m + a] / (1.0f - pomdp->gamma);
+                if (value > maxV) {
+                    maxV = value;
+                }
+            }
+        }
+    }
+
+    // Assign alpha^a_0 = maxV to all initial alpha values.
+    float *alpha = new float[pomdp->m * pomdp->n];
+    float *alphaPrime = new float[pomdp->m * pomdp->n];
+
+    for (unsigned int i = 0; i < pomdp->m * pomdp->n; i++) {
+        alpha[i] = maxV;
+    }
+
+    // Perform updates until convergence or a maximum number of iterations is reached equal to the horizon.
+    float residual = hsvi2->epsilon + 1.0f;
+    for (unsigned int i = 0; i < pomdp->horizon && residual >= hsvi2->epsilon; i++) {
+        // Before each time step update, copy the current alpha values.
+        for (unsigned int k = 0; k < pomdp->m * pomdp->n; k++) {
+            alphaPrime[k] = alpha[k];
+        }
+
+        residual = 0.0f;
+
+        for (unsigned int a = 0; a < pomdp->m; a++) {
+            for (unsigned int s = 0; s < pomdp->n; s++) {
+                float value = 0.0f;
+
+                for (unsigned int o = 0; o < pomdp->z; o++) {
+                    float maxTransitionAlpha = NOVA_FLT_MIN;
+
+                    // Note: The fast informed bound (FIB) computes the max over the alpha-vectors, but here we have one
+                    // alpha-vector for each action.
+                    for (unsigned int k = 0; k < pomdp->m; k++) {
+                        float valueTransitionAlpha = 0.0f;
+
+                        for (unsigned int j = 0; j < pomdp->ns; j++) {
+                            int sp = pomdp->S[s * pomdp->m * pomdp->ns + a * pomdp->ns + j];
+                            if (sp < 0) {
+                                break;
+                            }
+                            valueTransitionAlpha += pomdp->O[a * pomdp->n * pomdp->z + sp * pomdp->z + o] * pomdp->T[s * pomdp->m * pomdp->ns + a * pomdp->ns + j] * alphaPrime[k * pomdp->n + sp];
+                        }
+
+                        if (k == 0 || valueTransitionAlpha > maxTransitionAlpha) {
+                            maxTransitionAlpha = valueTransitionAlpha;
+                        }
+                    }
+
+                    value += maxTransitionAlpha;
+                }
+
+                value = pomdp->R[s * pomdp->m + a] + pomdp->gamma * value;
+
+                residual = std::max(residual, std::fabs(alphaPrime[a * pomdp->n + s] - value));
+
+                alpha[a * pomdp->n + s] = value;
+            }
+        }
+    }
+
+    // After convergence, we assign the point set to be collapsed beliefs at each state with value max_a alpha^a(s).
+    for (unsigned int s = 0; s < pomdp->n; s++) {
+        hsvi2->upperGammaHVb[s] = NOVA_FLT_MIN;
+
+        for (unsigned int a = 0; a < pomdp->m; a++) {
+            for (unsigned int sp = 0; sp < pomdp->n; sp++) {
+                if (s == sp) {
+                    hsvi2->upperGammaB[s * pomdp->n + sp] = 1.0f;
+                } else {
+                    hsvi2->upperGammaB[s * pomdp->n + sp] = 0.0f;
+                }
+            }
+
+            if (a == 0 || alpha[a * pomdp->n + s] > hsvi2->upperGammaHVb[s]) {
+                hsvi2->upperGammaHVb[s] = alpha[a * pomdp->n + s];
+            }
+        }
+    }
+    hsvi2->upperGammaSize = pomdp->n;
+
+    delete [] alpha;
+    delete [] alphaPrime;
+    alpha = nullptr;
+    alphaPrime = nullptr;
+
     return NOVA_SUCCESS;
 }
 

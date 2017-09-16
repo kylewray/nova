@@ -47,11 +47,17 @@ else:
 class NovaPOMDPHSVI2CPU(ct.Structure):
     """ The C struct NovaPOMDPHSVI2CPU object. """
 
-    _fields_ = [("GammaInitial", ct.POINTER(ct.c_float)),
-                ("currentHorizon", ct.c_uint),
-                ("Gamma", ct.POINTER(ct.c_float)),
-                ("GammaPrime", ct.POINTER(ct.c_float)),
-                ("pi", ct.POINTER(ct.c_uint)),
+    _fields_ = [("trials", ct.c_uint),
+                ("epsilon", ct.c_float),
+                ("pruneGrowth", ct.c_float),
+                ("maxAlphaVectors", ct.c_uint),
+                ("currentTrial", ct.c_uint),
+                ("lowerGammaSize", ct.c_uint),
+                ("lowerGamma", ct.POINTER(ct.c_float)),
+                ("lowerPi", ct.POINTER(ct.c_uint)),
+                ("upperGammaSize", ct.c_uint),
+                ("upperGammaB", ct.POINTER(ct.c_float)),
+                ("upperGammaHVb", ct.POINTER(ct.c_float)),
                 ]
 
 

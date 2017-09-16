@@ -43,7 +43,7 @@ namespace nova {
  *  @param  lowerPi             The lower bound action to take at each state (maxAlphaVectors-array).
  *  @param  upperGammaSize      The size of the upper Gamma point set arrays.
  *  @param  upperGammaB         The upper bound beliefs in the point set (maxAlphaVectors-n-array).
- *  @param  upperGammaHVb       The upper bound value of the corresponding belief in the point set (maxAlphaVectors-n-array).
+ *  @param  upperGammaHVb       The upper bound value of the corresponding belief in the point set (maxAlphaVectors-array).
  */
 typedef struct NovaPOMDPHSVI2CPU {
     unsigned int trials;
