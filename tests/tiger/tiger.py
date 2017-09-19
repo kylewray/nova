@@ -96,6 +96,9 @@ for f in files:
         algorithm = POMDPPerseusCPU(tiger)
     elif f['algorithm'] == "hsvi2" and f['process'] == "cpu":
         algorithm = POMDPHSVI2CPU(tiger)
+        algorithm.trials = 10
+        algorithm.maxAlphaVectors = int(max(tiger.n, tiger.m) + algorithm.trials * tiger.horizon)
+        print(algorithm)
 
     policy = algorithm.solve()
     #print(policy)

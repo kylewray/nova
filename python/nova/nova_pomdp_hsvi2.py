@@ -49,13 +49,15 @@ class NovaPOMDPHSVI2CPU(ct.Structure):
 
     _fields_ = [("trials", ct.c_uint),
                 ("epsilon", ct.c_float),
-                ("pruneGrowth", ct.c_float),
+                ("pruneGrowthThreshold", ct.c_float),
                 ("maxAlphaVectors", ct.c_uint),
                 ("currentTrial", ct.c_uint),
                 ("lowerGammaSize", ct.c_uint),
+                ("lowerGammaSizeLastPruned", ct.c_uint),
                 ("lowerGamma", ct.POINTER(ct.c_float)),
                 ("lowerPi", ct.POINTER(ct.c_uint)),
                 ("upperGammaSize", ct.c_uint),
+                ("upperGammaSizeLastPruned", ct.c_uint),
                 ("upperGammaB", ct.POINTER(ct.c_float)),
                 ("upperGammaHVb", ct.POINTER(ct.c_float)),
                 ]

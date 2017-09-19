@@ -53,13 +53,15 @@ class POMDPHSVI2CPU(nph.NovaPOMDPHSVI2CPU):
 
         self.trials = int(1)
         self.epsilon = float(0.01)
-        self.pruneGrowth = int(0.1)
+        self.pruneGrowthThreshold = float(0.1)
         self.maxAlphaVectors = int(max(self.pomdp.n, self.pomdp.m) + self.trials * self.pomdp.horizon)
         self.currentTrial = int(0)
         self.lowerGammaSize = int(0)
+        self.lowerGammaSizeLastPruned = int(0)
         self.lowerGamma = ct.POINTER(ct.c_float)()
         self.lowerPi = ct.POINTER(ct.c_uint)()
         self.upperGammaSize = int(0)
+        self.upperGammaSizeLastPruned = int(0)
         self.upperGammaB = ct.POINTER(ct.c_float)()
         self.upperGammaHVb = ct.POINTER(ct.c_float)()
 
@@ -124,26 +126,26 @@ class POMDPHSVI2CPU(nph.NovaPOMDPHSVI2CPU):
                 The string of the POMDP HSVI2.
         """
 
-        result += "trials: %i" % (self.trials) + "\n\n"
+        result = "trials: %i" % (self.trials) + "\n\n"
         result += "epsilon: %.3f" % (self.epsilon) + "\n\n"
-        result += "pruneGrowth: %.3f" % (self.pruneGrowth) + "\n\n"
+        result += "pruneGrowthThreshold: %.3f" % (self.pruneGrowthThreshold) + "\n\n"
         result += "maxAlphaVectors: %i" % (self.maxAlphaVectors) + "\n\n"
 
         result += "currentTrial: %i" % (self.currentTrial) + "\n\n"
 
         result += "lowerGammaSize: %i" % (self.lowerGammaSize) + "\n\n"
         result += "lowerGamma:\n%s" % (str(np.array([[self.lowerGamma[j * self.pomdp.n + i] \
-                        for j in range(self.pomdp.lowerGammaSize)] \
+                        for j in range(self.lowerGammaSize)] \
                     for i in range(self.pomdp.n)]))) + "\n\n"
         result += "lowerPi:\n%s" % (str(np.array([self.lowerPi[i] \
-                    for i in range(self.pomdp.lowerGammaSize)]))) + "\n\n"
+                    for i in range(self.lowerGammaSize)]))) + "\n\n"
 
         result += "upperGammaSize: %i" % (self.upperGammaSize) + "\n\n"
         result += "upperGammaB:\n%s" % (str(np.array([[self.upperGammaB[j * self.pomdp.n + i] \
-                        for j in range(self.pomdp.upperGammaSize)] \
+                        for j in range(self.upperGammaSize)] \
                     for i in range(self.pomdp.n)]))) + "\n\n"
         result += "upperGammaHVb:\n%s" % (str(np.array([self.upperGammaHVb[i] \
-                    for i in range(self.pomdp.lowerGammaSize)]))) + "\n\n"
+                    for i in range(self.lowerGammaSize)]))) + "\n\n"
 
         return result
 

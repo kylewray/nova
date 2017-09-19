@@ -33,31 +33,35 @@ namespace nova {
 
 /**
  *  The necessary variables to perform heuristic search value iteration (v2) on a POMDP within nova.
- *  @param  trials              The number of trials to try at a maximum.
- *  @param  epsilon             The convergence criterion for the early termination of trials.
- *  @param  pruneGrowth         The percentage value (e.g., 0.1 = 10%) of growth after which alpha-vectors are pruned.
- *  @param  maxAlphaVectors     The maximum number of alpha-vectors <= trials * horizon.
- *  @param  currentTrial        The current trial updated in the outer loop of each iteration.
- *  @param  lowerGammaSize      The size of the lower Gamma alpha-vector arrays.
- *  @param  lowerGamma          The lower bound value of the beliefs as alpha-vectors (maxAlphaVectors-n-array).
- *  @param  lowerPi             The lower bound action to take at each state (maxAlphaVectors-array).
- *  @param  upperGammaSize      The size of the upper Gamma point set arrays.
- *  @param  upperGammaB         The upper bound beliefs in the point set (maxAlphaVectors-n-array).
- *  @param  upperGammaHVb       The upper bound value of the corresponding belief in the point set (maxAlphaVectors-array).
+ *  @param  trials                      The number of trials to try at a maximum.
+ *  @param  epsilon                     The convergence criterion for the early termination of trials.
+ *  @param  pruneGrowthThreshold        The percentage value (e.g., 0.1 = 10%) of growth after which alpha-vectors are pruned.
+ *  @param  maxAlphaVectors             The maximum number of alpha-vectors <= trials * horizon.
+ *  @param  currentTrial                The current trial updated in the outer loop of each iteration.
+ *  @param  lowerGammaSize              The size of the lower Gamma alpha-vector arrays.
+ *  @param  lowerGammaSizeLastPruned    The size of the lower Gamma alpha-vector arrays when the last pruning step was done.
+ *  @param  lowerGamma                  The lower bound value of the beliefs as alpha-vectors (maxAlphaVectors-n-array).
+ *  @param  lowerPi                     The lower bound action to take at each state (maxAlphaVectors-array).
+ *  @param  upperGammaSize              The size of the upper Gamma point set arrays.
+ *  @param  upperGammaSizeLastPruned    The size of the upper Gamma point set arrays when the last pruning step was done.
+ *  @param  upperGammaB                 The upper bound beliefs in the point set (maxAlphaVectors-n-array).
+ *  @param  upperGammaHVb               The upper bound value of the corresponding belief in the point set (maxAlphaVectors-array).
  */
 typedef struct NovaPOMDPHSVI2CPU {
     unsigned int trials;
     float epsilon;
-    float pruneGrowth;
+    float pruneGrowthThreshold;
     unsigned int maxAlphaVectors;
 
     unsigned int currentTrial;
 
     unsigned int lowerGammaSize;
+    unsigned int lowerGammaSizeLastPruned;
     float *lowerGamma;
     unsigned int *lowerPi;
 
     unsigned int upperGammaSize;
+    unsigned int upperGammaSizeLastPruned;
     float *upperGammaB;
     float *upperGammaHVb;
 } POMDPHSVI2CPU;
