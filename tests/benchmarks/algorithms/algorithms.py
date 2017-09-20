@@ -30,6 +30,7 @@ sys.path.append(os.path.join(thisFilePath, "..", "..", "..", "python"))
 from nova.pomdp import *
 from nova.pomdp_pbvi import *
 from nova.pomdp_perseus import*
+from nova.pomdp_hsvi2 import*
 
 from pylab import *
 
@@ -37,27 +38,28 @@ from pylab import *
 horizon = 50
 numTrials = 10
 
-algorithms = ['pbvi', 'perseus']
-fixedProcess = 'cpu'
+#algorithms = ['pbvi', 'perseus', 'hsvi2']
+#algorithms = ['perseus', 'hsvi2']
+algorithms = ['hsvi2']
 
 files = [
-        {'name': "tiger", 'filename': "domains/tiger_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4},
-        #{'name': "shuttle", 'filename': "domains/shuttle_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4},
-        #{'name': "paint", 'filename': "domains/paint_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4},
-        {'name': "grid-4x3", 'filename': "domains/4x3_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 5},
-        #{'name': "tiger-grid", 'filename': "domains/tiger_grid.pomdp", 'filetype': "cassandra",'numExpandSteps': 6},
-        {'name': "aloha-10", 'filename': "domains/aloha_10.pomdp", 'filetype': "cassandra", 'numExpandSteps': 6},
-        #{'name': "hallway2", 'filename': "domains/hallway2.pomdp", 'filetype': "cassandra", 'numExpandSteps': 7},
-        #{'name': "aloha-30", 'filename': "domains/aloha_30.pomdp", 'filetype': "cassandra", 'numExpandSteps': 7},
-        #{'name': "tag", 'filename': "domains/tag.pomdp", 'filetype': "cassandra", 'numExpandSteps': 8},
-        #{'name': "fourth", 'filename': "domains/fourth.pomdp", 'filetype': "cassandra", 'numExpandSteps': 8},
-        #{'name': "rock-sample (7x8)", 'filename': "domains/rockSample_7_8.pomdp", 'filetype': "cassandra", 'numExpandSteps': 9},
-        #{'name': "auv-navigation", 'filename': "domains/auvNavigation.pomdp", 'filetype': "cassandra", 'numExpandSteps': 10},
+        #{'name': "tiger", 'filename': "domains/tiger_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4, 'numBeliefsToAdd': 30},
+        #{'name': "shuttle", 'filename': "domains/shuttle_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4, 'numBeliefsToAdd': 30},
+        #{'name': "paint", 'filename': "domains/paint_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4, 'numBeliefsToAdd': 30},
+        #{'name': "grid-4x3", 'filename': "domains/4x3_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 5, 'numBeliefsToAdd': 70},
+        {'name': "tiger-grid", 'filename': "domains/tiger_grid.pomdp", 'filetype': "cassandra",'numExpandSteps': 6, 'numBeliefsToAdd': 150},
+        #{'name': "aloha-10", 'filename': "domains/aloha_10.pomdp", 'filetype': "cassandra", 'numExpandSteps': 6, 'numBeliefsToAdd': 150},
+        {'name': "hallway2", 'filename': "domains/hallway2.pomdp", 'filetype': "cassandra", 'numExpandSteps': 6, 'numBeliefsToAdd': 100},
+        #{'name': "aloha-30", 'filename': "domains/aloha_30.pomdp", 'filetype': "cassandra", 'numExpandSteps': 8, 'numBeliefsToAdd': 200},
+        {'name': "tag", 'filename': "domains/tag.pomdp", 'filetype': "cassandra", 'numExpandSteps': 10, 'numBeliefsToAdd': 1000},
+        #{'name': "fourth", 'filename': "domains/fourth.pomdp", 'filetype': "cassandra", 'numExpandSteps': 10, 'numBeliefsToAdd': 1000},
+        #{'name': "rock-sample (7x8)", 'filename': "domains/rockSample_7_8.pomdp", 'filetype': "cassandra", 'numExpandSteps': 11, 'numBeliefsToAdd': 2500},
+        #{'name': "auv-navigation", 'filename': "domains/auvNavigation.pomdp", 'filetype': "cassandra", 'numExpandSteps': 11, 'numBeliefsToAdd': 2500},
 
-        #{'name': "drive_san_francisco", 'filename': "domains/drive_san_francisco.pomdp", 'filetype': "cassandra", 'numExpandSteps': 8},
-        #{'name': "drive_seattle", 'filename': "domains/drive_seattle.pomdp", 'filetype': "cassandra", 'numExpandSteps': 9},
-        #{'name': "drive_new_york_city", 'filename': "domains/drive_new_york_city.pomdp", 'filetype': "cassandra", 'numExpandSteps': 9},
-        #{'name': "drive_boston", 'filename': "domains/drive_boston.pomdp", 'filetype': "cassandra", 'numExpandSteps': 10},
+        #{'name': "drive_san_francisco", 'filename': "domains/drive_san_francisco.pomdp", 'filetype': "cassandra", 'numExpandSteps': 8, 'numBeliefsToAdd': 30},
+        #{'name': "drive_seattle", 'filename': "domains/drive_seattle.pomdp", 'filetype': "cassandra", 'numExpandSteps': 9, 'numBeliefsToAdd': 30},
+        #{'name': "drive_new_york_city", 'filename': "domains/drive_new_york_city.pomdp", 'filetype': "cassandra", 'numExpandSteps': 9, 'numBeliefsToAdd': 30},
+        #{'name': "drive_boston", 'filename': "domains/drive_boston.pomdp", 'filetype': "cassandra", 'numExpandSteps': 10, 'numBeliefsToAdd': 30},
         ]
 
 
@@ -72,7 +74,7 @@ for f in files:
         fileSuffix = "_".join([f['name'], a])
 
         with open(os.path.join(thisFilePath, "results", fileSuffix) + ".csv", "w") as out:
-            out.write("n,m,z,r,ns,rz,time,V(b0)\n")
+            out.write("n,m,z,r,ns,rz,size,time,V(b0),ADR(b0)\n")
 
             for j in range(numTrials):
                 print(".", end='')
@@ -90,21 +92,17 @@ for f in files:
                         break
                     b0[s] = pomdp.B[0 * pomdp.rz + k]
 
-                # Do expansions using random exploration. This lets us control the exact number of beliefs for
-                # CPU vs GPU. Note: The number of beliefs is likely to be way too small for random exploration.
-                # This is just to get a sense of the speed, not the optimal value. Also, the horizon is much
-                # too small for the larger domains.
-                pomdp.expand(method='random', numBeliefsToAdd=(pow(2, f['numExpandSteps']) - 1))
-
-                if fixedProcess == "gpu":
-                    pomdp.initialize_gpu()
-
-                if a == "pbvi" and fixedProcess == "cpu":
+                if a == "pbvi":
+                    pomdp.expand(method='random', numBeliefsToAdd=f['numBeliefsToAdd'])
                     algorithm = POMDPPBVICPU(pomdp)
-                elif a == "pbvi" and fixedProcess == "gpu":
-                    algorithm = POMDPPBVIGPU(pomdp)
-                elif a == "perseus" and fixedProcess == "cpu":
+                elif a == "perseus":
+                    pomdp.expand(method='random', numBeliefsToAdd=f['numBeliefsToAdd'])
                     algorithm = POMDPPerseusCPU(pomdp)
+                elif a == "hsvi2":
+                    algorithm = POMDPHSVI2CPU(pomdp)
+                    algorithm.trials = 10
+                    algorithm.pruneGrowthThreshold = float(0.1)
+                    algorithm.maxAlphaVectors = int(max(pomdp.n, pomdp.m) + algorithm.trials * pomdp.horizon + 1)
 
                 timing = (time.time(), time.clock())
                 policy = algorithm.solve()
@@ -113,11 +111,18 @@ for f in files:
                 #print(pomdp)
                 #print(policy)
 
+                # Point-based vs. FSC solutions have different "sizes" of their solution.
+                if a in ["pbvi", "perseus", "hsvi2"]:
+                    sizeOfSolution = float(policy.r)
+                else:
+                    sizeOfSolution = 0
+
                 Vb0, ab0 = policy.value_and_action(b0)
+                adrb0 = pomdp.compute_adr(policy, b0, trials=1000)
 
                 # Note: use the time.time() function, which measures wall-clock time.
-                out.write("%i,%i,%i,%i,%i,%i,%.5f,%.5f\n" % (pomdp.n, pomdp.m, pomdp.z, pomdp.r, pomdp.ns,
-                                                            pomdp.rz, timing[0], Vb0))
+                out.write("%i,%i,%i,%i,%i,%i,%i,%.5f,%.5f,%.5f\n" % (pomdp.n, pomdp.m, pomdp.z, pomdp.r, pomdp.ns,
+                                                                     pomdp.rz, sizeOfSolution, timing[0], Vb0, adrb0))
 
         print()
 

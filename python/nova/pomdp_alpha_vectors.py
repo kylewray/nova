@@ -62,7 +62,9 @@ class POMDPAlphaVectors(npav.NovaPOMDPAlphaVectors):
                 The string of the POMDP alpha-vectors.
         """
 
-        result = "Gamma:\n%s" % (str(np.array([[self.Gamma[i * self.n + s] \
+        result = "r: %i" % (self.r) + "\n\n"
+
+        result += "Gamma:\n%s" % (str(np.array([[self.Gamma[i * self.n + s] \
                     for i in range(self.r)] for s in range(self.n)]))) + "\n\n"
 
         result += "pi:\n%s" % (str(np.array([self.pi[i] \

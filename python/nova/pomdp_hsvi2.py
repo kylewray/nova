@@ -54,7 +54,7 @@ class POMDPHSVI2CPU(nph.NovaPOMDPHSVI2CPU):
         self.trials = int(1)
         self.epsilon = float(0.01)
         self.pruneGrowthThreshold = float(0.1)
-        self.maxAlphaVectors = int(max(self.pomdp.n, self.pomdp.m) + self.trials * self.pomdp.horizon)
+        self.maxAlphaVectors = int(max(self.pomdp.n, self.pomdp.m) + self.trials * self.pomdp.horizon + 1)
         self.currentTrial = int(0)
         self.lowerGammaSize = int(0)
         self.lowerGammaSizeLastPruned = int(0)

@@ -213,6 +213,7 @@ int pomdp_hsvi2_upper_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hs
 
 float pomdp_hsvi2_upper_Vb_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float *b)
 {
+    /*
     // As preprocessing, find the nearest corner; the one with the highest weight in b.
     unsigned int sNearest = 0;
     float bestValue = 0.0f;
@@ -229,12 +230,19 @@ float pomdp_hsvi2_upper_Vb_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float *
         sNearestBeliefDistance += std::pow((float)(s == sNearest) - b[s], 2);
     }
     sNearestBeliefDistance = std::sqrt(sNearestBeliefDistance);
+    */
+
+    float x0 = 0.0f;
+    for (unsigned int s = 0; s < pomdp->n; s++) {
+        x0 += hsvi2->upperGammaHVb[s] * b[s];
+    }
 
     // For each upper bound element in the point set, we compute the interpolated point from this to the corners.
     // Note: The first n values of upperGamma are essentially reserved (and ordered) for the values of states.
     float upperVb = NOVA_FLT_MAX;
 
     for (unsigned int i = 0; i < hsvi2->upperGammaSize; i++) {
+        /*
         // Approximately project the belief to the convex hull formed by the interior belief point i.
         // First, compute the weight between belief b_sNearest (a corner) and b_i (in upperGammaB) based
         // on the Euclidean distances.
@@ -256,6 +264,29 @@ float pomdp_hsvi2_upper_Vb_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float *
         float interpolatedVb = iWeight * hsvi2->upperGammaHVb[i] + (1.0f - iWeight) * hsvi2->upperGammaHVb[sNearest];
         if (interpolatedVb < upperVb) {
             upperVb = interpolatedVb;
+        }
+        */
+
+        float iWeight = NOVA_FLT_MAX;
+        for (unsigned int s = 0; s < pomdp->n; s++) {
+            if (hsvi2->upperGammaB[i * pomdp->n + s] > 0.0f) {
+                float distance = b[s] / hsvi2->upperGammaB[i * pomdp->n + s];
+                if (distance < iWeight) {
+                    iWeight = distance;
+                }
+            }
+        }
+
+        //std::cout << "iWeight = " << iWeight << std::endl;
+
+        float wTb = 0.0f;
+        for (unsigned int s = 0; s < pomdp->n; s++) {
+            wTb += hsvi2->upperGammaHVb[s] * hsvi2->upperGammaB[i * pomdp->n + s];
+        }
+
+        float xi = x0 + iWeight * (hsvi2->upperGammaHVb[i] - wTb);
+        if (xi < upperVb) {
+            upperVb = xi;
         }
     }
 
@@ -343,7 +374,6 @@ unsigned int pomdp_hsvi2_compute_a_star_cpu(const POMDP *pomdp, POMDPHSVI2CPU *h
 
     for (unsigned int a = 0; a < pomdp->m; a++) {
         float Qba = pomdp_hsvi2_upper_Qba_cpu(pomdp, hsvi2, b, a);
-
         if (Qba > bestQba) {
             bestQba = Qba;
             aStar = a;
@@ -365,6 +395,10 @@ unsigned int pomdp_hsvi2_compute_o_star_cpu(const POMDP *pomdp, POMDPHSVI2CPU *h
         // Note: pomdp_belief_update_cpu allocates memory for bp.
         int result = pomdp_belief_update_cpu(pomdp, b, aStar, o, bp);
         if (result != NOVA_SUCCESS) {
+            if (bp != nullptr) {
+                delete [] bp;
+                bp = nullptr;
+            }
             continue;
         }
 
@@ -485,44 +519,47 @@ void pomdp_hsvi2_upper_bound_prune_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
         return;
     }
 
+    return;
+
+    unsigned int *pointsToRemove = new unsigned int[hsvi2->upperGammaSize];
+    unsigned int numPointsToRemove = 0;
+
     // For all elements in the point set, we check if the value at that belief already has a lower value that can be computed
     // by other elements in the point set. Special: The first n-values are never removed; only upgraded with a better HVb
-    // found via exploration in the algorithm.
+    // found via exploration in the algorithm. Since these are unique beliefs from each other, they will never be pruned.
     for (unsigned int i = 0; i < hsvi2->upperGammaSize; i++) {
-        // Compute HV(b) = max_a Q^V(b, a).
-        float upperHVb = NOVA_FLT_MIN;
+        numPointsToRemove = 0;
 
-        for (unsigned int a = 0; a < pomdp->m; a++) {
-            float Qba = pomdp_hsvi2_upper_Qba_cpu(pomdp, hsvi2, &hsvi2->upperGammaB[i * pomdp->n], a);
+        // For each of the other upper points, find ones that are basically the same. For any such point, we compute the
+        // minimum over the HVb values to use instead of all of those points.
+        for (unsigned int j = i + 1; j < hsvi2->upperGammaSize; j++) {
+            bool sameBeliefPoint = true;
+            for (unsigned int s = 0; s < pomdp->n; s++) {
+                if (std::fabs(hsvi2->upperGammaB[i * pomdp->n + s] - hsvi2->upperGammaB[j * pomdp->n + s]) >= 0.0001f) {
+                    sameBeliefPoint = false;
+                    break;
+                }
+            }
 
-            if (Qba > upperHVb) {
-                upperHVb = Qba;
+            if (sameBeliefPoint) {
+                hsvi2->upperGammaHVb[i] = std::min(hsvi2->upperGammaHVb[i], hsvi2->upperGammaHVb[j]);
+                pointsToRemove[numPointsToRemove] = j;
+                numPointsToRemove++;
             }
         }
 
-        // If the value is a tighter upper bound, then we must do some pruning.
-        if (upperHVb < hsvi2->upperGammaHVb[i]) {
-            // In the normal case, we simply remove this point. However, the special case is for the corner points
-            // in the point set (i < pomdp->n).
-            if (i < pomdp->n) {
-                // We will re-assign the point to have this new better value. Then, we iterate over all upper gamma beliefs and
-                // remove any duplicates of this corner belief, which are likely the ones that resulted in this better value.
-                hsvi2->upperGammaHVb[i] = upperHVb;
-                for (unsigned int j = pomdp->n; j < hsvi2->upperGammaSize; j++) {
-                    // Note: i == s for the first i < pomdp->n, and the belief is 1.0 weight on that state.
-                    if (std::fabs(hsvi2->upperGammaB[j * pomdp->n + i] - 1.0f) < 0.00001f) {
-                        memcpy(&hsvi2->upperGammaB[j * pomdp->n], &hsvi2->upperGammaB[(hsvi2->upperGammaSize - 1) * pomdp->n], pomdp->n * sizeof(float));
-                        hsvi2->upperGammaHVb[j] = hsvi2->upperGammaHVb[hsvi2->upperGammaSize - 1];
-                        hsvi2->upperGammaSize--;
-                    }
-                }
-            } else {
-                memcpy(&hsvi2->upperGammaB[i * pomdp->n], &hsvi2->upperGammaB[(hsvi2->upperGammaSize - 1) * pomdp->n], pomdp->n * sizeof(float));
-                hsvi2->upperGammaHVb[i] = hsvi2->upperGammaHVb[hsvi2->upperGammaSize - 1];
-                hsvi2->upperGammaSize--;
+        // Remove all the points we found that are essentially duplicates and/or have worse values.
+        for (unsigned int j = 0; j < numPointsToRemove; j++) {
+            if (pointsToRemove[j] < hsvi2->upperGammaSize - 1) {
+                memcpy(&hsvi2->upperGammaB[pointsToRemove[j] * pomdp->n], &hsvi2->upperGammaB[(hsvi2->upperGammaSize - 1) * pomdp->n], pomdp->n * sizeof(float));
+                hsvi2->upperGammaHVb[j] = hsvi2->upperGammaHVb[hsvi2->upperGammaSize - 1];
             }
+            hsvi2->upperGammaSize--;
         }
     }
+
+    delete [] pointsToRemove;
+    pointsToRemove = nullptr;
 
     hsvi2->upperGammaSizeLastPruned = hsvi2->upperGammaSize;
 }
@@ -539,8 +576,13 @@ int pomdp_hsvi2_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
     hsvi2->currentTrial = 0;
 
     // Create the lower and upper bound variables.
+    hsvi2->lowerGammaSize = 0;
+    hsvi2->lowerGammaSizeLastPruned = 0;
     hsvi2->lowerGamma = new float[hsvi2->maxAlphaVectors * pomdp->n];
     hsvi2->lowerPi = new unsigned int[hsvi2->maxAlphaVectors];
+
+    hsvi2->upperGammaSize = 0;
+    hsvi2->upperGammaSizeLastPruned = 0;
     hsvi2->upperGammaB = new float[hsvi2->maxAlphaVectors * pomdp->n];
     hsvi2->upperGammaHVb = new float[hsvi2->maxAlphaVectors];
 
@@ -644,7 +686,9 @@ int pomdp_hsvi2_uninitialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
     hsvi2->currentTrial = 0;
 
     hsvi2->lowerGammaSize = 0;
+    hsvi2->lowerGammaSizeLastPruned = 0;
     hsvi2->upperGammaSize = 0;
+    hsvi2->upperGammaSizeLastPruned = 0;
 
     // Free the memory for the lower and upper bounds.
     if (hsvi2->lowerGamma != nullptr) {
@@ -739,7 +783,12 @@ int pomdp_hsvi2_update_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
         delete [] b;
         b = nullptr;
 
-        pomdp_belief_update_cpu(pomdp, &traversalBeliefStack[currentHorizon * pomdp->n], aStar, oStar, b);
+        int updateResult = pomdp_belief_update_cpu(pomdp, &traversalBeliefStack[currentHorizon * pomdp->n], aStar, oStar, b);
+        if (updateResult != NOVA_SUCCESS) {
+            fprintf(stderr, "Warning[pomdp_hsvi2_update_cpu]: %s\n",
+                    "Invalid action-observation pair chosen in HSVI2 exploration step. Terminating early.");
+            break;
+        }
     }
 
     // In post-order traversal, perform an update on each belief points for both the lower and upper bounds.
@@ -759,13 +808,23 @@ int pomdp_hsvi2_update_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
         pomdp_hsvi2_upper_bound_prune_cpu(pomdp, hsvi2);
     }
 
-    // Cleanup memory and return the appropriate error (e.g., ran out of memory).
+    // The entire algorithm has converged if the width(b0) is ever less than epsilon.
+    bool converged = false;
+    float width = pomdp_hsvi2_width_cpu(pomdp, hsvi2, &traversalBeliefStack[0]);
+    std::cout << "WIDTH = " << width << std::endl;
+    if (width < hsvi2->epsilon) {
+        converged = true;
+    }
+
+    // Cleanup memory and return the appropriate error (e.g., converged, ran out of memory, or just success).
     delete [] traversalBeliefStack;
     delete [] b;
     traversalBeliefStack = nullptr;
     b = nullptr;
 
-    if (ranOutOfMemory) {
+    if (converged) {
+        return NOVA_CONVERGED;
+    } else if (ranOutOfMemory) {
         fprintf(stderr, "Error[pomdp_hsvi2_update_cpu]: %s\n", "Out of memory in HSVI2 exploration step.");
         return NOVA_ERROR_OUT_OF_MEMORY;
     }

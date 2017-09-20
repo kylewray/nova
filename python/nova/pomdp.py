@@ -26,6 +26,7 @@ import sys
 import csv
 import numpy as np
 import time
+import random
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import nova_pomdp as npm
@@ -364,6 +365,102 @@ class POMDP(npm.NovaPOMDP):
             raise Exception()
 
         return np.array([bp[s] for s in range(self.n)])
+
+    def random_successor(self, s, a):
+        """ Return a random successor from the state transitions.
+
+            Parameters:
+                s   --  The state.
+                a   --  The action.
+
+            Returns:
+                The random successor state.
+        """
+
+        successor = None
+        current = 0.0
+        target = random.random()
+
+        for i in range(self.ns):
+            sp = self.S[s * self.m * self.ns + a * self.ns + i]
+            if sp < 0:
+                break
+
+            current += self.T[s * self.m * self.ns + a * self.ns + i]
+            if current >= target:
+                successor = sp
+                break
+
+        if successor is None:
+            successor = random.choice([self.S[s * self.m * self.ns + a * self.ns + i]
+                                       for i in range(self.ns)
+                                       if self.S[s * self.m * self.ns + a * self.ns + i] >= 0])
+
+        return successor
+
+    def random_observation(self, a, sp):
+        """ Return a random observation from the observation function.
+
+            Parameters:
+                a   --  The action.
+                sp  --  The successor state.
+
+            Returns:
+                The random observation.
+        """
+
+        observation = None
+        current = 0.0
+        target = random.random()
+
+        for o in range(self.z):
+            current += self.O[a * self.n * self.z + sp * self.z + o]
+            if current >= target:
+                observation = o
+                break
+
+        if observation is None:
+            observation = random.choice([o for o in range(self.z) if self.O[a * self.n * self.z + sp * self.z + o] > 0.0])
+
+        return observation
+
+    def compute_adr(self, policy, b0, trials=100):
+        """ Compute the average discounted reward (ADR) at a given belief.
+
+            Parameters:
+                policy  --  The policy to use to compute the ADR.
+                b0      --  A numpy array for the belief (n array).
+                trials  --  The number of trials to average over.
+
+            Returns:
+                The ADR value at this belief.
+        """
+
+        adr = 0.0
+
+        for trial in range(trials):
+            b = b0.copy()
+            s = random.choice([i for i in range(self.n) if b0[i] > 0.0])
+            discount = 1.0
+            discountedReward = 0.0
+
+            for t in range(self.horizon):
+                Vb, a = policy.value_and_action(b)
+                sp = self.random_successor(s, a)
+                o = self.random_observation(a, sp)
+
+                beliefReward = 0.0
+                for i in range(self.n):
+                    beliefReward += b[i] * self.R[i * self.m + a]
+                discountedReward += discount * beliefReward
+
+                discount *= self.gamma
+                b = self.belief_update(b, a, o)
+                s = sp
+
+            adr = (float(trial) * adr + discountedReward) / float(trial + 1)
+
+        return adr
 
     def __str__(self):
         """ Return the string of the POMDP values akin to the raw file format.
