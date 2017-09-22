@@ -28,6 +28,10 @@
 #include <nova/pomdp/utilities/pomdp_model_cpu.h>
 #include <nova/pomdp/utilities/pomdp_functions_cpu.h>
 
+#include <nova/mdp/algorithms/mdp_vi_cpu.h>
+#include <nova/mdp/policies/mdp_value_function.h>
+#include <nova/mdp/utilities/mdp_model_cpu.h>
+
 #include <nova/error_codes.h>
 #include <nova/constants.h>
 
@@ -110,6 +114,8 @@ int pomdp_hsvi2_upper_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hs
         return NOVA_ERROR_OUT_OF_MEMORY;
     }
 
+    //* Fast Max Version (My Idea) -- Honestly, I think this is faster without any downside.
+
     // Note: This has a slightly different, improved computation of the initial alpha^a_0. Instead of solving an MDP,
     // we just use the maximum possible value in that MDP. Then, we do the HSVI2 convergence. Since it is a fixed point,
     // and we just want the values to monotonically decrease to this point, we can use this faster initial value.
@@ -134,6 +140,57 @@ int pomdp_hsvi2_upper_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hs
     for (unsigned int i = 0; i < pomdp->m * pomdp->n; i++) {
         alpha[i] = maxV;
     }
+    //*/
+
+    /* MDP Version -- This is from the original paper. It works, but is slower and has no benefit... I think.
+    // Construct and solve the MDP with value iteration.
+    MDP mdp;
+    mdp.n = pomdp->n;
+    mdp.ns = pomdp->ns;
+    mdp.m = pomdp->m;
+    mdp.gamma = pomdp->gamma;
+    mdp.horizon = pomdp->horizon;
+    mdp.epsilon = hsvi2->epsilon;
+    mdp.s0 = 0;
+    mdp.ng = 0;
+    mdp.goals = nullptr;
+    mdp.S = pomdp->S;
+    mdp.T = pomdp->T;
+    mdp.R = pomdp->R;
+    mdp.d_S = nullptr;
+    mdp.d_T = nullptr;
+    mdp.d_R = nullptr;
+
+    MDPVICPU mdpVI;
+    mdpVI.VInitial = nullptr;
+    mdpVI.currentHorizon = 0;
+    mdpVI.V = nullptr;
+    mdpVI.VPrime = nullptr;
+    mdpVI.pi = nullptr;
+
+    MDPValueFunction mdpPolicy;
+    mdpPolicy.n = pomdp->n;
+    mdpPolicy.m = pomdp->m;
+    mdpPolicy.r = 0;
+    mdpPolicy.S = nullptr;
+    mdpPolicy.V = nullptr;
+    mdpPolicy.pi = nullptr;
+
+    int result = mdp_vi_execute_cpu(&mdp, &mdpVI, &mdpPolicy);
+
+    // Assign alpha^a_0 = maxV to all initial alpha values.
+    float *alpha = new float[pomdp->m * pomdp->n];
+    float *alphaPrime = new float[pomdp->m * pomdp->n];
+
+    for (unsigned int a = 0; a < pomdp->m; a++) {
+        for (unsigned int s = 0; s < pomdp->n; s++) {
+            alpha[a * pomdp->n + s] = mdpPolicy.V[s];
+            alphaPrime[a * pomdp->n + s] = mdpPolicy.V[s];
+        }
+    }
+
+    result = mdp_value_function_uninitialize(&mdpPolicy);
+    //*/
 
     // Perform updates until convergence or a maximum number of iterations is reached equal to the horizon.
     float residual = hsvi2->epsilon + 1.0f;
@@ -276,8 +333,6 @@ float pomdp_hsvi2_upper_Vb_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float *
                 }
             }
         }
-
-        //std::cout << "iWeight = " << iWeight << std::endl;
 
         float wTb = 0.0f;
         for (unsigned int s = 0; s < pomdp->n; s++) {
@@ -811,7 +866,6 @@ int pomdp_hsvi2_update_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
     // The entire algorithm has converged if the width(b0) is ever less than epsilon.
     bool converged = false;
     float width = pomdp_hsvi2_width_cpu(pomdp, hsvi2, &traversalBeliefStack[0]);
-    std::cout << "WIDTH = " << width << std::endl;
     if (width < hsvi2->epsilon) {
         converged = true;
     }

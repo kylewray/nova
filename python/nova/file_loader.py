@@ -397,12 +397,14 @@ class FileLoader(object):
                 self.r = 1
                 self.rz = 1
 
-                self.Z = np.array([[int(pomdp['states'].index(pomdp['start'][0]))
+                self.Z = np.array([[-1
                                     for s in range(self.rz)] \
                                 for i in range(self.r)])
-                self.B = np.array([[1.0
+                self.B = np.array([[0.0
                                     for s in range(self.rz)] \
                                 for i in range(self.r)])
+                self.Z[0] = int(pomdp['states'].index(pomdp['start'][0]))
+                self.B[0] = float(1.0)
             else:
                 self.r = 1
                 self.rz = self.n

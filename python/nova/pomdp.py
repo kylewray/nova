@@ -200,28 +200,33 @@ class POMDP(npm.NovaPOMDP):
         self.Rmin = fileLoader.Rmin
         self.Rmax = fileLoader.Rmax
 
-    def expand(self, method='random', numBeliefsToAdd=1000, pemaPolicy=None, pemaAlgorithm=None):
+    def expand(self, method='random', numBeliefsToAdd=1000, maxTrials=100, pemaPolicy=None, pemaAlgorithm=None):
         """ Expand the belief points by, for example, PBVI's original method, PEMA, or Perseus' random method.
 
             Parameters:
                 method              --  The method to use for expanding belief points. Default is 'random'.
                                         Methods:
                                             'random'            Random trajectories through the belief space.
+                                            'random_unique'     Random *unique* trajectories through the belief space.
                                             'distinct_beliefs'  Distinct belief point selection.
                                             'pema'              Point-based Error Minimization Algorithm (PEMA).
                 numBeliefsToAdd     --  Optionally define the number of belief points to add. Used by the
-                                        'random'. Default is 1000.
+                                        'random' and 'random_unique'. Default is 1000.
+                maxTrials           --  Optionally define the maximum number of trials while searching for unique beliefs.
+                                        Used by 'random_unique'. Default is 100.
                 pemaPolicy          --  Optionally use any policy object for PEMA. Default is None.
                 pemaAlgorithm       --  Optionally use any POMDP algorithm object for PEMA. Only used if
                                         the pemaPolicy is None. Default is None.
         """
 
-        if method not in ["random", "distinct_beliefs", "pema"]:
+        if method not in ["random", "random_unique", "distinct_beliefs", "pema"]:
             print("Failed to expand. Method '%s' is not defined." % (method))
             raise Exception()
 
         if method == "random":
             npm._nova.pomdp_expand_random_cpu(self, numBeliefsToAdd)
+        elif method == "random_unique":
+            npm._nova.pomdp_expand_random_unique_cpu(self, numBeliefsToAdd, maxTrials)
         elif method == "distinct_beliefs":
             npm._nova.pomdp_expand_distinct_beliefs_cpu(self)
         elif method == "pema":

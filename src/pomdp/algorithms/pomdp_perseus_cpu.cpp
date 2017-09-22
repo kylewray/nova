@@ -229,7 +229,7 @@ int pomdp_perseus_update_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
     }
 
     // Sample a belief point at random from BTilde.
-    unsigned int bTildeIndex = (unsigned int)((float)rand() / (float)RAND_MAX * (float)(per->rTilde));
+    unsigned int bTildeIndex = (unsigned int)((double)rand() / (double)RAND_MAX * (double)(per->rTilde));
     unsigned int bIndex = per->BTilde[bTildeIndex];
 
     // Perform one Bellman update to compute the optimal alpha-vector and action for this belief point (bIndex).

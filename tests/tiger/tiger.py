@@ -37,26 +37,30 @@ from nova.pomdp_hsvi2 import *
 files = [
         #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': None},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "random"},
+        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "random_unique"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "distinct_beliefs"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "pema"},
 
         #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': None},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "random"},
+        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "random_unique"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "distinct_beliefs"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "pema"},
 
         # NOTE: Not implemented yet.
         #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'gpu', 'algorithm': 'perseus', 'expand': None},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'perseus', 'expand': "random"},
+        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'perseus', 'expand': "random_unique"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'perseus', 'expand': "distinct_beliefs"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'perseus', 'expand': "pema"},
 
         #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'perseus', 'expand': None},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "random"},
+        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "random_unique"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "distinct_beliefs"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "pema"},
 
-        {'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'hsvi2', 'expand': None},
+        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'hsvi2', 'expand': None},
         {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'hsvi2', 'expand': None},
         ]
 
@@ -69,14 +73,13 @@ for f in files:
     #print(tiger)
 
     if f['expand'] == "random":
-        # Note: 1 + 249 = 250 belief points.
         tiger.expand(method=f['expand'], numBeliefsToAdd=250)
+    elif f['expand'] == "random_unique":
+        tiger.expand(method=f['expand'], numBeliefsToAdd=250, maxTrials=1000)
     elif f['expand'] == "distinct_beliefs":
-        # Note: 2^3 = 8 belief points.
         for i in range(3):
             tiger.expand(method=f['expand'])
     elif f['expand'] == "pema":
-        # Note: 1 + 4 = 5 belief points.
         for i in range(4):
             tiger.expand(method=f['expand'], pemaAlgorithm=POMDPPerseusCPU(tiger))
 

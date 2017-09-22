@@ -53,8 +53,7 @@ int pomdp_alpha_vectors_value_and_action(const POMDPAlphaVectors *policy,
     const float *b, float &Vb, unsigned int &a)
 {
     if (policy == nullptr || policy->n == 0 || policy->m == 0 || policy->r == 0 ||
-            policy->Gamma == nullptr || policy->pi == nullptr ||
-            b == nullptr) {
+            policy->Gamma == nullptr || policy->pi == nullptr || b == nullptr) {
         fprintf(stderr, "Error[pomdp_alpha_vectors_value_and_action]: %s\n", "Invalid input.");
         return NOVA_ERROR_INVALID_DATA;
     }
