@@ -79,8 +79,8 @@ int ssp_random_successor_cpu(const MDP *mdp, unsigned int s, unsigned int a, uns
 
     sp = mdp->S[s * mdp->m * mdp->ns + a * mdp->ns + 0];
 
-    float target = (float)rand() / (float)RAND_MAX;
-    float current = 0.0f;
+    double target = (double)rand() / (double)RAND_MAX;
+    double current = 0.0f;
 
     for (unsigned int i = 0; i < mdp->ns; i++) {
         int spTmp = mdp->S[s * mdp->m * mdp->ns + a * mdp->ns + i];
