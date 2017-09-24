@@ -35,12 +35,12 @@ from nova.pomdp_hsvi2 import*
 from pylab import *
 
 
-numTrials = 10
+numTrials = 1
 adrTrials = 100
 
 #algorithms = ['pbvi', 'perseus', 'hsvi2']
-algorithms = ['perseus', 'hsvi2']
-#algorithms = ['hsvi2']
+#algorithms = ['perseus', 'hsvi2']
+algorithms = ['hsvi2']
 #algorithms = ['perseus']
 
 files = [
@@ -52,7 +52,7 @@ files = [
         {'name': "aloha-10", 'filename': "domains/aloha_10.pomdp", 'filetype': "cassandra", 'numExpandSteps': 6, 'numBeliefsToAdd': 700, 'maxTrials': 200},
         {'name': "hallway2", 'filename': "domains/hallway2.pomdp", 'filetype': "cassandra", 'numExpandSteps': 6, 'numBeliefsToAdd': 1000, 'maxTrials': 300},
         #{'name': "aloha-30", 'filename': "domains/aloha_30.pomdp", 'filetype': "cassandra", 'numExpandSteps': 8, 'numBeliefsToAdd': 3000, 'maxTrials': 400},
-        #{'name': "tag", 'filename': "domains/tag.pomdp", 'filetype': "cassandra", 'numExpandSteps': 10, 'numBeliefsToAdd': 5000, 'maxTrials': 500},
+        {'name': "tag", 'filename': "domains/tag.pomdp", 'filetype': "cassandra", 'numExpandSteps': 10, 'numBeliefsToAdd': 5000, 'maxTrials': 500},
         #{'name': "fourth", 'filename': "domains/fourth.pomdp", 'filetype': "cassandra", 'numExpandSteps': 10, 'numBeliefsToAdd': 5000, 'maxTrials': 500},
         #{'name': "rock-sample (7x8)", 'filename': "domains/rockSample_7_8.pomdp", 'filetype': "cassandra", 'numExpandSteps': 11, 'numBeliefsToAdd': 10000, 'maxTrials': 1000},
         #{'name': "auv-navigation", 'filename': "domains/auvNavigation.pomdp", 'filetype': "cassandra", 'numExpandSteps': 11, 'numBeliefsToAdd': 10000, 'maxTrials': 1000},
@@ -101,7 +101,9 @@ for f in files:
                     algorithm = POMDPPerseusCPU(pomdp)
                 elif a == "hsvi2":
                     algorithm = POMDPHSVI2CPU(pomdp)
-                    algorithm.trials = 10
+                    algorithm.trials = 1000
+                    algorithm.epsilon = 0.001
+                    algorithm.delta = 0.0001
                     algorithm.pruneGrowthThreshold = float(0.1)
                     algorithm.maxAlphaVectors = int(max(pomdp.n, pomdp.m) + algorithm.trials * pomdp.horizon + 1)
 
@@ -109,8 +111,8 @@ for f in files:
                 policy = algorithm.solve()
                 timing = (time.time() - timing[0], time.clock() - timing[1])
 
-                #print(pomdp)
-                #print(policy)
+                print(pomdp)
+                print(policy)
 
                 # Point-based vs. FSC solutions have different "sizes" of their solution.
                 if a in ["pbvi", "perseus", "hsvi2"]:

@@ -61,7 +61,7 @@ int pomdp_hsvi2_lower_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hs
             }
         }
 
-        if (a == 0 || minR > maxminR) {
+        if (a == 0 || maxminR < minR) {
             maxminR = minR;
         }
     }
@@ -121,22 +121,19 @@ int pomdp_hsvi2_upper_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hs
     // and we just want the values to monotonically decrease to this point, we can use this faster initial value.
 
     // First, we compute the absolute maximum values possible V_max = max_a max_s R(s, a) / (1 - gamma).
-    float maxV = NOVA_FLT_MIN;
+    float maxR = NOVA_FLT_MIN;
     for (unsigned int a = 0; a < pomdp->m; a++) {
         for (unsigned int s = 0; s < pomdp->n; s++) {
-            if (pomdp->R[s * pomdp->m + a] > maxV) {
-                double value = pomdp->R[s * pomdp->m + a] / (1.0f - pomdp->gamma);
-                if (value > maxV) {
-                    maxV = value;
-                }
+            if (maxR < pomdp->R[s * pomdp->m + a]) {
+                maxR = pomdp->R[s * pomdp->m + a];
             }
         }
     }
+    double maxV = maxR / (1.0f - pomdp->gamma);
 
     // Assign alpha^a_0 = maxV to all initial alpha values.
     float *alpha = new float[pomdp->m * pomdp->n];
     float *alphaPrime = new float[pomdp->m * pomdp->n];
-
     for (unsigned int i = 0; i < pomdp->m * pomdp->n; i++) {
         alpha[i] = maxV;
     }
@@ -185,7 +182,6 @@ int pomdp_hsvi2_upper_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hs
     for (unsigned int a = 0; a < pomdp->m; a++) {
         for (unsigned int s = 0; s < pomdp->n; s++) {
             alpha[a * pomdp->n + s] = mdpPolicy.V[s];
-            alphaPrime[a * pomdp->n + s] = mdpPolicy.V[s];
         }
     }
 
@@ -195,12 +191,13 @@ int pomdp_hsvi2_upper_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hs
     // Perform updates until convergence or a maximum number of iterations is reached equal to the horizon.
     float residual = hsvi2->epsilon + 1.0f;
     for (unsigned int i = 0; i < pomdp->horizon && residual >= hsvi2->epsilon; i++) {
-        // Before each time step update, copy the current alpha values.
-        for (unsigned int k = 0; k < pomdp->m * pomdp->n; k++) {
-            alphaPrime[k] = alpha[k];
-        }
-
         residual = 0.0f;
+
+        for (unsigned int a = 0; a < pomdp->m; a++) {
+            for (unsigned int s = 0; s < pomdp->n; s++) {
+                alphaPrime[a * pomdp->n + s] = alpha[a * pomdp->n + s];
+            }
+        }
 
         for (unsigned int a = 0; a < pomdp->m; a++) {
             for (unsigned int s = 0; s < pomdp->n; s++) {
@@ -209,9 +206,7 @@ int pomdp_hsvi2_upper_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hs
                 for (unsigned int o = 0; o < pomdp->z; o++) {
                     float maxTransitionAlpha = NOVA_FLT_MIN;
 
-                    // Note: The fast informed bound (FIB) computes the max over the alpha-vectors, but here we have one
-                    // alpha-vector for each action.
-                    for (unsigned int k = 0; k < pomdp->m; k++) {
+                    for (unsigned int ap = 0; ap < pomdp->m; ap++) {
                         float valueTransitionAlpha = 0.0f;
 
                         for (unsigned int j = 0; j < pomdp->ns; j++) {
@@ -219,10 +214,10 @@ int pomdp_hsvi2_upper_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hs
                             if (sp < 0) {
                                 break;
                             }
-                            valueTransitionAlpha += pomdp->O[a * pomdp->n * pomdp->z + sp * pomdp->z + o] * pomdp->T[s * pomdp->m * pomdp->ns + a * pomdp->ns + j] * alphaPrime[k * pomdp->n + sp];
+                            valueTransitionAlpha += pomdp->O[a * pomdp->n * pomdp->z + sp * pomdp->z + o] * pomdp->T[s * pomdp->m * pomdp->ns + a * pomdp->ns + j] * alphaPrime[ap * pomdp->n + sp];
                         }
 
-                        if (k == 0 || valueTransitionAlpha > maxTransitionAlpha) {
+                        if (ap == 0 || maxTransitionAlpha < valueTransitionAlpha) {
                             maxTransitionAlpha = valueTransitionAlpha;
                         }
                     }
@@ -232,7 +227,7 @@ int pomdp_hsvi2_upper_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hs
 
                 value = pomdp->R[s * pomdp->m + a] + pomdp->gamma * value;
 
-                residual = std::max(residual, std::fabs(alphaPrime[a * pomdp->n + s] - value));
+                residual = std::max(residual, std::fabs(alpha[a * pomdp->n + s] - value));
 
                 alpha[a * pomdp->n + s] = value;
             }
@@ -243,16 +238,16 @@ int pomdp_hsvi2_upper_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hs
     for (unsigned int s = 0; s < pomdp->n; s++) {
         hsvi2->upperGammaHVb[s] = NOVA_FLT_MIN;
 
-        for (unsigned int a = 0; a < pomdp->m; a++) {
-            for (unsigned int sp = 0; sp < pomdp->n; sp++) {
-                if (s == sp) {
-                    hsvi2->upperGammaB[s * pomdp->n + sp] = 1.0f;
-                } else {
-                    hsvi2->upperGammaB[s * pomdp->n + sp] = 0.0f;
-                }
+        for (unsigned int sp = 0; sp < pomdp->n; sp++) {
+            if (s == sp) {
+                hsvi2->upperGammaB[s * pomdp->n + sp] = 1.0f;
+            } else {
+                hsvi2->upperGammaB[s * pomdp->n + sp] = 0.0f;
             }
+        }
 
-            if (a == 0 || alpha[a * pomdp->n + s] > hsvi2->upperGammaHVb[s]) {
+        for (unsigned int a = 0; a < pomdp->m; a++) {
+            if (a == 0 || hsvi2->upperGammaHVb[s] < alpha[a * pomdp->n + s]) {
                 hsvi2->upperGammaHVb[s] = alpha[a * pomdp->n + s];
             }
         }
@@ -270,25 +265,6 @@ int pomdp_hsvi2_upper_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hs
 
 float pomdp_hsvi2_upper_Vb_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float *b)
 {
-    /*
-    // As preprocessing, find the nearest corner; the one with the highest weight in b.
-    unsigned int sNearest = 0;
-    float bestValue = 0.0f;
-    for (unsigned int s = 0; s < pomdp->n; s++) {
-        if (b[s] > bestValue) {
-            sNearest = s;
-            bestValue = b[s];
-        }
-    }
-
-    // Compute this corner's distance to b.
-    float sNearestBeliefDistance = 0.0f;
-    for (unsigned int s = 0; s < pomdp->n; s++) {
-        sNearestBeliefDistance += std::pow((float)(s == sNearest) - b[s], 2);
-    }
-    sNearestBeliefDistance = std::sqrt(sNearestBeliefDistance);
-    */
-
     float x0 = 0.0f;
     for (unsigned int s = 0; s < pomdp->n; s++) {
         x0 += hsvi2->upperGammaHVb[s] * b[s];
@@ -298,32 +274,7 @@ float pomdp_hsvi2_upper_Vb_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float *
     // Note: The first n values of upperGamma are essentially reserved (and ordered) for the values of states.
     float upperVb = NOVA_FLT_MAX;
 
-    for (unsigned int i = 0; i < hsvi2->upperGammaSize; i++) {
-        /*
-        // Approximately project the belief to the convex hull formed by the interior belief point i.
-        // First, compute the weight between belief b_sNearest (a corner) and b_i (in upperGammaB) based
-        // on the Euclidean distances.
-        float iBeliefDistance = 0.0f;
-        for (unsigned int s = 0; s < pomdp->n; s++) {
-            iBeliefDistance += std::pow(hsvi2->upperGammaB[i * pomdp->n + s] - b[s], 2);
-        }
-        iBeliefDistance = std::sqrt(iBeliefDistance);
-
-        // Special: If the belief i, the belief corner at s, and the belief b, are all basically the same, just continue.
-        if (iBeliefDistance + sNearestBeliefDistance < 0.001f) {
-            continue;
-        }
-
-        float iWeight = 1.0f - iBeliefDistance / (iBeliefDistance + sNearestBeliefDistance);
-
-        // Lastly, compute the weighted value between these two points and take the min over all the belief i's.
-        // Note: Again, this is special because the first n values are essentially reserved (and ordered by state).
-        float interpolatedVb = iWeight * hsvi2->upperGammaHVb[i] + (1.0f - iWeight) * hsvi2->upperGammaHVb[sNearest];
-        if (interpolatedVb < upperVb) {
-            upperVb = interpolatedVb;
-        }
-        */
-
+    for (unsigned int i = pomdp->n; i < hsvi2->upperGammaSize; i++) {
         float iWeight = NOVA_FLT_MAX;
         for (unsigned int s = 0; s < pomdp->n; s++) {
             if (hsvi2->upperGammaB[i * pomdp->n + s] > 0.0f) {
@@ -513,8 +464,17 @@ int pomdp_hsvi2_upper_bound_update_step_cpu(const POMDP *pomdp, POMDPHSVI2CPU *h
         return NOVA_ERROR_OUT_OF_MEMORY;
     }
 
+    float VStar = 0.0f;
+
+    for (unsigned int a = 0; a < pomdp->m; a++) {
+        float Qba = pomdp_hsvi2_upper_Qba_cpu(pomdp, hsvi2, b, a);
+        if (VStar < Qba) {
+            VStar = Qba;
+        }
+    }
+
     memcpy(&hsvi2->upperGammaB[hsvi2->upperGammaSize * pomdp->n], b, pomdp->n * sizeof(float));
-    hsvi2->upperGammaHVb[hsvi2->upperGammaSize] = pomdp_hsvi2_upper_Vb_cpu(pomdp, hsvi2, b);
+    hsvi2->upperGammaHVb[hsvi2->upperGammaSize] = VStar;
     hsvi2->upperGammaSize++;
 
     return NOVA_SUCCESS;
@@ -690,7 +650,6 @@ int pomdp_hsvi2_execute_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, POMDPAlpha
     for (hsvi2->currentTrial = 0;
             hsvi2->currentTrial < hsvi2->trials && result != NOVA_CONVERGED;
             hsvi2->currentTrial++) {
-
         result = pomdp_hsvi2_update_cpu(pomdp, hsvi2);
         if (result != NOVA_SUCCESS && result != NOVA_CONVERGED) {
             fprintf(stderr, "Error[pomdp_hsvi2_execute_cpu]: %s\n",
@@ -811,6 +770,11 @@ int pomdp_hsvi2_update_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
         b[s] = pomdp->B[0 * pomdp->rz + i];
     }
 
+
+    // Compute the width before we do this update step. This is used to check an optional
+    // convergence criterion based on the width delta.
+    float previousWidth = pomdp_hsvi2_width_cpu(pomdp, hsvi2, b);
+
     // Iterate until either the width is less than the convergence criterion or
     // the maximum horizon depth is reached.
     float gammaPowerT = 1.0f;
@@ -866,13 +830,16 @@ int pomdp_hsvi2_update_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
     // The entire algorithm has converged if the width(b0) is ever less than epsilon.
     bool converged = false;
     float width = pomdp_hsvi2_width_cpu(pomdp, hsvi2, &traversalBeliefStack[0]);
-    if (width < hsvi2->epsilon) {
+    float widthDelta = std::fabs(previousWidth - width);
+    if (width < hsvi2->epsilon || widthDelta < hsvi2->delta) {
         converged = true;
     }
 
     // Cleanup memory and return the appropriate error (e.g., converged, ran out of memory, or just success).
     delete [] traversalBeliefStack;
-    delete [] b;
+    if (b != nullptr) {
+        delete [] b;
+    }
     traversalBeliefStack = nullptr;
     b = nullptr;
 

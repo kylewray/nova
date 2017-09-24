@@ -35,6 +35,7 @@ namespace nova {
  *  The necessary variables to perform heuristic search value iteration (v2) on a POMDP within nova.
  *  @param  trials                      The number of trials to try at a maximum.
  *  @param  epsilon                     The convergence criterion for the early termination of trials.
+ *  @param  delta                       The *optional* convergence criterion for the change in width checked on each trial.
  *  @param  pruneGrowthThreshold        The percentage value (e.g., 0.1 = 10%) of growth after which alpha-vectors are pruned.
  *  @param  maxAlphaVectors             The maximum number of alpha-vectors <= trials * horizon.
  *  @param  currentTrial                The current trial updated in the outer loop of each iteration.
@@ -50,6 +51,7 @@ namespace nova {
 typedef struct NovaPOMDPHSVI2CPU {
     unsigned int trials;
     float epsilon;
+    float delta;
     float pruneGrowthThreshold;
     unsigned int maxAlphaVectors;
 

@@ -6,6 +6,8 @@
 #  ** * *+
 #   *****
 
+# Wray: Additional hack for 'nova'. R(s, a, s', o) is not allowed, only R(s, a). Modified rewards accordingly.
+
 discount: 0.950000
 values: reward
 states: 92
