@@ -33,20 +33,39 @@ namespace nova {
 
 /**
  *  The necessary variables to perform heuristic search value iteration (v2) on a POMDP within nova.
- *  @param  GammaInitial    The initial values for alpha-vectors (r-n-array).
- *  @param  currentHorizon  The current horizon updated after each iteration.
- *  @param  Gamma           The value of the states (n-array).
- *  @param  GammaPrime      The value of the states (n-array) copy.
- *  @param  pi              The action to take at each state (n-array).
+ *  @param  trials                      The number of trials to try at a maximum.
+ *  @param  epsilon                     The convergence criterion for the early termination of trials.
+ *  @param  delta                       The *optional* convergence criterion for the change in width checked on each trial.
+ *  @param  pruneGrowthThreshold        The percentage value (e.g., 0.1 = 10%) of growth after which alpha-vectors are pruned.
+ *  @param  maxAlphaVectors             The maximum number of alpha-vectors <= trials * horizon.
+ *  @param  currentTrial                The current trial updated in the outer loop of each iteration.
+ *  @param  lowerGammaSize              The size of the lower Gamma alpha-vector arrays.
+ *  @param  lowerGammaSizeLastPruned    The size of the lower Gamma alpha-vector arrays when the last pruning step was done.
+ *  @param  lowerGamma                  The lower bound value of the beliefs as alpha-vectors (maxAlphaVectors-n-array).
+ *  @param  lowerPi                     The lower bound action to take at each state (maxAlphaVectors-array).
+ *  @param  upperGammaSize              The size of the upper Gamma point set arrays.
+ *  @param  upperGammaSizeLastPruned    The size of the upper Gamma point set arrays when the last pruning step was done.
+ *  @param  upperGammaB                 The upper bound beliefs in the point set (maxAlphaVectors-n-array).
+ *  @param  upperGammaHVb               The upper bound value of the corresponding belief in the point set (maxAlphaVectors-array).
  */
 typedef struct NovaPOMDPHSVI2CPU {
-    float *GammaInitial;
+    unsigned int trials;
+    float epsilon;
+    float delta;
+    float pruneGrowthThreshold;
+    unsigned int maxAlphaVectors;
 
-    unsigned int currentHorizon;
+    unsigned int currentTrial;
 
-    float *Gamma;
-    float *GammaPrime;
-    unsigned int *pi;
+    unsigned int lowerGammaSize;
+    unsigned int lowerGammaSizeLastPruned;
+    float *lowerGamma;
+    unsigned int *lowerPi;
+
+    unsigned int upperGammaSize;
+    unsigned int upperGammaSizeLastPruned;
+    float *upperGammaB;
+    float *upperGammaHVb;
 } POMDPHSVI2CPU;
 
 /**
@@ -92,7 +111,7 @@ extern "C" int pomdp_hsvi2_update_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2);
  */
 extern "C" int pomdp_hsvi2_get_policy_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, POMDPAlphaVectors *policy);
 
-};
+}; // namespace nova
 
  
 #endif // NOVA_POMDP_HSVI2_CPU_H

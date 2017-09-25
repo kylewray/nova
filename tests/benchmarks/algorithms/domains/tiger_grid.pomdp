@@ -10,6 +10,8 @@
 # I also hacked it so that there is a unique observation
 # when it is in the goal.
 
+# Wray: Additional hack for 'nova'. R(s, a, s', o) is not allowed, only R(s, a). Modified rewards accordingly.
+
 discount: 0.950000
 values: reward
 states: 36

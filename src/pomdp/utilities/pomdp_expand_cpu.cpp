@@ -24,15 +24,16 @@
 
 #include <nova/pomdp/utilities/pomdp_expand_cpu.h>
 
+#include <nova/pomdp/utilities/pomdp_model_cpu.h>
+#include <nova/error_codes.h>
+#include <nova/constants.h>
+
 #include <stdio.h>
 #include <cstring>
 #include <cstdlib>
 #include <time.h>
 #include <cmath>
-
-#include <nova/pomdp/utilities/pomdp_model_cpu.h>
-#include <nova/error_codes.h>
-#include <nova/constants.h>
+#include <iostream>
 
 namespace nova {
 
@@ -95,7 +96,7 @@ int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd)
 
     // This is our belief used in each step of the for loop.
     float *b = new float[pomdp->n];
-    unsigned int i = 0;
+    unsigned int numBeliefs = 0;
 
     // Create the new beliefs matrix.
     float *Bnew = new float[numBeliefsToAdd * pomdp->n];
@@ -104,24 +105,25 @@ int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd)
     }
 
     // For each belief point we want to expand. Each step will generate a new trajectory
-    // and add the resulting belief point to B.
-    while (i < numBeliefsToAdd) {
+    // and add the resulting belief point to B. This is guaranteed to terminate
+    // basically in O(h * numBeliefsToAdd).
+    while (numBeliefs < numBeliefsToAdd) {
         // Setup the belief used in exploration. We select a random belief as our initial belief.
-        unsigned int b0Index = (unsigned int)((float)rand() / (float)RAND_MAX * (float)pomdp->r);
+        unsigned int b0Index = (unsigned int)((double)rand() / (double)RAND_MAX * (double)pomdp->r);
         pomdp_expand_construct_belief_cpu(pomdp, b0Index, b);
 
         // Randomly pick a horizon for this trajectory. We do this because some domains transition
         // beliefs away from areas on the (n-1)-simplex, never to return. This ensures many paths
         // are added.
-        unsigned int h = (unsigned int)((float)rand() / (float)RAND_MAX * (float)(pomdp->horizon + 1));
+        unsigned int h = (unsigned int)((double)rand() / (double)RAND_MAX * (double)(pomdp->horizon + 1));
 
         // Follow a random trajectory with length equal to this horizon.
         for (unsigned int t = 0; t < h; t++) {
             // Randomly pick an action.
-            unsigned int a = (unsigned int)((float)rand() / (float)RAND_MAX * (float)pomdp->m);
+            unsigned int a = (unsigned int)((double)rand() / (double)RAND_MAX * (double)pomdp->m);
 
             float currentNumber = 0.0f;
-            float targetNumber = (float)rand() / (float)RAND_MAX;
+            float targetNumber = (double)rand() / (double)RAND_MAX;
 
             unsigned int o = 0;
             for (unsigned int op = 0; op < pomdp->z; op++) {
@@ -141,13 +143,14 @@ int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd)
             pomdp_belief_update_cpu(pomdp, b, a, o, bp);
             memcpy(b, bp, pomdp->n * sizeof(float));
             delete [] bp;
+            bp = nullptr;
 
             // Assign the computed belief for this trajectory.
-            memcpy(&Bnew[i * pomdp->n], b, pomdp->n * sizeof(float));
+            memcpy(&Bnew[numBeliefs * pomdp->n], b, pomdp->n * sizeof(float));
 
             // Stop if we have met the belief point quota.
-            i++;
-            if (i >= numBeliefsToAdd) {
+            numBeliefs++;
+            if (numBeliefs >= numBeliefsToAdd) {
                 break;
             }
         }
@@ -158,6 +161,180 @@ int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd)
 
     delete [] b;
     delete [] Bnew;
+    b = nullptr;
+    Bnew = nullptr;
+
+    return NOVA_SUCCESS;
+}
+
+
+#define NOVA_EXPAND_TREE_BIN_SIZE 10
+
+
+typedef struct NovaExpandTree {
+    unsigned int state;
+    NovaExpandTree *successors[NOVA_EXPAND_TREE_BIN_SIZE];
+} ExpandTree;
+
+
+void pomdp_expand_tree_initialize_cpu(ExpandTree *tree, unsigned int state)
+{
+    tree->state = state;
+    for (unsigned int i = 0; i < NOVA_EXPAND_TREE_BIN_SIZE; i++) {
+        tree->successors[i] = nullptr;
+    }
+}
+
+
+void pomdp_expand_tree_uninitialize_cpu(ExpandTree *tree, unsigned int n)
+{
+    if (tree->state >= n) {
+        return;
+    }
+
+    for (unsigned int i = 0; i < NOVA_EXPAND_TREE_BIN_SIZE; i++) {
+        if (tree->successors[i] != nullptr) {
+            pomdp_expand_tree_uninitialize_cpu(tree->successors[i], n);
+            delete tree->successors[i];
+            tree->successors[i] = nullptr;
+        }
+    }
+}
+
+
+bool pomdp_expand_tree_has_belief_cpu(ExpandTree *tree, unsigned int n, float *b)
+{
+    // If we get to the end, then we have found a path, and therefore the belief exists in the tree.
+    if (tree->state >= n) {
+        return true;
+    }
+
+    // We compute the index of the belief value for this state. Then check if the successor is defined.
+    unsigned int index = (unsigned int)roundf(b[tree->state] * (float)(NOVA_EXPAND_TREE_BIN_SIZE - 1));
+
+    // If it not defined, then there is no path and thus the belief is not in the tree. Otherwise, recurse.
+    if (tree->successors[index] == nullptr) {
+        return false;
+    } else {
+        return pomdp_expand_tree_has_belief_cpu(tree->successors[index], n, b);
+    }
+}
+
+
+void pomdp_expand_tree_insert_belief_cpu(ExpandTree *tree, unsigned int n, float *b)
+{
+    // Note: We assume that we already know the belief does not exist in the tree!
+
+    // If we get to the end, then we have found a path, and therefore the belief was successfully created.
+    if (tree->state >= n) {
+        return;
+    }
+
+    // We compute the index of the belief value for this state, initialize the successor if needed,
+    // and continue to recurse.
+    unsigned int index = (unsigned int)roundf(b[tree->state] * (float)(NOVA_EXPAND_TREE_BIN_SIZE - 1));
+
+    if (tree->successors[index] == nullptr) {
+        tree->successors[index] = new ExpandTree();
+        pomdp_expand_tree_initialize_cpu(tree->successors[index], tree->state + 1);
+    }
+
+    pomdp_expand_tree_insert_belief_cpu(tree->successors[index], n, b);
+}
+
+
+int pomdp_expand_random_unique_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd, unsigned int maxTrials)
+{
+    // Ensure the data is valid.
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
+            pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
+            pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
+            pomdp->Z == nullptr || pomdp->B == nullptr || pomdp->horizon < 1 ||
+            numBeliefsToAdd == 0 || maxTrials == 0) {
+        fprintf(stderr, "Error[pomdp_expand_unique_random_cpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    srand(time(nullptr));
+
+    // This is our belief used in each step of the for loop.
+    float *b = new float[pomdp->n];
+    unsigned int numBeliefs = 0;
+
+    // Create the new beliefs matrix.
+    float *Bnew = new float[numBeliefsToAdd * pomdp->n];
+    for (unsigned int i = 0; i < numBeliefsToAdd * pomdp->n; i++) {
+        Bnew[i] = 0.0f;
+    }
+
+    // Create a binary tree for checking if beliefs are already added.
+    ExpandTree *tree = new ExpandTree();
+    pomdp_expand_tree_initialize_cpu(tree, 0);
+
+    // For each belief point we want to expand. Each step will generate a new trajectory and add
+    // the resulting belief point to B, but only if a similar belief has not already been added!
+    for (unsigned int trial = 0; trial < maxTrials && numBeliefs < numBeliefsToAdd; trial++) {
+        // Setup the belief used in exploration. We select a random belief as our initial belief.
+        unsigned int b0Index = (unsigned int)((double)rand() / (double)RAND_MAX * (double)pomdp->r);
+        pomdp_expand_construct_belief_cpu(pomdp, b0Index, b);
+
+        // Follow a random trajectory with length equal to this horizon.
+        for (unsigned int t = 0; t < pomdp->horizon; t++) {
+            // Randomly pick an action.
+            unsigned int a = (unsigned int)((double)rand() / (double)RAND_MAX * (double)pomdp->m);
+
+            float currentNumber = 0.0f;
+            float targetNumber = (double)rand() / (double)RAND_MAX;
+
+            unsigned int o = 0;
+            for (unsigned int op = 0; op < pomdp->z; op++) {
+                float prObs = 0.0f;
+                pomdp_expand_probability_observation_cpu(pomdp, b, a, op, prObs);
+                currentNumber += prObs;
+
+                // Note: We ensure that whatever observation is observed can actually happen.
+                if (currentNumber >= targetNumber && prObs > 0.0f) {
+                    o = op;
+                    break;
+                }
+            }
+
+            // Follow the belief update equation to compute b' for all state primes s'.
+            float *bp = nullptr;
+            pomdp_belief_update_cpu(pomdp, b, a, o, bp);
+            memcpy(b, bp, pomdp->n * sizeof(float));
+            delete [] bp;
+            bp = nullptr;
+
+            // Now we check if this is already added to our belief set. If *not*, only then do we add it.
+            bool alreadyHaveBelief = pomdp_expand_tree_has_belief_cpu(tree, pomdp->n, b);
+            if (!alreadyHaveBelief) {
+                // Assign the computed belief for this trajectory. Stop if we have met the belief point quota.
+                memcpy(&Bnew[numBeliefs * pomdp->n], b, pomdp->n * sizeof(float));
+
+                numBeliefs++;
+                if (numBeliefs >= numBeliefsToAdd) {
+                    break;
+                }
+
+                // Lastly, make sure we put this belief in the expand tree!
+                pomdp_expand_tree_insert_belief_cpu(tree, pomdp->n, b);
+            }
+        }
+    }
+
+    // Finally, we update r, rz, and B with Bnew.
+    pomdp_add_new_raw_beliefs_cpu(pomdp, numBeliefs, Bnew);
+
+    // Cleanup all temporary variables.
+    pomdp_expand_tree_uninitialize_cpu(tree, pomdp->n);
+    delete tree;
+    tree = nullptr;
+
+    delete [] b;
+    delete [] Bnew;
+    b = nullptr;
+    Bnew = nullptr;
 
     return NOVA_SUCCESS;
 }
@@ -217,6 +394,7 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp)
                 if (result != NOVA_SUCCESS) {
                     if (bp != nullptr) {
                         delete [] bp;
+                        bp = nullptr;
                     }
                     continue;
                 }
@@ -238,6 +416,7 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp)
                     }
 
                     delete [] btmp;
+                    btmp = nullptr;
                 }
 
                 // Now, determine if this was the largest b' we found so far. If so, remember it.
@@ -247,6 +426,7 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp)
                 }
 
                 delete [] bp;
+                bp = nullptr;
             }
         }
 
@@ -254,6 +434,7 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp)
         memcpy(&Bnew[i * pomdp->n], bpStar, pomdp->n * sizeof(float));
 
         delete [] bpStar;
+        bpStar = nullptr;
     }
 
     // Finally, we update r, rz, and B with Bnew.
@@ -261,6 +442,8 @@ int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp)
 
     delete [] b;
     delete [] Bnew;
+    b = nullptr;
+    Bnew = nullptr;
 
     return NOVA_SUCCESS;
 }
@@ -357,6 +540,7 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy)
                 if (result != NOVA_SUCCESS) {
                     if (bp != nullptr) {
                         delete [] bp;
+                        bp = nullptr;
                     }
                     continue;
                 }
@@ -382,6 +566,7 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy)
                     }
 
                     delete [] bCheck;
+                    bCheck = nullptr;
                 }
 
                 // Compute alpha = argmax_{alpha in Gamma} alpha * b.
@@ -424,6 +609,8 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy)
 
                 delete [] bp;
                 delete [] bClosest;
+                bp = nullptr;
+                bClosest = nullptr;
             }
 
             if (aValue > aStarValue) {
@@ -447,20 +634,24 @@ int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy)
 
             if (bp != nullptr) {
                 delete [] bp;
+                bp = nullptr;
             }
 
             bStarEpsilonErrorBound = aStarValue;
         }
     }
 
-    delete [] b;
-    delete [] oStar;
-    delete [] oStarValue;
-
     // Finally, we update r, rz, and B with Bnew.
     pomdp_add_new_raw_beliefs_cpu(pomdp, numBeliefsToAdd, Bnew);
 
+    delete [] b;
+    delete [] oStar;
+    delete [] oStarValue;
     delete [] Bnew;
+    b = nullptr;
+    oStar = nullptr;
+    oStarValue = nullptr;
+    Bnew = nullptr;
 
     return NOVA_SUCCESS;
 }
