@@ -24,10 +24,10 @@
 
 #include <nova/pomdp/policies/pomdp_alpha_vectors.h>
 
-#include <stdio.h>
-
 #include <nova/error_codes.h>
 #include <nova/constants.h>
+
+#include <stdio.h>
 
 namespace nova {
 
