@@ -30,16 +30,16 @@ namespace nova {
 
 /*
  *  A structure for POMDP stochastic finite state controller (FSC) policies within nova.
+ *  @param  k       The number of controller nodes.
  *  @param  m       The number of actions in the POMDP.
  *  @param  z       The number of observations in the POMDP.
- *  @param  k       The number of controller nodes.
  *  @param  psi     The probabilities each action will be taken in controller nodes (k-m array).
  *  @param  eta     The probabilities of controller node state transitions (k-a-o-k array).
  */
 typedef struct NovaPOMDPStochasticFSC {
+    unsigned int k;
     unsigned int m;
     unsigned int z;
-    unsigned int k;
     float *psi;
     float *eta;
 } POMDPStochasticFSC;
@@ -62,7 +62,8 @@ extern "C" int pomdp_stochastic_fsc_initialize(POMDPStochasticFSC *policy,
  *  @param  a       The randomly sampled action. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_stochastic_fsc_random_action(POMDPStochasticFSC *policy, unsigned int q, unsigned int &a);
+extern "C" int pomdp_stochastic_fsc_random_action(POMDPStochasticFSC *policy,
+    unsigned int q, unsigned int &a);
 
 /**
  *  Randomly sample a successor contoller node given a controller node, action taken, and subsequent observation.

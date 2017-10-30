@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2017 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -25,15 +25,15 @@
 #include <nova/pomdp/utilities/pomdp_expand_cpu.h>
 
 #include <nova/pomdp/utilities/pomdp_model_cpu.h>
+#include <nova/pomdp/utilities/pomdp_belief_tree_cpu.h>
 #include <nova/error_codes.h>
 #include <nova/constants.h>
 
 #include <stdio.h>
+#include <time.h>
 #include <cstring>
 #include <cstdlib>
-#include <time.h>
 #include <cmath>
-#include <iostream>
 
 namespace nova {
 
@@ -168,81 +168,6 @@ int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd)
 }
 
 
-#define NOVA_EXPAND_TREE_BIN_SIZE 10
-
-
-typedef struct NovaExpandTree {
-    unsigned int state;
-    NovaExpandTree *successors[NOVA_EXPAND_TREE_BIN_SIZE];
-} ExpandTree;
-
-
-void pomdp_expand_tree_initialize_cpu(ExpandTree *tree, unsigned int state)
-{
-    tree->state = state;
-    for (unsigned int i = 0; i < NOVA_EXPAND_TREE_BIN_SIZE; i++) {
-        tree->successors[i] = nullptr;
-    }
-}
-
-
-void pomdp_expand_tree_uninitialize_cpu(ExpandTree *tree, unsigned int n)
-{
-    if (tree->state >= n) {
-        return;
-    }
-
-    for (unsigned int i = 0; i < NOVA_EXPAND_TREE_BIN_SIZE; i++) {
-        if (tree->successors[i] != nullptr) {
-            pomdp_expand_tree_uninitialize_cpu(tree->successors[i], n);
-            delete tree->successors[i];
-            tree->successors[i] = nullptr;
-        }
-    }
-}
-
-
-bool pomdp_expand_tree_has_belief_cpu(ExpandTree *tree, unsigned int n, float *b)
-{
-    // If we get to the end, then we have found a path, and therefore the belief exists in the tree.
-    if (tree->state >= n) {
-        return true;
-    }
-
-    // We compute the index of the belief value for this state. Then check if the successor is defined.
-    unsigned int index = (unsigned int)roundf(b[tree->state] * (float)(NOVA_EXPAND_TREE_BIN_SIZE - 1));
-
-    // If it not defined, then there is no path and thus the belief is not in the tree. Otherwise, recurse.
-    if (tree->successors[index] == nullptr) {
-        return false;
-    } else {
-        return pomdp_expand_tree_has_belief_cpu(tree->successors[index], n, b);
-    }
-}
-
-
-void pomdp_expand_tree_insert_belief_cpu(ExpandTree *tree, unsigned int n, float *b)
-{
-    // Note: We assume that we already know the belief does not exist in the tree!
-
-    // If we get to the end, then we have found a path, and therefore the belief was successfully created.
-    if (tree->state >= n) {
-        return;
-    }
-
-    // We compute the index of the belief value for this state, initialize the successor if needed,
-    // and continue to recurse.
-    unsigned int index = (unsigned int)roundf(b[tree->state] * (float)(NOVA_EXPAND_TREE_BIN_SIZE - 1));
-
-    if (tree->successors[index] == nullptr) {
-        tree->successors[index] = new ExpandTree();
-        pomdp_expand_tree_initialize_cpu(tree->successors[index], tree->state + 1);
-    }
-
-    pomdp_expand_tree_insert_belief_cpu(tree->successors[index], n, b);
-}
-
-
 int pomdp_expand_random_unique_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd, unsigned int maxTrials)
 {
     // Ensure the data is valid.
@@ -267,9 +192,9 @@ int pomdp_expand_random_unique_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd, u
         Bnew[i] = 0.0f;
     }
 
-    // Create a binary tree for checking if beliefs are already added.
-    ExpandTree *tree = new ExpandTree();
-    pomdp_expand_tree_initialize_cpu(tree, 0);
+    // Create a belief tree for checking if beliefs are already added.
+    BeliefTree *tree = new BeliefTree();
+    pomdp_belief_tree_initialize_cpu(tree, 0);
 
     // For each belief point we want to expand. Each step will generate a new trajectory and add
     // the resulting belief point to B, but only if a similar belief has not already been added!
@@ -307,7 +232,7 @@ int pomdp_expand_random_unique_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd, u
             bp = nullptr;
 
             // Now we check if this is already added to our belief set. If *not*, only then do we add it.
-            bool alreadyHaveBelief = pomdp_expand_tree_has_belief_cpu(tree, pomdp->n, b);
+            bool alreadyHaveBelief = pomdp_belief_tree_has_belief_cpu(tree, pomdp->n, b);
             if (!alreadyHaveBelief) {
                 // Assign the computed belief for this trajectory. Stop if we have met the belief point quota.
                 memcpy(&Bnew[numBeliefs * pomdp->n], b, pomdp->n * sizeof(float));
@@ -318,7 +243,7 @@ int pomdp_expand_random_unique_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd, u
                 }
 
                 // Lastly, make sure we put this belief in the expand tree!
-                pomdp_expand_tree_insert_belief_cpu(tree, pomdp->n, b);
+                pomdp_belief_tree_insert_belief_cpu(tree, pomdp->n, b);
             }
         }
     }
@@ -327,7 +252,7 @@ int pomdp_expand_random_unique_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd, u
     pomdp_add_new_raw_beliefs_cpu(pomdp, numBeliefs, Bnew);
 
     // Cleanup all temporary variables.
-    pomdp_expand_tree_uninitialize_cpu(tree, pomdp->n);
+    pomdp_belief_tree_uninitialize_cpu(tree, pomdp->n);
     delete tree;
     tree = nullptr;
 
