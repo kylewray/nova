@@ -22,8 +22,8 @@
  */
 
 
-#ifndef NOVA_POMDP_EXPAND_CPU_H
-#define NOVA_POMDP_EXPAND_CPU_H
+#ifndef NOVA_POMDP_EXPAND_H
+#define NOVA_POMDP_EXPAND_H
 
 
 #include <nova/pomdp/pomdp.h>
@@ -42,7 +42,7 @@ namespace nova {
  *  @param  numBeliefsToAdd     The number of belief points to add.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd);
+extern "C" int pomdp_expand_random(POMDP *pomdp, unsigned int numBeliefsToAdd);
 
 /**
  *  Expand the set of beliefs following random *unique* trajectories (e.g., Perseus' expansion).
@@ -56,7 +56,7 @@ extern "C" int pomdp_expand_random_cpu(POMDP *pomdp, unsigned int numBeliefsToAd
  *  @param  maxTrials           The maximum number of trials to perform while trying to find unique beliefs.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_expand_random_unique_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd, unsigned int maxTrials);
+extern "C" int pomdp_expand_random_unique(POMDP *pomdp, unsigned int numBeliefsToAdd, unsigned int maxTrials);
 
 /**
  *  Expand the set of beliefs by selecting the most distinct successor belief possible for each belief.
@@ -67,7 +67,7 @@ extern "C" int pomdp_expand_random_unique_cpu(POMDP *pomdp, unsigned int numBeli
  *  @param  pomdp               The POMDP object. B and rz will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp);
+extern "C" int pomdp_expand_distinct_beliefs(POMDP *pomdp);
 
 /**
  *  Expand the set of beliefs following the Point-based Error Minimization Algorithm (PEMA).
@@ -78,10 +78,10 @@ extern "C" int pomdp_expand_distinct_beliefs_cpu(POMDP *pomdp);
  *  @param  Gamma               The alpha-vectors from the solution for the current B (r-n array).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_expand_pema_cpu(POMDP *pomdp, const POMDPAlphaVectors *policy);
+extern "C" int pomdp_expand_pema(POMDP *pomdp, const POMDPAlphaVectors *policy);
 
 };
 
 
-#endif // NOVA_POMDP_EXPAND_CPU_H
+#endif // NOVA_POMDP_EXPAND_H
 

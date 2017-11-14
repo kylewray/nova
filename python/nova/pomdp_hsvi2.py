@@ -35,14 +35,14 @@ import pomdp_alpha_vectors as pav
 import nova_pomdp_hsvi2 as nph
 
 
-class POMDPHSVI2CPU(nph.NovaPOMDPHSVI2CPU):
+class POMDPHSVI2(nph.NovaPOMDPHSVI2):
     """ The point-based value iteration solver for POMDPs.
 
         This class provides a clean python wrapper for simple interactions with this solver.
     """
 
     def __init__(self, pomdpObject):
-        """ The constructor for the POMDPHSVI2CPU class.
+        """ The constructor for the POMDPHSVI2 class.
 
             Parameters:
                 pomdpObject     --  The POMDP object on which to run HSVI2.
@@ -67,15 +67,15 @@ class POMDPHSVI2CPU(nph.NovaPOMDPHSVI2CPU):
         self.upperGammaHVb = ct.POINTER(ct.c_float)()
 
         # Attempt to initialize the algorithm.
-        result = nph._nova.pomdp_hsvi2_initialize_cpu(self.pomdpPtr, self)
+        result = nph._nova.pomdp_hsvi2_initialize(self.pomdpPtr, self)
         if result != 0:
             print("Failed to initialize the HSVI2 (CPU) algorithm.")
             raise Exception()
 
     def __del__(self):
-        """ The deconstructor for the POMDPHSVI2CPU class which automatically frees memory. """
+        """ The deconstructor for the POMDPHSVI2 class which automatically frees memory. """
 
-        result = nph._nova.pomdp_hsvi2_uninitialize_cpu(self.pomdpPtr, self)
+        result = nph._nova.pomdp_hsvi2_uninitialize(self.pomdpPtr, self)
         if result != 0:
             print("Failed to free the HSVI2 (CPU) algorithm.")
             raise Exception()
@@ -89,7 +89,7 @@ class POMDPHSVI2CPU(nph.NovaPOMDPHSVI2CPU):
 
         policy = pav.POMDPAlphaVectors()
 
-        result = nph._nova.pomdp_hsvi2_execute_cpu(self.pomdpPtr, self, policy)
+        result = nph._nova.pomdp_hsvi2_execute(self.pomdpPtr, self, policy)
         if result != 0:
             print("Failed to execute the 'nova' library's CPU POMDP solver.")
             raise Exception()
@@ -99,7 +99,7 @@ class POMDPHSVI2CPU(nph.NovaPOMDPHSVI2CPU):
     def update(self):
         """ Update the POMDP by executing one step of the solver. """
 
-        result = nph._nova.pomdp_hsvi2_update_cpu(self.pomdpPtr, self)
+        result = nph._nova.pomdp_hsvi2_update(self.pomdpPtr, self)
         if result != 0:
             print("Failed to update the 'nova' library's CPU POMDP solver.")
             raise Exception()
@@ -113,7 +113,7 @@ class POMDPHSVI2CPU(nph.NovaPOMDPHSVI2CPU):
 
         policy = pav.POMDPAlphaVectors()
 
-        result = nph._nova.pomdp_hsvi2_get_policy_cpu(self.pomdpPtr, self, policy)
+        result = nph._nova.pomdp_hsvi2_get_policy(self.pomdpPtr, self, policy)
         if result != 0:
             print("Failed to get the policy for the 'nova' library's CPU POMDP solver.")
             raise Exception()

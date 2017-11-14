@@ -22,8 +22,8 @@
  */
 
 
-#ifndef NOVA_MDP_VI_CPU_H
-#define NOVA_MDP_VI_CPU_H
+#ifndef NOVA_MDP_VI__H
+#define NOVA_MDP_VI__H
 
 
 #include <nova/mdp/mdp.h>
@@ -39,7 +39,7 @@ namespace nova {
  *  @param  VPrime          The value of the states (n-array) copy.
  *  @param  pi              The action to take at each state (n-array).
  */
-typedef struct NovaMDPVICPU {
+typedef struct NovaMDPVI {
     float *VInitial;
 
     unsigned int currentHorizon;
@@ -47,53 +47,53 @@ typedef struct NovaMDPVICPU {
     float *V;
     float *VPrime;
     unsigned int *pi;
-} MDPVICPU;
+} MDPVI;
 
 /**
- *  Step 1/3: The initialization step of VI. This sets up the V and pi variables.
+ *  Execute all steps of VI for the MDP model specified.
  *  @param  mdp         The MDP object.
- *  @param  vi          The MDPVICPU object containing algorithm variables.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-extern "C" int mdp_vi_initialize_cpu(const MDP *mdp, MDPVICPU *vi);
-
-/**
- *  Step 2/3: Execute VI for the MDP model specified.
- *  @param  mdp         The MDP object.
- *  @param  vi          The MDPVICPU object containing algorithm variables.
+ *  @param  vi          The MDPVI object containing algorithm variables.
  *  @param  policy      The resulting value function policy. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int mdp_vi_execute_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *policy);
+extern "C" int mdp_vi_execute(const MDP *mdp, MDPVI *vi, MDPValueFunction *policy);
 
 /**
- *  Step 3/3: The uninitialization step of VI. This sets up the V and pi variables.
+ *  Step 1/4: The initialization step of VI. This sets up the V and pi variables.
  *  @param  mdp         The MDP object.
- *  @param  vi          The MDPVICPU object containing algorithm variables.
+ *  @param  vi          The MDPVI object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int mdp_vi_uninitialize_cpu(const MDP *mdp, MDPVICPU *vi);
+extern "C" int mdp_vi_initialize(const MDP *mdp, MDPVI *vi);
 
 /**
- *  The update step of VI. This applies the VI procedure once.
+ *  Step 2/4: The update step of VI. This applies the VI procedure once.
  *  @param  mdp         The MDP object.
- *  @param  vi          The MDPVICPU object containing algorithm variables.
+ *  @param  vi          The MDPVI object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int mdp_vi_update_cpu(const MDP *mdp, MDPVICPU *vi);
+extern "C" int mdp_vi_update(const MDP *mdp, MDPVI *vi);
 
 /**
- *  The get resultant policy step of VI. This retrieves the values of states (V) and
+ *  Step 3/4: The get resultant policy step of VI. This retrieves the values of states (V) and
  *  the corresponding actions at each state (pi).
  *  @param  mdp         The MDP object.
- *  @param  vi          The MDPVICPU object containing algorithm variables.
+ *  @param  vi          The MDPVI object containing algorithm variables.
  *  @param  policy      The resulting value function policy. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int mdp_vi_get_policy_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *policy);
+extern "C" int mdp_vi_get_policy(const MDP *mdp, MDPVI *vi, MDPValueFunction *policy);
+
+/**
+ *  Step 4/4: The uninitialization step of VI. This sets up the V and pi variables.
+ *  @param  mdp         The MDP object.
+ *  @param  vi          The MDPVI object containing algorithm variables.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int mdp_vi_uninitialize(const MDP *mdp, MDPVI *vi);
 
 };
 
 
-#endif // NOVA_MDP_VI_CPU_H
+#endif // NOVA_MDP_VI__H
 

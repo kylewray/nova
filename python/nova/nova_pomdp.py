@@ -70,42 +70,42 @@ class NovaPOMDP(ct.Structure):
                 ]
 
 
-# Functions from 'pomdp_model_cpu.h'.
-_nova.pomdp_initialize_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                       ct.c_uint,   # n
-                                       ct.c_uint,   # ns
-                                       ct.c_uint,   # m
-                                       ct.c_uint,   # z
-                                       ct.c_uint,   # r
-                                       ct.c_uint,   # rz
-                                       ct.c_float,  # gamma
-                                       ct.c_uint)   # horizon
-_nova.pomdp_belief_update_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                          ct.POINTER(ct.c_float),                 # b
-                                          ct.c_uint,                              # a
-                                          ct.c_uint,                              # o
-                                          ct.POINTER(ct.POINTER(ct.c_float)))     # bp
-_nova.pomdp_add_new_raw_beliefs_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                                ct.c_uint,                  # numBeliefPointsToAdd
-                                                ct.POINTER(ct.c_float))     # Bnew
-_nova.pomdp_uninitialize_cpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
+# Functions from 'pomdp_model.h'.
+_nova.pomdp_initialize.argtypes = (ct.POINTER(NovaPOMDP),
+                                   ct.c_uint,   # n
+                                   ct.c_uint,   # ns
+                                   ct.c_uint,   # m
+                                   ct.c_uint,   # z
+                                   ct.c_uint,   # r
+                                   ct.c_uint,   # rz
+                                   ct.c_float,  # gamma
+                                   ct.c_uint)   # horizon
+_nova.pomdp_belief_update.argtypes = (ct.POINTER(NovaPOMDP),
+                                      ct.POINTER(ct.c_float),                 # b
+                                      ct.c_uint,                              # a
+                                      ct.c_uint,                              # o
+                                      ct.POINTER(ct.POINTER(ct.c_float)))     # bp
+_nova.pomdp_add_new_raw_beliefs.argtypes = (ct.POINTER(NovaPOMDP),
+                                            ct.c_uint,                  # numBeliefPointsToAdd
+                                            ct.POINTER(ct.c_float))     # Bnew
+_nova.pomdp_uninitialize.argtypes = tuple([ct.POINTER(NovaPOMDP)])
 
 
-# Functions from 'pomdp_expand_cpu.h'.
-_nova.pomdp_expand_random_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                          ct.c_uint)    # numBeliefsToAdd
-_nova.pomdp_expand_random_unique_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                                 ct.c_uint,    # numBeliefsToAdd
-                                                 ct.c_uint)    # maxTrials
-_nova.pomdp_expand_distinct_beliefs_cpu.argtypes = tuple([ct.POINTER(NovaPOMDP)])
-_nova.pomdp_expand_pema_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                        ct.POINTER(pav.POMDPAlphaVectors))  # policy
+# Functions from 'pomdp_expand.h'.
+_nova.pomdp_expand_random.argtypes = (ct.POINTER(NovaPOMDP),
+                                      ct.c_uint)    # numBeliefsToAdd
+_nova.pomdp_expand_random_unique.argtypes = (ct.POINTER(NovaPOMDP),
+                                             ct.c_uint,    # numBeliefsToAdd
+                                             ct.c_uint)    # maxTrials
+_nova.pomdp_expand_distinct_beliefs.argtypes = tuple([ct.POINTER(NovaPOMDP)])
+_nova.pomdp_expand_pema.argtypes = (ct.POINTER(NovaPOMDP),
+                                    ct.POINTER(pav.POMDPAlphaVectors))  # policy
 
 
-# Functions from 'pomdp_sigma_cpu.h'.
-_nova.pomdp_sigma_cpu.argtypes = (ct.POINTER(NovaPOMDP),
-                                  ct.c_uint,                            # numDesiredNonZeroValues
-                                  ct.POINTER(ct.c_float))               # sigma
+# Functions from 'pomdp_sigma.h'.
+_nova.pomdp_sigma.argtypes = (ct.POINTER(NovaPOMDP),
+                              ct.c_uint,                # numDesiredNonZeroValues
+                              ct.POINTER(ct.c_float))   # sigma
 
 
 # Functions from 'pomdp_model_gpu.h'.

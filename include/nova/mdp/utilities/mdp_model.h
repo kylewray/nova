@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -22,28 +22,39 @@
  */
 
 
-#ifndef NOVA_POMDP_SIGMA_CPU_H
-#define NOVA_POMDP_SIGMA_CPU_H
+#ifndef NOVA_MDP_MODEL_H
+#define NOVA_MDP_MODEL_H
 
 
-#include <nova/pomdp/pomdp.h>
-
-#include <utility>
+#include <nova/mdp/mdp.h>
 
 namespace nova {
 
 /**
- *  Perform the sigma-approximation on the current set of beliefs and revise them within the POMDP.
- *  @param  pomdp                       The POMDP object.
- *  @param  numDesiredNonZeroValues     The desired maximum number of non-zero values in belief vectors.
- *  @param  sigma                       The resultant sigma value, proportional to the approximation error.
- *                                      This will be modified.
+ *  Allocate memory for *only* the MDP's internal arrays, given the relevant parameters.
+ *  @param  mdp         The MDP object. Only arrays within will be freed.
+ *  @param  n           The number of states.
+ *  @param  ns          The maximum number of successor states.
+ *  @param  m           The number of actions.
+ *  @param  gamma       The discount factor between 0.0 and 1.0.
+ *  @param  horizon     The horizon of the MDP.
+ *  @param  epsilon     The convergence criterion for algorithms like LAO*.
+ *  @param  s0          The initial state.
+ *  @param  ng          The number of goals; optional for SSP MDPs.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_sigma_cpu(POMDP *pomdp, unsigned int numDesiredNonZeroValues, float &sigma);
+extern "C" int mdp_initialize(MDP *mdp, unsigned int n, unsigned int ns, unsigned int m, float gamma,
+    unsigned int horizon, float epsilon, unsigned int s0, unsigned int ng);
+
+/**
+ *  Free the memory for *only* the MDP's internal arrays.
+ *  @param  mdp     The MDP object. Only arrays within will be freed.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int mdp_uninitialize(MDP *mdp);
 
 };
 
 
-#endif // NOVA_POMDP_SIGMA_CPU_H
+#endif // NOVA_MDP_MODEL_H
 

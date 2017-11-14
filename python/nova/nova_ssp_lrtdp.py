@@ -44,8 +44,8 @@ else:
                     "..", "..", "lib", "libnova.so"))
 
 
-class NovaSSPLRTDPCPU(ct.Structure):
-    """ The C struct SSPLRTDPCPU object. """
+class NovaSSPLRTDP(ct.Structure):
+    """ The C struct SSPLRTDP object. """
 
     _fields_ = [("VInitial", ct.POINTER(ct.c_float)),
                 ("trials", ct.c_uint),
@@ -57,22 +57,22 @@ class NovaSSPLRTDPCPU(ct.Structure):
                 ]
 
 
-_nova.ssp_lrtdp_initialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                          ct.POINTER(NovaSSPLRTDPCPU))
+_nova.ssp_lrtdp_execute.argtypes = (ct.POINTER(mdp.MDP),
+                                    ct.POINTER(NovaSSPLRTDP),
+                                    ct.POINTER(mvf.MDPValueFunction))
 
-_nova.ssp_lrtdp_execute_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                       ct.POINTER(NovaSSPLRTDPCPU),
+_nova.ssp_lrtdp_initialize.argtypes = (ct.POINTER(mdp.MDP),
+                                       ct.POINTER(NovaSSPLRTDP))
+
+_nova.ssp_lrtdp_update.argtypes = (ct.POINTER(mdp.MDP),
+                                   ct.POINTER(NovaSSPLRTDP))
+
+_nova.ssp_lrtdp_get_policy.argtypes = (ct.POINTER(mdp.MDP),
+                                       ct.POINTER(NovaSSPLRTDP),
                                        ct.POINTER(mvf.MDPValueFunction))
 
-_nova.ssp_lrtdp_uninitialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                            ct.POINTER(NovaSSPLRTDPCPU))
-
-_nova.ssp_lrtdp_update_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                      ct.POINTER(NovaSSPLRTDPCPU))
-
-_nova.ssp_lrtdp_get_policy_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                          ct.POINTER(NovaSSPLRTDPCPU),
-                                          ct.POINTER(mvf.MDPValueFunction))
+_nova.ssp_lrtdp_uninitialize.argtypes = (ct.POINTER(mdp.MDP),
+                                         ct.POINTER(NovaSSPLRTDP))
 
 
 

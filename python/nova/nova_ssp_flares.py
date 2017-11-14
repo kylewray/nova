@@ -44,8 +44,8 @@ else:
                     "..", "..", "lib", "libnova.so"))
 
 
-class NovaSSPFlaresCPU(ct.Structure):
-    """ The C struct SSPFlaresCPU object. """
+class NovaSSPFlares(ct.Structure):
+    """ The C struct SSPFlares object. """
 
     _fields_ = [("VInitial", ct.POINTER(ct.c_float)),
                 ("trials", ct.c_uint),
@@ -58,22 +58,22 @@ class NovaSSPFlaresCPU(ct.Structure):
                 ]
 
 
-_nova.ssp_flares_initialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                            ct.POINTER(NovaSSPFlaresCPU))
+_nova.ssp_flares_execute.argtypes = (ct.POINTER(mdp.MDP),
+                                     ct.POINTER(NovaSSPFlares),
+                                     ct.POINTER(mvf.MDPValueFunction))
 
-_nova.ssp_flares_execute_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                         ct.POINTER(NovaSSPFlaresCPU),
-                                         ct.POINTER(mvf.MDPValueFunction))
+_nova.ssp_flares_initialize.argtypes = (ct.POINTER(mdp.MDP),
+                                        ct.POINTER(NovaSSPFlares))
 
-_nova.ssp_flares_uninitialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                              ct.POINTER(NovaSSPFlaresCPU))
+_nova.ssp_flares_update.argtypes = (ct.POINTER(mdp.MDP),
+                                    ct.POINTER(NovaSSPFlares))
 
-_nova.ssp_flares_update_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                        ct.POINTER(NovaSSPFlaresCPU))
+_nova.ssp_flares_get_policy.argtypes = (ct.POINTER(mdp.MDP),
+                                        ct.POINTER(NovaSSPFlares),
+                                        ct.POINTER(mvf.MDPValueFunction))
 
-_nova.ssp_flares_get_policy_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                            ct.POINTER(NovaSSPFlaresCPU),
-                                            ct.POINTER(mvf.MDPValueFunction))
+_nova.ssp_flares_uninitialize.argtypes = (ct.POINTER(mdp.MDP),
+                                          ct.POINTER(NovaSSPFlares))
 
 
 

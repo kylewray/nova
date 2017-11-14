@@ -21,7 +21,7 @@
  *  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <nova/pomdp/utilities/pomdp_model_cpu.h>
+#include <nova/pomdp/utilities/pomdp_model.h>
 
 #include <stdio.h>
 #include <cmath>
@@ -31,14 +31,14 @@
 
 namespace nova {
 
-int pomdp_initialize_cpu(POMDP *pomdp, unsigned int n, unsigned int ns, unsigned int m,
+int pomdp_initialize(POMDP *pomdp, unsigned int n, unsigned int ns, unsigned int m,
     unsigned int z, unsigned int r, unsigned int rz, float gamma, unsigned int horizon)
 {
     if (pomdp == nullptr || pomdp->S != nullptr || pomdp->T != nullptr || pomdp->O != nullptr ||
             pomdp->R != nullptr || pomdp->Z != nullptr || pomdp->B != nullptr ||
             n == 0 || ns == 0 || n < ns || m == 0 || z == 0 || r == 0 || rz == 0 ||
             gamma < 0.0f || gamma > 1.0f || horizon == 0) {
-        fprintf(stderr, "Error[pomdp_initialize_cpu]: %s\n", "Invalid input.");
+        fprintf(stderr, "Error[pomdp_initialize]: %s\n", "Invalid input.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
@@ -86,13 +86,13 @@ int pomdp_initialize_cpu(POMDP *pomdp, unsigned int n, unsigned int ns, unsigned
 }
 
 
-int pomdp_belief_update_cpu(const POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float *&bp)
+int pomdp_belief_update(const POMDP *pomdp, const float *b, unsigned int a, unsigned int o, float *&bp)
 {
     // Ensure the data is valid.
     if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 || pomdp->z == 0 ||
             pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
             bp != nullptr) {
-        fprintf(stderr, "Error[pomdp_belief_update_cpu]: %s\n", "Invalid arguments.");
+        fprintf(stderr, "Error[pomdp_belief_update]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
@@ -124,7 +124,7 @@ int pomdp_belief_update_cpu(const POMDP *pomdp, const float *b, unsigned int a, 
     // very likely to be an invalid belief. In practice, this arises when there is a probabilistically
     // impossible observation, given the POMDP.
     if (std::fabs(normalizingConstant) < NOVA_FLT_ERR_TOL) {
-        //fprintf(stderr, "Error[pomdp_belief_update_cpu]: %s\n",
+        //fprintf(stderr, "Error[pomdp_belief_update]: %s\n",
         //        "Computed belief is invalid. The observation is impossible given the belief and action.");
         delete [] bp;
         bp = nullptr;
@@ -139,7 +139,7 @@ int pomdp_belief_update_cpu(const POMDP *pomdp, const float *b, unsigned int a, 
 }
 
 
-int pomdp_expand_update_max_non_zero_values_cpu(const POMDP *pomdp, const float *b,
+int pomdp_expand_update_max_non_zero_values(const POMDP *pomdp, const float *b,
     unsigned int &maxNonZeroValues)
 {
     unsigned int numNonZeroValues = 0;
@@ -156,12 +156,12 @@ int pomdp_expand_update_max_non_zero_values_cpu(const POMDP *pomdp, const float 
 }
 
 
-int pomdp_add_new_raw_beliefs_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd, float *Bnew)
+int pomdp_add_new_raw_beliefs(POMDP *pomdp, unsigned int numBeliefsToAdd, float *Bnew)
 {
     // Ensure the data is valid.
     if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 || pomdp->z == 0 ||
             numBeliefsToAdd == 0 || Bnew == nullptr) {
-        fprintf(stderr, "Error[pomdp_add_new_beliefs_raw_cpu]: %s\n", "Invalid arguments.");
+        fprintf(stderr, "Error[pomdp_add_new_beliefs_raw]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
@@ -171,7 +171,7 @@ int pomdp_add_new_raw_beliefs_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd, fl
     // Compute the new maximimum number of non-zero values.
     for (unsigned int i = 0; i < numBeliefsToAdd; i++) {
         unsigned int maxNonZeroValues = 0;
-        pomdp_expand_update_max_non_zero_values_cpu(pomdp, &Bnew[i * pomdp->n + 0], maxNonZeroValues);
+        pomdp_expand_update_max_non_zero_values(pomdp, &Bnew[i * pomdp->n + 0], maxNonZeroValues);
 
         if (rzFinal < maxNonZeroValues) {
             rzFinal = maxNonZeroValues;
@@ -231,10 +231,10 @@ int pomdp_add_new_raw_beliefs_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd, fl
 }
 
 
-int pomdp_uninitialize_cpu(POMDP *pomdp)
+int pomdp_uninitialize(POMDP *pomdp)
 {
     if (pomdp == nullptr) {
-        fprintf(stderr, "Error[pomdp_uninitialize_cpu]: %s\n", "Invalid input.");
+        fprintf(stderr, "Error[pomdp_uninitialize]: %s\n", "Invalid input.");
         return NOVA_ERROR_INVALID_DATA;
     }
 

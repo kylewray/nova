@@ -22,8 +22,8 @@
  */
 
 
-#ifndef NOVA_POMDP_UTILITIES_CPU_H
-#define NOVA_POMDP_UTILITIES_CPU_H
+#ifndef NOVA_POMDP_UTILITIES_H
+#define NOVA_POMDP_UTILITIES_H
 
 
 #include <nova/pomdp/pomdp.h>
@@ -44,7 +44,7 @@ namespace nova {
  *  @param  epsilon     The convergence criterion for algorithms like LAO*.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_initialize_cpu(POMDP *pomdp, unsigned int n, unsigned int ns, unsigned int m,
+extern "C" int pomdp_initialize(POMDP *pomdp, unsigned int n, unsigned int ns, unsigned int m,
     unsigned int z, unsigned int r, unsigned int rz, float gamma, unsigned int horizon);
 
 /**
@@ -56,7 +56,7 @@ extern "C" int pomdp_initialize_cpu(POMDP *pomdp, unsigned int n, unsigned int n
  *  @param  bp          The resulting new belief. This will be created and modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_belief_update_cpu(const POMDP *pomdp, const float *b,
+extern "C" int pomdp_belief_update(const POMDP *pomdp, const float *b,
         unsigned int a, unsigned int o, float *&bp);
 
 /**
@@ -66,7 +66,7 @@ extern "C" int pomdp_belief_update_cpu(const POMDP *pomdp, const float *b,
  *  @param  Bnew                The new raw beliefs to add to B (numBeliefsToAdd-n array).
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_add_new_raw_beliefs_cpu(POMDP *pomdp, unsigned int numBeliefsToAdd,
+extern "C" int pomdp_add_new_raw_beliefs(POMDP *pomdp, unsigned int numBeliefsToAdd,
         float *Bnew);
 
 /**
@@ -74,10 +74,10 @@ extern "C" int pomdp_add_new_raw_beliefs_cpu(POMDP *pomdp, unsigned int numBelie
  *  @param  pomdp       The POMDP object. Only arrays within will be freed.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_uninitialize_cpu(POMDP *pomdp);
+extern "C" int pomdp_uninitialize(POMDP *pomdp);
 
 };
 
 
-#endif // NOVA_POMDP_UTILITIES_CPU_H
+#endif // NOVA_POMDP_UTILITIES_H
 

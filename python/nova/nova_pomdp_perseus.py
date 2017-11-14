@@ -44,8 +44,8 @@ else:
                     "..", "..", "lib", "libnova.so"))
 
 
-class NovaPOMDPPerseusCPU(ct.Structure):
-    """ The C struct NovaPOMDPPerseusCPU object. """
+class NovaPOMDPPerseus(ct.Structure):
+    """ The C struct NovaPOMDPPerseus object. """
 
     _fields_ = [("GammaInitial", ct.POINTER(ct.c_float)),
                 ("currentHorizon", ct.c_uint),
@@ -60,20 +60,20 @@ class NovaPOMDPPerseusCPU(ct.Structure):
                 ]
 
 
-_nova.pomdp_perseus_initialize_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
-                                               ct.POINTER(NovaPOMDPPerseusCPU))
+_nova.pomdp_perseus_execute.argtypes = (ct.POINTER(pomdp.POMDP),
+                                        ct.POINTER(NovaPOMDPPerseus),
+                                        ct.POINTER(pav.POMDPAlphaVectors))
 
-_nova.pomdp_perseus_execute_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
-                                            ct.POINTER(NovaPOMDPPerseusCPU),
-                                            ct.POINTER(pav.POMDPAlphaVectors))
+_nova.pomdp_perseus_initialize.argtypes = (ct.POINTER(pomdp.POMDP),
+                                           ct.POINTER(NovaPOMDPPerseus))
 
-_nova.pomdp_perseus_uninitialize_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
-                                                 ct.POINTER(NovaPOMDPPerseusCPU))
+_nova.pomdp_perseus_update.argtypes = (ct.POINTER(pomdp.POMDP),
+                                       ct.POINTER(NovaPOMDPPerseus))
 
-_nova.pomdp_perseus_update_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
-                                           ct.POINTER(NovaPOMDPPerseusCPU))
+_nova.pomdp_perseus_get_policy.argtypes = (ct.POINTER(pomdp.POMDP),
+                                           ct.POINTER(NovaPOMDPPerseus),
+                                           ct.POINTER(pav.POMDPAlphaVectors))
 
-_nova.pomdp_perseus_get_policy_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
-                                               ct.POINTER(NovaPOMDPPerseusCPU),
-                                               ct.POINTER(pav.POMDPAlphaVectors))
+_nova.pomdp_perseus_uninitialize.argtypes = (ct.POINTER(pomdp.POMDP),
+                                             ct.POINTER(NovaPOMDPPerseus))
 

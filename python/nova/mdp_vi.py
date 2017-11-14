@@ -35,14 +35,14 @@ import mdp_value_function as mvf
 import nova_mdp_vi as nmvi
 
 
-class MDPValueIterationCPU(nmvi.NovaMDPValueIterationCPU):
+class MDPVI(nmvi.NovaMDPVI):
     """ The value iteration solver for MDPs.
 
         This class provides a clean python wrapper for simple interactions with this solver.
     """
 
     def __init__(self, mdpObject, VInitial=None):
-        """ The constructor for the MDPValueIterationCPU class.
+        """ The constructor for the MDPVI class.
 
             Parameters:
                 mdpObject   --  The MDP object on which to run value iteration.
@@ -69,15 +69,15 @@ class MDPValueIterationCPU(nmvi.NovaMDPValueIterationCPU):
         self.pi = ct.POINTER(ct.c_uint)()
 
         # Attempt to initialize the algorithm.
-        result = nmvi._nova.mdp_vi_initialize_cpu(self.mdpPtr, self)
+        result = nmvi._nova.mdp_vi_initialize(self.mdpPtr, self)
         if result != 0:
             print("Failed to initialize the value iteration (CPU) algorithm.")
             raise Exception()
 
     def __del__(self):
-        """ The deconstructor for the MDPValueIterationCPU class which automatically frees memory. """
+        """ The deconstructor for the MDPVI class which automatically frees memory. """
 
-        result = nmvi._nova.mdp_vi_uninitialize_cpu(self.mdpPtr, self)
+        result = nmvi._nova.mdp_vi_uninitialize(self.mdpPtr, self)
         if result != 0:
             print("Failed to free the value iteration (CPU) algorithm.")
             raise Exception()
@@ -91,7 +91,7 @@ class MDPValueIterationCPU(nmvi.NovaMDPValueIterationCPU):
 
         policy = mvf.MDPValueFunction()
 
-        result = nmvi._nova.mdp_vi_execute_cpu(self.mdpPtr, self, policy)
+        result = nmvi._nova.mdp_vi_execute(self.mdpPtr, self, policy)
         if result != 0:
             print("Failed to execute the 'nova' library's CPU MDP solver.")
             raise Exception()
@@ -122,14 +122,14 @@ class MDPValueIterationCPU(nmvi.NovaMDPValueIterationCPU):
         return result
 
 
-class MDPValueIterationGPU(nmvi.NovaMDPValueIterationGPU):
+class MDPVIGPU(nmvi.NovaMDPVIGPU):
     """ The value iteration solver for MDPs.
 
         This class provides a clean python wrapper for simple interactions with this solver.
     """
 
     def __init__(self, mdpObject, numThreads=1024, Vinitial=None):
-        """ The constructor for the MDPValueIterationGPU class.
+        """ The constructor for the MDPVIGPU class.
 
             Parameters:
                 mdpObject   --  The MDP object on which to run value iteration.
@@ -164,7 +164,7 @@ class MDPValueIterationGPU(nmvi.NovaMDPValueIterationGPU):
             raise Exception()
 
     def __del__(self):
-        """ The deconstructor for the MDPValueIterationGPU class which automatically frees memory. """
+        """ The deconstructor for the MDPVIGPU class which automatically frees memory. """
 
         result = nmvi._nova.mdp_vi_uninitialize_gpu(self.mdpPtr, self)
         if result != 0:

@@ -84,22 +84,22 @@ for trial in trials:
     manhattanHeuristic = np.array([abs(y) + abs(trial['w'] - 1 - x) for y, x in it.product(range(trial['h']), range(trial['w']))] + [0.0]).flatten()
 
     if trial['algorithm'] == "vi" and trial['process'] == "cpu":
-        algorithm = MDPValueIterationCPU(gridWorld)
+        algorithm = MDPVI(gridWorld)
     elif trial['algorithm'] == "vi" and trial['process'] == "gpu":
-        algorithm = MDPValueIterationGPU(gridWorld)
+        algorithm = MDPVIGPU(gridWorld)
     elif trial['algorithm'] == "lao*" and trial['process'] == "cpu":
-        algorithm = SSPLAOStarCPU(gridWorld)
+        algorithm = SSPLAOStar(gridWorld)
     elif trial['algorithm'] == "lrtdp" and trial['process'] == "cpu":
-        algorithm = SSPLRTDPCPU(gridWorld)
+        algorithm = SSPLRTDP(gridWorld)
         algorithm.trials = 10000
     elif trial['algorithm'] == "flares" and trial['process'] == "cpu":
         #array_type_n_float = ct.c_float * gridWorld.n
         #heuristic = array_type_n_float(*manhattanHeuristic)
-        #algorithm = SSPFlaresCPU(gridWorld, VInitial=heuristic)
+        #algorithm = SSPFlares(gridWorld, VInitial=heuristic)
         #algorithm.trials = 10000
         #algorithm.t = 2
 
-        algorithm = SSPFlaresCPU(gridWorld)
+        algorithm = SSPFlares(gridWorld)
         algorithm.trials = 10000
         algorithm.t = 2
 

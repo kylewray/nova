@@ -22,7 +22,7 @@
  */
 
 
-#include <nova/mdp/algorithms/mdp_vi_cpu.h>
+#include <nova/mdp/algorithms/mdp_vi.h>
 
 #include <stdio.h>
 #include <cstring>
@@ -33,7 +33,7 @@
 
 namespace nova {
 
-void mdp_vi_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, float gamma,
+void mdp_vi_bellman_update(unsigned int n, unsigned int ns, unsigned int m, float gamma,
         const int *S, const float *T, const float *R, const float *V,
         float *VPrime, unsigned int *pi)
 {
@@ -63,10 +63,57 @@ void mdp_vi_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, 
 }
 
 
-int mdp_vi_initialize_cpu(const MDP *mdp, MDPVICPU *vi)
+int mdp_vi_execute(const MDP *mdp, MDPVI *vi, MDPValueFunction *policy)
+{
+    // First, ensure data is valid.
+    if (mdp == nullptr || mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
+            mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
+            mdp->gamma < 0.0f || mdp->gamma > 1.0f || mdp->horizon < 1 ||
+            vi == nullptr || policy == nullptr) {
+        fprintf(stderr, "Error[mdp_vi_execute]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    int result = mdp_vi_initialize(mdp, vi);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[mdp_vi_execute]: %s\n", "Failed to initialize the  variables.");
+        return result;
+    }
+
+    // We iterate over all time steps up to the horizon. Initialize set the currentHorizon to 0,
+    // and the update increments it.
+    while (vi->currentHorizon < mdp->horizon) {
+        result = mdp_vi_update(mdp, vi);
+        if (result != NOVA_SUCCESS) {
+            fprintf(stderr, "Error[mdp_vi_execute]: %s\n", "Failed to perform Bellman update on the .");
+
+            int resultPrime = mdp_vi_uninitialize(mdp, vi);
+            if (resultPrime != NOVA_SUCCESS) {
+                fprintf(stderr, "Error[mdp_vi_execute]: %s\n", "Failed to uninitialize the  variables.");
+            }
+            return result;
+        }
+    }
+
+    result = mdp_vi_get_policy(mdp, vi, policy);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[mdp_vi_execute]: %s\n", "Failed to get the policy.");
+    }
+
+    result = mdp_vi_uninitialize(mdp, vi);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[mdp_vi_execute]: %s\n", "Failed to uninitialize the  variables.");
+        return result;
+    }
+
+    return NOVA_SUCCESS;
+}
+
+
+int mdp_vi_initialize(const MDP *mdp, MDPVI *vi)
 {
     if (mdp == nullptr || mdp->n == 0 || vi == nullptr) {
-        fprintf(stderr, "Error[mdp_vi_initialize_cpu]: %s\n", "Invalid arguments.");
+        fprintf(stderr, "Error[mdp_vi_initialize]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
@@ -98,57 +145,51 @@ int mdp_vi_initialize_cpu(const MDP *mdp, MDPVICPU *vi)
 }
 
 
-int mdp_vi_execute_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *policy)
+int mdp_vi_update(const MDP *mdp, MDPVI *vi)
 {
-    // First, ensure data is valid.
-    if (mdp == nullptr || mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
-            mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
-            mdp->gamma < 0.0f || mdp->gamma > 1.0f || mdp->horizon < 1 ||
-            vi == nullptr || policy == nullptr) {
-        fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Invalid arguments.");
-        return NOVA_ERROR_INVALID_DATA;
+    if (vi->currentHorizon % 2 == 0) {
+        mdp_vi_bellman_update(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, vi->V, vi->VPrime, vi->pi);
+    } else {
+        mdp_vi_bellman_update(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, vi->VPrime, vi->V, vi->pi);
     }
 
-    int result = mdp_vi_initialize_cpu(mdp, vi);
-    if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Failed to initialize the CPU variables.");
-        return result;
-    }
-
-    // We iterate over all time steps up to the horizon. Initialize set the currentHorizon to 0,
-    // and the update increments it.
-    while (vi->currentHorizon < mdp->horizon) {
-        result = mdp_vi_update_cpu(mdp, vi);
-        if (result != NOVA_SUCCESS) {
-            fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Failed to perform Bellman update on the CPU.");
-
-            int resultPrime = mdp_vi_uninitialize_cpu(mdp, vi);
-            if (resultPrime != NOVA_SUCCESS) {
-                fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Failed to uninitialize the CPU variables.");
-            }
-            return result;
-        }
-    }
-
-    result = mdp_vi_get_policy_cpu(mdp, vi, policy);
-    if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Failed to get the policy.");
-    }
-
-    result = mdp_vi_uninitialize_cpu(mdp, vi);
-    if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[mdp_vi_execute_cpu]: %s\n", "Failed to uninitialize the CPU variables.");
-        return result;
-    }
+    vi->currentHorizon++;
 
     return NOVA_SUCCESS;
 }
 
 
-int mdp_vi_uninitialize_cpu(const MDP *mdp, MDPVICPU *vi)
+int mdp_vi_get_policy(const MDP *mdp, MDPVI *vi, MDPValueFunction *policy)
+{
+    if (mdp == nullptr || vi == nullptr || policy == nullptr) {
+        fprintf(stderr, "Error[mdp_vi_get_policy]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    // Initialize the policy, which allocates memory.
+    int result = mdp_value_function_initialize(policy, mdp->n, mdp->m, 0);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[mdp_vi_get_policy]: %s\n", "Could not create the policy.");
+        return NOVA_ERROR_POLICY_CREATION;
+    }
+
+    // Copy the final (or intermediate) result, both V and pi. This assumes memory has been allocated
+    // for the variables provided.
+    if (vi->currentHorizon % 2 == 0) {
+        memcpy(policy->V, vi->V, mdp->n * sizeof(float));
+    } else {
+        memcpy(policy->V, vi->VPrime, mdp->n * sizeof(float));
+    }
+    memcpy(policy->pi, vi->pi, mdp->n * sizeof(float));
+
+    return NOVA_SUCCESS;
+}
+
+
+int mdp_vi_uninitialize(const MDP *mdp, MDPVI *vi)
 {
     if (mdp == nullptr || vi == nullptr) {
-        fprintf(stderr, "Error[mdp_vi_uninitialize_cpu]: %s\n", "Invalid arguments.");
+        fprintf(stderr, "Error[mdp_vi_uninitialize]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
@@ -170,47 +211,6 @@ int mdp_vi_uninitialize_cpu(const MDP *mdp, MDPVICPU *vi)
         delete [] vi->pi;
     }
     vi->pi = nullptr;
-
-    return NOVA_SUCCESS;
-}
-
-
-int mdp_vi_update_cpu(const MDP *mdp, MDPVICPU *vi)
-{
-    if (vi->currentHorizon % 2 == 0) {
-        mdp_vi_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, vi->V, vi->VPrime, vi->pi);
-    } else {
-        mdp_vi_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->gamma, mdp->S, mdp->T, mdp->R, vi->VPrime, vi->V, vi->pi);
-    }
-
-    vi->currentHorizon++;
-
-    return NOVA_SUCCESS;
-}
-
-
-int mdp_vi_get_policy_cpu(const MDP *mdp, MDPVICPU *vi, MDPValueFunction *policy)
-{
-    if (mdp == nullptr || vi == nullptr || policy == nullptr) {
-        fprintf(stderr, "Error[mdp_vi_get_policy_cpu]: %s\n", "Invalid arguments.");
-        return NOVA_ERROR_INVALID_DATA;
-    }
-
-    // Initialize the policy, which allocates memory.
-    int result = mdp_value_function_initialize(policy, mdp->n, mdp->m, 0);
-    if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[mdp_vi_get_policy_cpu]: %s\n", "Could not create the policy.");
-        return NOVA_ERROR_POLICY_CREATION;
-    }
-
-    // Copy the final (or intermediate) result, both V and pi. This assumes memory has been allocated
-    // for the variables provided.
-    if (vi->currentHorizon % 2 == 0) {
-        memcpy(policy->V, vi->V, mdp->n * sizeof(float));
-    } else {
-        memcpy(policy->V, vi->VPrime, mdp->n * sizeof(float));
-    }
-    memcpy(policy->pi, vi->pi, mdp->n * sizeof(float));
 
     return NOVA_SUCCESS;
 }

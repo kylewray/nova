@@ -22,9 +22,9 @@
  */
 
 
-#include <nova/pomdp/algorithms/pomdp_perseus_cpu.h>
+#include <nova/pomdp/algorithms/pomdp_perseus.h>
 
-#include <nova/pomdp/utilities/pomdp_functions_cpu.h>
+#include <nova/pomdp/utilities/pomdp_functions.h>
 
 #include <nova/error_codes.h>
 #include <nova/constants.h>
@@ -36,10 +36,63 @@
 
 namespace nova {
 
-int pomdp_perseus_initialize_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
+int pomdp_perseus_execute(const POMDP *pomdp, POMDPPerseus *per, POMDPAlphaVectors *policy)
+{
+    // Ensure the data is valid.
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
+            pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
+            pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
+            pomdp->Z == nullptr || pomdp->B == nullptr ||
+            pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
+            per == nullptr || policy == nullptr) {
+        fprintf(stderr, "Error[pomdp_perseus_execute]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    int result = pomdp_perseus_initialize(pomdp, per);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[pomdp_perseus_execute]: %s\n", "Failed to initialize  variables.");
+        return result;
+    }
+
+    // For each of the updates, run Perseus. The update function checks for convergence and will terminate
+    // the loop early (if BTilde is empty). Also, note that the currentHorizon is initialized to zero above,
+    // and is updated in the update function below.
+    while (per->currentHorizon < pomdp->horizon) {
+        //printf("Perseus ( Version) -- Iteration %i of %i\n", pomdp->currentHorizon, pomdp->horizon);
+
+        // Note: "Convergence" here means iterating until Btilde is empty, which is always guaranteed to
+        // be at most r iterations (the number of belief points).
+        result = NOVA_SUCCESS;
+
+        while (result != NOVA_CONVERGED) {
+            result = pomdp_perseus_update(pomdp, per);
+            if (result != NOVA_CONVERGED && result != NOVA_SUCCESS) {
+                fprintf(stderr, "Error[pomdp_perseus_execute]: %s\n", "Failed to perform Perseus update step.");
+                return result;
+            }
+        }
+    }
+
+    result = pomdp_perseus_get_policy(pomdp, per, policy);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[pomdp_perseus_execute]: %s\n", "Failed to get the policy.");
+    }
+
+    result = pomdp_perseus_uninitialize(pomdp, per);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[pomdp_perseus_execute]: %s\n", "Failed to uninitialize the  variables.");
+        return result;
+    }
+
+    return NOVA_SUCCESS;
+}
+
+
+int pomdp_perseus_initialize(const POMDP *pomdp, POMDPPerseus *per)
 {
     if (pomdp == nullptr || pomdp->r == 0 || pomdp->n == 0 || per == nullptr) {
-        fprintf(stderr, "Error[pomdp_perseus_initialize_cpu]: %s\n", "Invalid arguments.");
+        fprintf(stderr, "Error[pomdp_perseus_initialize]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
@@ -91,104 +144,7 @@ int pomdp_perseus_initialize_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
 }
 
 
-int pomdp_perseus_execute_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDPAlphaVectors *policy)
-{
-    // Ensure the data is valid.
-    if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
-            pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
-            pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
-            pomdp->Z == nullptr || pomdp->B == nullptr ||
-            pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
-            per == nullptr || policy == nullptr) {
-        fprintf(stderr, "Error[pomdp_perseus_execute_cpu]: %s\n", "Invalid arguments.");
-        return NOVA_ERROR_INVALID_DATA;
-    }
-
-    int result = pomdp_perseus_initialize_cpu(pomdp, per);
-    if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[pomdp_perseus_execute_cpu]: %s\n", "Failed to initialize CPU variables.");
-        return result;
-    }
-
-    // For each of the updates, run Perseus. The update function checks for convergence and will terminate
-    // the loop early (if BTilde is empty). Also, note that the currentHorizon is initialized to zero above,
-    // and is updated in the update function below.
-    while (per->currentHorizon < pomdp->horizon) {
-        //printf("Perseus (CPU Version) -- Iteration %i of %i\n", pomdp->currentHorizon, pomdp->horizon);
-
-        // Note: "Convergence" here means iterating until Btilde is empty, which is always guaranteed to
-        // be at most r iterations (the number of belief points).
-        result = NOVA_SUCCESS;
-
-        while (result != NOVA_CONVERGED) {
-            result = pomdp_perseus_update_cpu(pomdp, per);
-            if (result != NOVA_CONVERGED && result != NOVA_SUCCESS) {
-                fprintf(stderr, "Error[pomdp_perseus_execute_cpu]: %s\n", "Failed to perform Perseus update step.");
-                return result;
-            }
-        }
-    }
-
-    result = pomdp_perseus_get_policy_cpu(pomdp, per, policy);
-    if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[pomdp_perseus_execute_cpu]: %s\n", "Failed to get the policy.");
-    }
-
-    result = pomdp_perseus_uninitialize_cpu(pomdp, per);
-    if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[pomdp_perseus_execute_cpu]: %s\n", "Failed to uninitialize the CPU variables.");
-        return result;
-    }
-
-    return NOVA_SUCCESS;
-}
-
-
-int pomdp_perseus_uninitialize_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
-{
-    if (pomdp == nullptr || per == nullptr) {
-        fprintf(stderr, "Error[pomdp_perseus_uninitialize_cpu]: %s\n", "Invalid arguments.");
-        return NOVA_ERROR_INVALID_DATA;
-    }
-
-    // Reset the current horizon.
-    per->currentHorizon = 0;
-
-    // Free the memory for Gamma, GammaPrime, and pi.
-    if (per->Gamma != nullptr) {
-        delete [] per->Gamma;
-    }
-    per->Gamma = nullptr;
-    per->rGamma = 0;
-
-    if (per->GammaPrime != nullptr) {
-        delete [] per->GammaPrime;
-    }
-    per->GammaPrime = nullptr;
-    per->rGammaPrime = 0;
-
-    if (per->pi != nullptr) {
-        delete [] per->pi;
-    }
-    per->pi = nullptr;
-
-    if (per->piPrime != nullptr) {
-        delete [] per->piPrime;
-    }
-    per->piPrime = nullptr;
-
-    // Free the memory of BTilde and reset rTilde.
-    if (per->BTilde != nullptr) {
-        delete [] per->BTilde;
-    }
-    per->BTilde = nullptr;
-    per->rTilde = 0;
-
-    return NOVA_SUCCESS;
-}
-
-
-int pomdp_perseus_update_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
+int pomdp_perseus_update(const POMDP *pomdp, POMDPPerseus *per)
 {
     // Ensure the data is valid.
     if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
@@ -199,7 +155,7 @@ int pomdp_perseus_update_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
             per == nullptr || per->rTilde > pomdp->r || per->BTilde == nullptr ||
             per->Gamma == nullptr || per->GammaPrime == nullptr ||
             per->pi == nullptr || per->piPrime == nullptr) {
-        fprintf(stderr, "Error[pomdp_perseus_update_cpu]: %s\n", "Invalid arguments.");
+        fprintf(stderr, "Error[pomdp_perseus_update]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
@@ -236,12 +192,12 @@ int pomdp_perseus_update_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
     float *alpha = new float[pomdp->n];
     unsigned int alphaAction = 0;
 
-    pomdp_bellman_update_cpu(pomdp->n, pomdp->ns, pomdp->m, pomdp->z, pomdp->r, pomdp->rz, pomdp->gamma,
+    pomdp_bellman_update(pomdp->n, pomdp->ns, pomdp->m, pomdp->z, pomdp->r, pomdp->rz, pomdp->gamma,
                              pomdp->S, pomdp->T, pomdp->O, pomdp->R, pomdp->Z, pomdp->B,
                              Gamma, *rGamma, bIndex, alpha, &alphaAction);
 
     // First compute the value of this *new* alpha-vector at this belief.
-    float bDotAlpha = pomdp_compute_b_dot_alpha_cpu(pomdp->rz, pomdp->Z, pomdp->B, bIndex, alpha);
+    float bDotAlpha = pomdp_compute_b_dot_alpha(pomdp->rz, pomdp->Z, pomdp->B, bIndex, alpha);
 
     // Next, for each alpha-vector, we will compute the alpha-dot-b for this belief (bIndex),
     // using the *old* alpha-vectors. This also recalls which alpha-vector obtained this value
@@ -249,7 +205,7 @@ int pomdp_perseus_update_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
     float Vnb = 0.0f;
     unsigned int alphaPrimeIndex = 0;
 
-    pomdp_compute_Vb_cpu(pomdp->n, pomdp->rz, pomdp->Z, pomdp->B, bIndex, Gamma, *rGamma, &Vnb, &alphaPrimeIndex);
+    pomdp_compute_Vb(pomdp->n, pomdp->rz, pomdp->Z, pomdp->B, bIndex, Gamma, *rGamma, &Vnb, &alphaPrimeIndex);
 
     // Now, if this new alpha-vector improved the value at bIndex, then add it to the set of alpha-vectors.
     // Otherwise, add the best alpha-vector from the current set of alpha-vectors.
@@ -266,7 +222,7 @@ int pomdp_perseus_update_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
     alpha = nullptr;
 
     if (*rGammaPrime > pomdp->r) {
-        fprintf(stderr, "Error[pomdp_perseus_update_cpu]: %s\n", "Out of memory. Too many alpha-vectors added.");
+        fprintf(stderr, "Error[pomdp_perseus_update]: %s\n", "Out of memory. Too many alpha-vectors added.");
         return NOVA_ERROR_OUT_OF_MEMORY;
     }
 
@@ -282,8 +238,8 @@ int pomdp_perseus_update_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
         Vnb = 0.0f;
         float Vnp1b = 0.0f;
 
-        pomdp_compute_Vb_cpu(pomdp->n, pomdp->rz,  pomdp->Z, pomdp->B, i, Gamma, *rGamma, &Vnb, &action);
-        pomdp_compute_Vb_cpu(pomdp->n, pomdp->rz,  pomdp->Z, pomdp->B, i, GammaPrime, *rGammaPrime, &Vnp1b, &action);
+        pomdp_compute_Vb(pomdp->n, pomdp->rz,  pomdp->Z, pomdp->B, i, Gamma, *rGamma, &Vnb, &action);
+        pomdp_compute_Vb(pomdp->n, pomdp->rz,  pomdp->Z, pomdp->B, i, GammaPrime, *rGammaPrime, &Vnp1b, &action);
 
         if (Vnp1b < Vnb) {
             per->BTilde[per->rTilde] = i;
@@ -319,7 +275,7 @@ int pomdp_perseus_update_cpu(const POMDP *pomdp, POMDPPerseusCPU *per)
 }
 
 
-int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDPAlphaVectors *policy)
+int pomdp_perseus_get_policy(const POMDP *pomdp, POMDPPerseus *per, POMDPAlphaVectors *policy)
 {
     if (pomdp == nullptr || pomdp->n == 0 || pomdp->m == 0 ||
             per == nullptr || (per->currentHorizon % 2 == 0 &&
@@ -327,7 +283,7 @@ int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDP
             (per->currentHorizon % 2 == 1 &&
                 (per->rGammaPrime == 0 || per->GammaPrime == nullptr || per->piPrime == nullptr)) ||
             policy == nullptr) {
-        fprintf(stderr, "Error[pomdp_perseus_get_policy_cpu]: %s\n",
+        fprintf(stderr, "Error[pomdp_perseus_get_policy]: %s\n",
                         "Invalid arguments. Policy must be undefined.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -336,7 +292,7 @@ int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDP
     if (per->currentHorizon % 2 == 0) {
         int result = pomdp_alpha_vectors_initialize(policy, pomdp->n, pomdp->m, per->rGamma);
         if (result != NOVA_SUCCESS) {
-            fprintf(stderr, "Error[pomdp_perseus_get_policy_cpu]: %s\n", "Could not create the policy.");
+            fprintf(stderr, "Error[pomdp_perseus_get_policy]: %s\n", "Could not create the policy.");
             return NOVA_ERROR_POLICY_CREATION;
         }
 
@@ -345,13 +301,57 @@ int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPPerseusCPU *per, POMDP
     } else {
         int result = pomdp_alpha_vectors_initialize(policy, pomdp->n, pomdp->m, per->rGammaPrime);
         if (result != NOVA_SUCCESS) {
-            fprintf(stderr, "Error[pomdp_perseus_get_policy_cpu]: %s\n", "Could not create the policy.");
+            fprintf(stderr, "Error[pomdp_perseus_get_policy]: %s\n", "Could not create the policy.");
             return NOVA_ERROR_POLICY_CREATION;
         }
 
         memcpy(policy->Gamma, per->GammaPrime, per->rGammaPrime * pomdp->n * sizeof(float));
         memcpy(policy->pi, per->piPrime, per->rGammaPrime * sizeof(unsigned int));
     }
+
+    return NOVA_SUCCESS;
+}
+
+
+int pomdp_perseus_uninitialize(const POMDP *pomdp, POMDPPerseus *per)
+{
+    if (pomdp == nullptr || per == nullptr) {
+        fprintf(stderr, "Error[pomdp_perseus_uninitialize]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    // Reset the current horizon.
+    per->currentHorizon = 0;
+
+    // Free the memory for Gamma, GammaPrime, and pi.
+    if (per->Gamma != nullptr) {
+        delete [] per->Gamma;
+    }
+    per->Gamma = nullptr;
+    per->rGamma = 0;
+
+    if (per->GammaPrime != nullptr) {
+        delete [] per->GammaPrime;
+    }
+    per->GammaPrime = nullptr;
+    per->rGammaPrime = 0;
+
+    if (per->pi != nullptr) {
+        delete [] per->pi;
+    }
+    per->pi = nullptr;
+
+    if (per->piPrime != nullptr) {
+        delete [] per->piPrime;
+    }
+    per->piPrime = nullptr;
+
+    // Free the memory of BTilde and reset rTilde.
+    if (per->BTilde != nullptr) {
+        delete [] per->BTilde;
+    }
+    per->BTilde = nullptr;
+    per->rTilde = 0;
 
     return NOVA_SUCCESS;
 }

@@ -35,14 +35,14 @@ import pomdp_alpha_vectors as pav
 import nova_pomdp_pbvi as npp
 
 
-class POMDPPBVICPU(npp.NovaPOMDPPBVICPU):
+class POMDPPBVI(npp.NovaPOMDPPBVI):
     """ The point-based value iteration solver for POMDPs.
 
         This class provides a clean python wrapper for simple interactions with this solver.
     """
 
     def __init__(self, pomdpObject, GammaInitial=None):
-        """ The constructor for the POMDPPBVICPU class.
+        """ The constructor for the POMDPPBVI class.
 
             Parameters:
                 pomdpObject     --  The POMDP object on which to run PBVI.
@@ -72,15 +72,15 @@ class POMDPPBVICPU(npp.NovaPOMDPPBVICPU):
         self.pi = ct.POINTER(ct.c_uint)()
 
         # Attempt to initialize the algorithm.
-        result = npp._nova.pomdp_pbvi_initialize_cpu(self.pomdpPtr, self)
+        result = npp._nova.pomdp_pbvi_initialize(self.pomdpPtr, self)
         if result != 0:
             print("Failed to initialize the PBVI (CPU) algorithm.")
             raise Exception()
 
     def __del__(self):
-        """ The deconstructor for the POMDPPBVICPU class which automatically frees memory. """
+        """ The deconstructor for the POMDPPBVI class which automatically frees memory. """
 
-        result = npp._nova.pomdp_pbvi_uninitialize_cpu(self.pomdpPtr, self)
+        result = npp._nova.pomdp_pbvi_uninitialize(self.pomdpPtr, self)
         if result != 0:
             print("Failed to free the PBVI (CPU) algorithm.")
             raise Exception()
@@ -94,7 +94,7 @@ class POMDPPBVICPU(npp.NovaPOMDPPBVICPU):
 
         policy = pav.POMDPAlphaVectors()
 
-        result = npp._nova.pomdp_pbvi_execute_cpu(self.pomdpPtr, self, policy)
+        result = npp._nova.pomdp_pbvi_execute(self.pomdpPtr, self, policy)
         if result != 0:
             print("Failed to execute the 'nova' library's CPU POMDP solver.")
             raise Exception()
@@ -104,7 +104,7 @@ class POMDPPBVICPU(npp.NovaPOMDPPBVICPU):
     def update(self):
         """ Update the POMDP by executing one step of the solver. """
 
-        result = npp._nova.pomdp_pbvi_update_cpu(self.pomdpPtr, self)
+        result = npp._nova.pomdp_pbvi_update(self.pomdpPtr, self)
         if result != 0:
             print("Failed to update the 'nova' library's CPU POMDP solver.")
             raise Exception()
@@ -118,7 +118,7 @@ class POMDPPBVICPU(npp.NovaPOMDPPBVICPU):
 
         policy = pav.POMDPAlphaVectors()
 
-        result = npp._nova.pomdp_pbvi_get_policy_cpu(self.pomdpPtr, self, policy)
+        result = npp._nova.pomdp_pbvi_get_policy(self.pomdpPtr, self, policy)
         if result != 0:
             print("Failed to get the policy for the 'nova' library's CPU POMDP solver.")
             raise Exception()

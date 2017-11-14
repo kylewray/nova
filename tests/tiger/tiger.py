@@ -35,28 +35,21 @@ from nova.pomdp_hsvi2 import *
 
 
 files = [
+        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': None},
+        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "random"},
+        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "random_unique"},
+        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "distinct_beliefs"},
+        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "pema"},
+
         #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': None},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "random"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "random_unique"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "distinct_beliefs"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'pbvi', 'expand': "pema"},
 
-        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': None},
-        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "random"},
-        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "random_unique"},
-        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "distinct_beliefs"},
-        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "pema"},
-
-        # NOTE: Not implemented yet.
-        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'gpu', 'algorithm': 'perseus', 'expand': None},
-        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'perseus', 'expand': "random"},
-        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'perseus', 'expand': "random_unique"},
-        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'perseus', 'expand': "distinct_beliefs"},
-        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'gpu', 'algorithm': 'perseus', 'expand': "pema"},
-
         #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'perseus', 'expand': None},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "random"},
-        #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "random_unique"},
+        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "random_unique"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "distinct_beliefs"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "pema"},
 
@@ -81,7 +74,7 @@ for f in files:
             tiger.expand(method=f['expand'])
     elif f['expand'] == "pema":
         for i in range(4):
-            tiger.expand(method=f['expand'], pemaAlgorithm=POMDPPerseusCPU(tiger))
+            tiger.expand(method=f['expand'], pemaAlgorithm=POMDPPerseus(tiger))
 
     print(tiger)
 
@@ -92,13 +85,13 @@ for f in files:
             continue
 
     if f['algorithm'] == "pbvi" and f['process'] == "cpu":
-        algorithm = POMDPPBVICPU(tiger)
+        algorithm = POMDPPBVI(tiger)
     elif f['algorithm'] == "pbvi" and f['process'] == "gpu":
         algorithm = POMDPPBVIGPU(tiger)
     elif f['algorithm'] == "perseus" and f['process'] == "cpu":
-        algorithm = POMDPPerseusCPU(tiger)
+        algorithm = POMDPPerseus(tiger)
     elif f['algorithm'] == "hsvi2" and f['process'] == "cpu":
-        algorithm = POMDPHSVI2CPU(tiger)
+        algorithm = POMDPHSVI2(tiger)
         algorithm.trials = 100
         algorithm.delta = 0.0001
         algorithm.maxAlphaVectors = int(max(tiger.n, tiger.m) + algorithm.trials * tiger.horizon + 1)

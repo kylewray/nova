@@ -22,7 +22,7 @@
  */
 
 
-#include <nova/pomdp/utilities/pomdp_functions_cpu.h>
+#include <nova/pomdp/utilities/pomdp_functions.h>
 
 #include <stdio.h>
 #include <cstring>
@@ -34,7 +34,7 @@
 
 namespace nova {
 
-float pomdp_compute_b_dot_alpha_cpu(unsigned int rz, const int *Z, const float *B, unsigned int bIndex, const float *alpha)
+float pomdp_compute_b_dot_alpha(unsigned int rz, const int *Z, const float *B, unsigned int bIndex, const float *alpha)
 {
     float bDotAlpha = 0.0f;
 
@@ -51,13 +51,13 @@ float pomdp_compute_b_dot_alpha_cpu(unsigned int rz, const int *Z, const float *
 }
 
 
-void pomdp_compute_Vb_cpu(unsigned int n, unsigned int rz, const int *Z, const float *B, unsigned int bIndex,
+void pomdp_compute_Vb(unsigned int n, unsigned int rz, const int *Z, const float *B, unsigned int bIndex,
     const float *Gamma, unsigned int rGamma, float *Vnb, unsigned int *alphaPrimeIndex)
 {
     *Vnb = NOVA_FLT_MIN;
 
     for (unsigned int i = 0; i < rGamma; i++) {
-        float bDotAlpha = pomdp_compute_b_dot_alpha_cpu(rz, Z, B, bIndex, &Gamma[i * n]);
+        float bDotAlpha = pomdp_compute_b_dot_alpha(rz, Z, B, bIndex, &Gamma[i * n]);
 
         if (*Vnb < bDotAlpha) {
             *Vnb = bDotAlpha;
@@ -67,7 +67,7 @@ void pomdp_compute_Vb_cpu(unsigned int n, unsigned int rz, const int *Z, const f
 }
 
 
-void pomdp_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
+void pomdp_update_compute_best_alpha(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
     unsigned int r, unsigned int rz, float gamma,
     const int *S, const float *T, const float *O, const float *R, const int *Z, const float *B,
     unsigned int bIndex, const float *Gamma, unsigned int rGamma, unsigned int a, float *alpha)
@@ -133,7 +133,7 @@ void pomdp_update_compute_best_alpha_cpu(unsigned int n, unsigned int ns, unsign
 }
 
 
-void pomdp_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
+void pomdp_bellman_update(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
     unsigned int r, unsigned int rz, float gamma,
     const int *S, const float *T, const float *O, const float *R, const int *Z, const float *B,
     const float *Gamma, unsigned int rGamma,
@@ -157,11 +157,11 @@ void pomdp_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, u
         }
 
         // First, compute the argmax_{alpha in Gamma_{a,omega}} for each observation.
-        pomdp_update_compute_best_alpha_cpu(n, ns, m, z, r, rz, gamma, S, T, O, R, Z, B,
+        pomdp_update_compute_best_alpha(n, ns, m, z, r, rz, gamma, S, T, O, R, Z, B,
                                             bIndex, Gamma, rGamma, a, alpha);
 
         // After the alpha-vector is computed, we must compute its value.
-        value = pomdp_compute_b_dot_alpha_cpu(rz, Z, B, bIndex, alpha);
+        value = pomdp_compute_b_dot_alpha(rz, Z, B, bIndex, alpha);
 
         // If this is a new best value, then store the alpha-vector.
         if (value > bestValue) {

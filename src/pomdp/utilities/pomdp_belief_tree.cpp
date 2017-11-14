@@ -22,7 +22,7 @@
  */
 
 
-#include <nova/pomdp/utilities/pomdp_belief_tree_cpu.h>
+#include <nova/pomdp/utilities/pomdp_belief_tree.h>
 
 #include <nova/error_codes.h>
 #include <nova/constants.h>
@@ -33,7 +33,7 @@
 
 namespace nova {
 
-void pomdp_belief_tree_initialize_cpu(BeliefTree *tree, unsigned int state)
+void pomdp_belief_tree_initialize(BeliefTree *tree, unsigned int state)
 {
     tree->state = state;
     for (unsigned int i = 0; i < NOVA_BELIEF_TREE_BIN_SIZE; i++) {
@@ -42,23 +42,7 @@ void pomdp_belief_tree_initialize_cpu(BeliefTree *tree, unsigned int state)
 }
 
 
-void pomdp_belief_tree_uninitialize_cpu(BeliefTree *tree, unsigned int n)
-{
-    if (tree->state >= n) {
-        return;
-    }
-
-    for (unsigned int i = 0; i < NOVA_BELIEF_TREE_BIN_SIZE; i++) {
-        if (tree->successors[i] != nullptr) {
-            pomdp_belief_tree_uninitialize_cpu(tree->successors[i], n);
-            delete tree->successors[i];
-            tree->successors[i] = nullptr;
-        }
-    }
-}
-
-
-bool pomdp_belief_tree_has_belief_cpu(BeliefTree *tree, unsigned int n, float *b)
+bool pomdp_belief_tree_has_belief(BeliefTree *tree, unsigned int n, float *b)
 {
     // If we get to the end, then we have found a path, and therefore the belief exists in the tree.
     if (tree->state >= n) {
@@ -72,12 +56,12 @@ bool pomdp_belief_tree_has_belief_cpu(BeliefTree *tree, unsigned int n, float *b
     if (tree->successors[index] == nullptr) {
         return false;
     } else {
-        return pomdp_belief_tree_has_belief_cpu(tree->successors[index], n, b);
+        return pomdp_belief_tree_has_belief(tree->successors[index], n, b);
     }
 }
 
 
-void pomdp_belief_tree_insert_belief_cpu(BeliefTree *tree, unsigned int n, float *b)
+void pomdp_belief_tree_insert_belief(BeliefTree *tree, unsigned int n, float *b)
 {
     // Note: We assume that we already know the belief does not exist in the tree!
 
@@ -92,10 +76,26 @@ void pomdp_belief_tree_insert_belief_cpu(BeliefTree *tree, unsigned int n, float
 
     if (tree->successors[index] == nullptr) {
         tree->successors[index] = new BeliefTree();
-        pomdp_belief_tree_initialize_cpu(tree->successors[index], tree->state + 1);
+        pomdp_belief_tree_initialize(tree->successors[index], tree->state + 1);
     }
 
-    pomdp_belief_tree_insert_belief_cpu(tree->successors[index], n, b);
+    pomdp_belief_tree_insert_belief(tree->successors[index], n, b);
+}
+
+
+void pomdp_belief_tree_uninitialize(BeliefTree *tree, unsigned int n)
+{
+    if (tree->state >= n) {
+        return;
+    }
+
+    for (unsigned int i = 0; i < NOVA_BELIEF_TREE_BIN_SIZE; i++) {
+        if (tree->successors[i] != nullptr) {
+            pomdp_belief_tree_uninitialize(tree->successors[i], n);
+            delete tree->successors[i];
+            tree->successors[i] = nullptr;
+        }
+    }
 }
 
 }; // namespace nova

@@ -44,8 +44,8 @@ else:
                     "..", "..", "lib", "libnova.so"))
 
 
-class NovaPOMDPHSVI2CPU(ct.Structure):
-    """ The C struct NovaPOMDPHSVI2CPU object. """
+class NovaPOMDPHSVI2(ct.Structure):
+    """ The C struct NovaPOMDPHSVI2 object. """
 
     _fields_ = [("trials", ct.c_uint),
                 ("epsilon", ct.c_float),
@@ -64,20 +64,20 @@ class NovaPOMDPHSVI2CPU(ct.Structure):
                 ]
 
 
-_nova.pomdp_hsvi2_initialize_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
-                                            ct.POINTER(NovaPOMDPHSVI2CPU))
+_nova.pomdp_hsvi2_execute.argtypes = (ct.POINTER(pomdp.POMDP),
+                                      ct.POINTER(NovaPOMDPHSVI2),
+                                      ct.POINTER(pav.POMDPAlphaVectors))
 
-_nova.pomdp_hsvi2_execute_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
-                                         ct.POINTER(NovaPOMDPHSVI2CPU),
+_nova.pomdp_hsvi2_initialize.argtypes = (ct.POINTER(pomdp.POMDP),
+                                         ct.POINTER(NovaPOMDPHSVI2))
+
+_nova.pomdp_hsvi2_update.argtypes = (ct.POINTER(pomdp.POMDP),
+                                     ct.POINTER(NovaPOMDPHSVI2))
+
+_nova.pomdp_hsvi2_get_policy.argtypes = (ct.POINTER(pomdp.POMDP),
+                                         ct.POINTER(NovaPOMDPHSVI2),
                                          ct.POINTER(pav.POMDPAlphaVectors))
 
-_nova.pomdp_hsvi2_uninitialize_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
-                                              ct.POINTER(NovaPOMDPHSVI2CPU))
-
-_nova.pomdp_hsvi2_update_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
-                                        ct.POINTER(NovaPOMDPHSVI2CPU))
-
-_nova.pomdp_hsvi2_get_policy_cpu.argtypes = (ct.POINTER(pomdp.POMDP),
-                                            ct.POINTER(NovaPOMDPHSVI2CPU),
-                                            ct.POINTER(pav.POMDPAlphaVectors))
+_nova.pomdp_hsvi2_uninitialize.argtypes = (ct.POINTER(pomdp.POMDP),
+                                           ct.POINTER(NovaPOMDPHSVI2))
 

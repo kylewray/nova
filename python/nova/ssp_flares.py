@@ -35,14 +35,14 @@ import mdp_value_function as mvf
 import nova_ssp_flares as nsl
 
 
-class SSPFlaresCPU(nsl.NovaSSPFlaresCPU):
+class SSPFlares(nsl.NovaSSPFlares):
     """ The Flares solver for SSP MDPs.
 
         This class provides a clean python wrapper for simple interactions with this solver.
     """
 
     def __init__(self, mdpObject, VInitial=None):
-        """ The constructor for the SSPFlaresCPU class.
+        """ The constructor for the SSPFlares class.
 
             Parameters:
                 mdpObject   --  The MDP object on which to run value iteration.
@@ -66,15 +66,15 @@ class SSPFlaresCPU(nsl.NovaSSPFlaresCPU):
         self.V = ct.POINTER(ct.c_float)()
         self.pi = ct.POINTER(ct.c_uint)()
 
-        result = nsl._nova.ssp_flares_initialize_cpu(self.mdpPtr, self)
+        result = nsl._nova.ssp_flares_initialize(self.mdpPtr, self)
         if result != 0:
             print("Failed to initialize the Flares (CPU) algorithm.")
             raise Exception()
 
     def __del__(self):
-        """ The deconstructor for the SSPFlaresCPU class which automatically frees memory. """
+        """ The deconstructor for the SSPFlares class which automatically frees memory. """
 
-        result = nsl._nova.ssp_flares_uninitialize_cpu(self.mdpPtr, self)
+        result = nsl._nova.ssp_flares_uninitialize(self.mdpPtr, self)
         if result != 0:
             print("Failed to free the Flares (CPU) algorithm.")
             raise Exception()
@@ -88,7 +88,7 @@ class SSPFlaresCPU(nsl.NovaSSPFlaresCPU):
 
         policy = mvf.MDPValueFunction()
 
-        result = nsl._nova.ssp_flares_execute_cpu(self.mdpPtr, self, ct.byref(policy))
+        result = nsl._nova.ssp_flares_execute(self.mdpPtr, self, ct.byref(policy))
         if result != 0 and result != 13: # Success or approximate solution.
             print("Failed to execute the 'nova' library's CPU Flares solver.")
             raise Exception()
