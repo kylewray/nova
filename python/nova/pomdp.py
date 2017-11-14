@@ -101,7 +101,7 @@ class POMDP(npm.NovaPOMDP):
         if self.cpuIsInitialized:
             return
 
-        result = npm._nova.pomdp_initialize_cpu(self, n, ns, m, z, r, rz, gamma, horizon)
+        result = npm._nova.pomdp_initialize(self, n, ns, m, z, r, rz, gamma, horizon)
         if result != 0:
             print("Failed to initialize the POMDP.")
             raise Exception()
@@ -114,7 +114,7 @@ class POMDP(npm.NovaPOMDP):
         if not self.cpuIsInitialized:
             return
 
-        result = npm._nova.pomdp_uninitialize_cpu(self)
+        result = npm._nova.pomdp_uninitialize(self)
         if result != 0:
             print("Failed to uninitialize the POMDP.")
             raise Exception()
@@ -224,15 +224,15 @@ class POMDP(npm.NovaPOMDP):
             raise Exception()
 
         if method == "random":
-            npm._nova.pomdp_expand_random_cpu(self, numBeliefsToAdd)
+            npm._nova.pomdp_expand_random(self, numBeliefsToAdd)
         elif method == "random_unique":
-            npm._nova.pomdp_expand_random_unique_cpu(self, numBeliefsToAdd, maxTrials)
+            npm._nova.pomdp_expand_random_unique(self, numBeliefsToAdd, maxTrials)
         elif method == "distinct_beliefs":
-            npm._nova.pomdp_expand_distinct_beliefs_cpu(self)
+            npm._nova.pomdp_expand_distinct_beliefs(self)
         elif method == "pema":
             if pemaPolicy is None:
                 pemaPolicy = pemaAlgorithm.solve()
-            npm._nova.pomdp_expand_pema_cpu(self, ct.byref(pemaPolicy))
+            npm._nova.pomdp_expand_pema(self, ct.byref(pemaPolicy))
 
     def sigma_approximate(self, numDesiredNonZeroValues=1):
         """ Perform the sigma-approximation algorithm on the current set of beliefs.
@@ -246,102 +246,12 @@ class POMDP(npm.NovaPOMDP):
 
         sigma = ct.c_float(0.0)
 
-        result = npm._nova.pomdp_sigma_cpu(self, numDesiredNonZeroValues, ct.byref(sigma))
+        result = npm._nova.pomdp_sigma(self, numDesiredNonZeroValues, ct.byref(sigma))
         if result != 0:
             print("Failed to perform sigma-approximation.")
             raise Exception()
 
         return sigma.value
-
-    # TODO: REMOVE THIS. IT HAS BEEN REPLACED BY SEPARATE CLASSES.
-    def solve(self, algorithm='pbvi', process='gpu', numThreads=1024):
-        """ Solve the POMDP using the nova Python wrapper.
-
-            Parameters:
-                algorithm   --  The method to use, either 'pbvi' or 'perseus'. Default is 'pbvi'.
-                process     --  Use the 'cpu' or 'gpu'. If 'gpu' fails, it tries 'cpu'. Default is 'gpu'.
-                numThreads  --  The number of CUDA threads to execute (multiple of 32). Default is 1024.
-
-            Returns:
-                policy  --  The alpha-vectors and associated actions, one for each belief point.
-                timing  --  A pair (wall-time, cpu-time) for solver execution time, not including (un)initialization.
-        """
-
-        # Create Gamma and pi, assigning them their respective initial values.
-        initialGamma = np.array([[0.0 for s in range(self.n)] for b in range(self.r)])
-        if self.gamma < 1.0:
-            initialGamma = np.array([[float(self.Rmin / (1.0 - self.gamma)) for s in range(self.n)] \
-                        for i in range(self.r)])
-        initialGamma = initialGamma.flatten()
-
-        # Create a function to convert a flattened numpy arrays to a C array, then convert initialGamma.
-        array_type_rn_float = ct.c_float * (self.r * self.n)
-        initialGamma = array_type_rn_float(*initialGamma)
-
-        policy = ct.POINTER(pav.POMDPAlphaVectors)()
-        timing = None
-
-        # If the process is 'gpu', then attempt to solve it. If an error arises, then
-        # assign process to 'cpu' and attempt to solve it using that.
-        if process == 'gpu':
-            result = npm._nova.pomdp_initialize_successors_gpu(self)
-            result += npm._nova.pomdp_initialize_state_transitions_gpu(self)
-            result += npm._nova.pomdp_initialize_observation_transitions_gpu(self)
-            result += npm._nova.pomdp_initialize_rewards_gpu(self)
-            result += npm._nova.pomdp_initialize_nonzero_beliefs_gpu(self)
-            result += npm._nova.pomdp_initialize_belief_points_gpu(self)
-            if result != 0:
-                print("Failed to initialize the POMDP variables for the 'nova' library's GPU POMDP solver.")
-                process = 'cpu'
-
-            timing = (time.time(), time.clock())
-
-            if algorithm == 'pbvi':
-                result = npm._nova.pomdp_pbvi_execute_gpu(self, int(numThreads), initialGamma, ct.byref(policy))
-            #elif algorithm == 'perseus':
-            #    result = npm._nova.pomdp_perseus_execute_gpu(self, int(numThreads), initialGamma, ct.byref(policy))
-            else:
-                print("Failed to solve the POMDP with the GPU using 'nova' because algorithm '%s' is undefined." % (algorithm))
-                raise Exception()
-
-            timing = (time.time() - timing[0], time.clock() - timing[1])
-
-            if result != 0:
-                print("Failed to execute the 'nova' library's GPU POMDP solver.")
-                process = 'cpu'
-
-            result = npm._nova.pomdp_uninitialize_successors_gpu(self)
-            result += npm._nova.pomdp_uninitialize_state_transitions_gpu(self)
-            result += npm._nova.pomdp_uninitialize_observation_transitions_gpu(self)
-            result += npm._nova.pomdp_uninitialize_rewards_gpu(self)
-            result += npm._nova.pomdp_uninitialize_nonzero_beliefs_gpu(self)
-            result += npm._nova.pomdp_uninitialize_belief_points_gpu(self)
-            if result != 0:
-                # Note: Failing at uninitialization should not cause the CPU version to be executed.
-                print("Failed to uninitialize the POMDP variables for the 'nova' library's GPU POMDP solver.")
-
-        # If the process is 'cpu', then attempt to solve it.
-        if process == 'cpu':
-            timing = (time.time(), time.clock())
-
-            if algorithm == 'pbvi':
-                result = npm._nova.pomdp_pbvi_execute_cpu(self, initialGamma, ct.byref(policy))
-            elif algorithm == 'perseus':
-                result = npm._nova.pomdp_perseus_execute_cpu(self, initialGamma, ct.byref(policy))
-            else:
-                print("Failed to solve the POMDP with the GPU using 'nova' because algorithm '%s' is undefined." % (algorithm))
-                raise Exception()
-
-            timing = (time.time() - timing[0], time.clock() - timing[1])
-
-            if result != 0:
-                print("Failed to execute the 'nova' library's CPU POMDP solver.")
-                raise Exception()
-
-        # Dereference the pointer (this is how you do it in ctypes).
-        policy = policy.contents
-
-        return policy, timing
 
     def belief_update(self, b, a, o):
         """ Perform a belief update, given belief, action, and observation.
@@ -364,9 +274,9 @@ class POMDP(npm.NovaPOMDP):
         #bp = array_type_n_float(*np.zeros(self.n).flatten())
         bp = ct.POINTER(ct.c_float)()
 
-        result = npm._nova.pomdp_belief_update_cpu(self, b, a, o, ct.byref(bp))
+        result = npm._nova.pomdp_belief_update(self, b, a, o, ct.byref(bp))
         if result != 0:
-            print("Failed to perform a belief update on the CPU.")
+            print("Failed to perform a belief update.")
             raise Exception()
 
         return np.array([bp[s] for s in range(self.n)])

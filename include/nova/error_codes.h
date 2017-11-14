@@ -28,7 +28,7 @@
 
 namespace nova {
 
-// Successes
+// Successes.
 #define NOVA_SUCCESS                                0
 
 // Critical errors due to POMDP model, the CPU, or the GPU.

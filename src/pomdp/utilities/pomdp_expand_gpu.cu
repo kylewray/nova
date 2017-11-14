@@ -214,7 +214,10 @@ int pomdp_expand_random_gpu(const POMDP *pomdp, unsigned int numThreads, unsigne
     }
 
     delete [] b;
+    b = nullptr;
+
     delete [] b0;
+    b0 = nullptr;
 
     return NOVA_SUCCESS;
 }

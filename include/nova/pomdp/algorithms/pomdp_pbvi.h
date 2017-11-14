@@ -22,8 +22,8 @@
  */
 
 
-#ifndef NOVA_POMDP_PBVI_CPU_H
-#define NOVA_POMDP_PBVI_CPU_H
+#ifndef NOVA_POMDP_PBVI_H
+#define NOVA_POMDP_PBVI_H
 
 
 #include <nova/pomdp/pomdp.h>
@@ -39,7 +39,7 @@ namespace nova {
  *  @param  GammaPrime      The value of the states (n-array) copy.
  *  @param  pi              The action to take at each state (n-array).
  */
-typedef struct NovaPOMDPPBVICPU {
+typedef struct NovaPOMDPPBVI {
     float *GammaInitial;
 
     unsigned int currentHorizon;
@@ -47,53 +47,53 @@ typedef struct NovaPOMDPPBVICPU {
     float *Gamma;
     float *GammaPrime;
     unsigned int *pi;
-} POMDPPBVICPU;
+} POMDPPBVI;
 
 /**
- *  Step 1/3: The initialization step of PBVI. This sets up the Gamma and pi variables.
+ *  Execute all the steps of PBVI for the infinite horizon POMDP model specified.
  *  @param  pomdp       The POMDP object.
- *  @param  pbvi        The POMDPPBVICPU object containing algorithm variables.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-extern "C" int pomdp_pbvi_initialize_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi);
-
-/**
- *  Step 2/3: Execute PBVI for the infinite horizon POMDP model specified.
- *  @param  pomdp       The POMDP object.
- *  @param  pbvi        The POMDPPBVICPU object containing algorithm variables.
+ *  @param  pbvi        The POMDPPBVI object containing algorithm variables.
  *  @param  policy      The resultant set of alpha-vectors. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_pbvi_execute_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVectors *policy);
+extern "C" int pomdp_pbvi_execute(const POMDP *pomdp, POMDPPBVI *pbvi, POMDPAlphaVectors *policy);
 
 /**
- *  Step 3/3: The uninitialization step of PBVI. This sets up the Gamma and pi variables.
+ *  Step 1/4: The initialization step of PBVI. This sets up the Gamma and pi variables.
  *  @param  pomdp       The POMDP object.
- *  @param  pbvi        The POMDPPBVICPU object containing algorithm variables.
+ *  @param  pbvi        The POMDPPBVI object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_pbvi_uninitialize_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi);
+extern "C" int pomdp_pbvi_initialize(const POMDP *pomdp, POMDPPBVI *pbvi);
 
 /**
- *  The update step of PBVI. This applies the PBVI procedure once.
+ *  Step 2/4: The update step of PBVI. This applies the PBVI procedure once.
  *  @param  pomdp       The POMDP object.
- *  @param  pbvi        The POMDPPBVICPU object containing algorithm variables.
+ *  @param  pbvi        The POMDPPBVI object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_pbvi_update_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi);
+extern "C" int pomdp_pbvi_update(const POMDP *pomdp, POMDPPBVI *pbvi);
 
 /**
- *  The get resultant policy step of PBVI. This retrieves the alpha-vectors (Gamma) and
+ *  Step 3/4: The get resultant policy step of PBVI. This retrieves the alpha-vectors (Gamma) and
  *  corresponding actions (pi).
  *  @param  pomdp       The POMDP object.
- *  @param  pbvi        The POMDPPBVICPU object containing algorithm variables.
+ *  @param  pbvi        The POMDPPBVI object containing algorithm variables.
  *  @param  policy      The resultant set of alpha-vectors. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_pbvi_get_policy_cpu(const POMDP *pomdp, POMDPPBVICPU *pbvi, POMDPAlphaVectors *policy);
+extern "C" int pomdp_pbvi_get_policy(const POMDP *pomdp, POMDPPBVI *pbvi, POMDPAlphaVectors *policy);
+
+/**
+ *  Step 4/4: The uninitialization step of PBVI. This sets up the Gamma and pi variables.
+ *  @param  pomdp       The POMDP object.
+ *  @param  pbvi        The POMDPPBVI object containing algorithm variables.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int pomdp_pbvi_uninitialize(const POMDP *pomdp, POMDPPBVI *pbvi);
 
 };
 
  
-#endif // NOVA_POMDP_PBVI_CPU_H
+#endif // NOVA_POMDP_PBVI_H
 

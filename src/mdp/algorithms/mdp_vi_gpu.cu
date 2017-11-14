@@ -87,6 +87,60 @@ __global__ void mdp_vi_bellman_update_gpu(unsigned int n, unsigned int ns, unsig
 }
 
 
+int mdp_vi_execute_gpu(const MDP *mdp, MDPVIGPU *vi, MDPValueFunction *policy)
+{
+    // First, ensure data is valid.
+    if (mdp == nullptr || mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
+            mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
+            mdp->gamma < 0.0f || mdp->gamma > 1.0f || mdp->horizon < 1 ||
+            vi == nullptr || policy == nullptr) {
+        fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    // Ensure threads are correct.
+    if (vi->numThreads % 32 != 0) {
+        fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s\n", "Invalid number of threads.");
+        return NOVA_ERROR_INVALID_CUDA_PARAM;
+    }
+
+    int result = mdp_vi_initialize_gpu(mdp, vi);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s\n", "Failed to initialize GPU variables.");
+        return result;
+    }
+
+    // We iterate over all time steps up to the horizon. Initialize set the currentHorizon to 0,
+    // and the update increments it.
+    while (vi->currentHorizon < mdp->horizon) {
+        result = mdp_vi_update_gpu(mdp, vi);
+        if (result != NOVA_SUCCESS) {
+            fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s\n", "Failed to perform Bellman update on the GPU.");
+
+            int resultPrime = mdp_vi_uninitialize_gpu(mdp, vi);
+            if (resultPrime != NOVA_SUCCESS) {
+                fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s\n", "Failed to uninitialize the GPU variables.");
+            }
+
+            return result;
+        }
+    }
+
+    result = mdp_vi_get_policy_gpu(mdp, vi, policy);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s\n", "Failed to get the policy.");
+    }
+
+    result = mdp_vi_uninitialize_gpu(mdp, vi);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s\n", "Failed to uninitialize the GPU variables.");
+        return result;
+    }
+
+    return NOVA_SUCCESS;
+}
+
+
 int mdp_vi_initialize_gpu(const MDP *mdp, MDPVIGPU *vi)
 {
     if (mdp == nullptr || mdp->n == 0 || vi == nullptr) {
@@ -158,105 +212,6 @@ int mdp_vi_initialize_gpu(const MDP *mdp, MDPVIGPU *vi)
     pi = nullptr;
 
     return NOVA_SUCCESS;
-}
-
-
-int mdp_vi_execute_gpu(const MDP *mdp, MDPVIGPU *vi, MDPValueFunction *policy)
-{
-    // First, ensure data is valid.
-    if (mdp == nullptr || mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
-            mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
-            mdp->gamma < 0.0f || mdp->gamma > 1.0f || mdp->horizon < 1 ||
-            vi == nullptr || policy == nullptr) {
-        fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s\n", "Invalid arguments.");
-        return NOVA_ERROR_INVALID_DATA;
-    }
-
-    // Ensure threads are correct.
-    if (vi->numThreads % 32 != 0) {
-        fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s\n", "Invalid number of threads.");
-        return NOVA_ERROR_INVALID_CUDA_PARAM;
-    }
-
-    int result = mdp_vi_initialize_gpu(mdp, vi);
-    if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s\n", "Failed to initialize GPU variables.");
-        return result;
-    }
-
-    // We iterate over all time steps up to the horizon. Initialize set the currentHorizon to 0,
-    // and the update increments it.
-    while (vi->currentHorizon < mdp->horizon) {
-        result = mdp_vi_update_gpu(mdp, vi);
-        if (result != NOVA_SUCCESS) {
-            fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s\n", "Failed to perform Bellman update on the GPU.");
-
-            int resultPrime = mdp_vi_uninitialize_gpu(mdp, vi);
-            if (resultPrime != NOVA_SUCCESS) {
-                fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s\n", "Failed to uninitialize the GPU variables.");
-            }
-
-            return result;
-        }
-    }
-
-    result = mdp_vi_get_policy_gpu(mdp, vi, policy);
-    if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s\n", "Failed to get the policy.");
-    }
-
-    result = mdp_vi_uninitialize_gpu(mdp, vi);
-    if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[mdp_vi_execute_gpu]: %s\n", "Failed to uninitialize the GPU variables.");
-        return result;
-    }
-
-    return NOVA_SUCCESS;
-}
-
-
-int mdp_vi_uninitialize_gpu(const MDP *mdp, MDPVIGPU *vi)
-{
-    if (mdp == nullptr || vi == nullptr) {
-        fprintf(stderr, "Error[mdp_vi_uninitialize_gpu]: %s\n", "Invalid arguments.");
-        return NOVA_ERROR_INVALID_DATA;
-    }
-
-    int result;
-
-    result = NOVA_SUCCESS;
-
-    // Reset the current horizon.
-    vi->currentHorizon = 0;
-
-    if (vi->d_V != nullptr) {
-        if (cudaFree(vi->d_V) != cudaSuccess) {
-            fprintf(stderr, "Error[mdp_vi_uninitialize_gpu]: %s\n",
-                    "Failed to free memory from device for the value function.");
-            result = NOVA_ERROR_DEVICE_FREE;
-        }
-    }
-    vi->d_V = nullptr;
-
-    if (vi->d_VPrime != nullptr) {
-        if (cudaFree(vi->d_VPrime) != cudaSuccess) {
-            fprintf(stderr, "Error[mdp_vi_uninitialize_gpu]: %s\n",
-                    "Failed to free memory from device for the value function (prime).");
-            result = NOVA_ERROR_DEVICE_FREE;
-        }
-    }
-    vi->d_VPrime = nullptr;
-
-    if (vi->d_pi != nullptr) {
-        if (cudaFree(vi->d_pi) != cudaSuccess) {
-            fprintf(stderr, "Error[mdp_vi_uninitialize_gpu]: %s\n",
-                    "Failed to free memory from device for the policy (pi).");
-            result = NOVA_ERROR_DEVICE_FREE;
-        }
-    }
-    vi->d_pi = nullptr;
-
-    return result;
 }
 
 
@@ -337,6 +292,51 @@ int mdp_vi_get_policy_gpu(const MDP *mdp, MDPVIGPU *vi, MDPValueFunction *policy
     }
 
     return NOVA_SUCCESS;
+}
+
+
+int mdp_vi_uninitialize_gpu(const MDP *mdp, MDPVIGPU *vi)
+{
+    if (mdp == nullptr || vi == nullptr) {
+        fprintf(stderr, "Error[mdp_vi_uninitialize_gpu]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    int result;
+
+    result = NOVA_SUCCESS;
+
+    // Reset the current horizon.
+    vi->currentHorizon = 0;
+
+    if (vi->d_V != nullptr) {
+        if (cudaFree(vi->d_V) != cudaSuccess) {
+            fprintf(stderr, "Error[mdp_vi_uninitialize_gpu]: %s\n",
+                    "Failed to free memory from device for the value function.");
+            result = NOVA_ERROR_DEVICE_FREE;
+        }
+    }
+    vi->d_V = nullptr;
+
+    if (vi->d_VPrime != nullptr) {
+        if (cudaFree(vi->d_VPrime) != cudaSuccess) {
+            fprintf(stderr, "Error[mdp_vi_uninitialize_gpu]: %s\n",
+                    "Failed to free memory from device for the value function (prime).");
+            result = NOVA_ERROR_DEVICE_FREE;
+        }
+    }
+    vi->d_VPrime = nullptr;
+
+    if (vi->d_pi != nullptr) {
+        if (cudaFree(vi->d_pi) != cudaSuccess) {
+            fprintf(stderr, "Error[mdp_vi_uninitialize_gpu]: %s\n",
+                    "Failed to free memory from device for the policy (pi).");
+            result = NOVA_ERROR_DEVICE_FREE;
+        }
+    }
+    vi->d_pi = nullptr;
+
+    return result;
 }
 
 }; // namespace nova

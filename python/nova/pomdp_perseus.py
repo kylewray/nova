@@ -35,14 +35,14 @@ import pomdp_alpha_vectors as pav
 import nova_pomdp_perseus as npper
 
 
-class POMDPPerseusCPU(npper.NovaPOMDPPerseusCPU):
+class POMDPPerseus(npper.NovaPOMDPPerseus):
     """ The Perseus solver for POMDPs.
 
         This class provides a clean python wrapper for simple interactions with this solver.
     """
 
     def __init__(self, pomdpObject, GammaInitial=None):
-        """ The constructor for the POMDPPerseusCPU class.
+        """ The constructor for the POMDPPerseus class.
 
             Parameters:
                 pomdpObject     --  The POMDP object on which to run Perseus.
@@ -77,15 +77,15 @@ class POMDPPerseusCPU(npper.NovaPOMDPPerseusCPU):
         self.piPrime = ct.POINTER(ct.c_uint)()
 
         # Attempt to initialize the algorithm.
-        result = npper._nova.pomdp_perseus_initialize_cpu(self.pomdpPtr, self)
+        result = npper._nova.pomdp_perseus_initialize(self.pomdpPtr, self)
         if result != 0:
             print("Failed to initialize the Perseus (CPU) algorithm.")
             raise Exception()
 
     def __del__(self):
-        """ The deconstructor for the POMDPPerseusCPU class which automatically frees memory. """
+        """ The deconstructor for the POMDPPerseus class which automatically frees memory. """
 
-        result = npper._nova.pomdp_perseus_uninitialize_cpu(self.pomdpPtr, self)
+        result = npper._nova.pomdp_perseus_uninitialize(self.pomdpPtr, self)
         if result != 0:
             print("Failed to free the Perseus (CPU) algorithm.")
             raise Exception()
@@ -99,7 +99,7 @@ class POMDPPerseusCPU(npper.NovaPOMDPPerseusCPU):
 
         policy = pav.POMDPAlphaVectors()
 
-        result = npper._nova.pomdp_perseus_execute_cpu(self.pomdpPtr, self, policy)
+        result = npper._nova.pomdp_perseus_execute(self.pomdpPtr, self, policy)
         if result != 0:
             print("Failed to execute the 'nova' library's CPU POMDP solver.")
             raise Exception()

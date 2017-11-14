@@ -22,8 +22,8 @@
  */
 
 
-#ifndef NOVA_MDP_MODEL_CPU_H
-#define NOVA_MDP_MODEL_CPU_H
+#ifndef NOVA_MDP_MODEL_H
+#define NOVA_MDP_MODEL_H
 
 
 #include <nova/mdp/mdp.h>
@@ -43,7 +43,7 @@ namespace nova {
  *  @param  ng          The number of goals; optional for SSP MDPs.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int mdp_initialize_cpu(MDP *mdp, unsigned int n, unsigned int ns, unsigned int m, float gamma,
+extern "C" int mdp_initialize(MDP *mdp, unsigned int n, unsigned int ns, unsigned int m, float gamma,
     unsigned int horizon, float epsilon, unsigned int s0, unsigned int ng);
 
 /**
@@ -51,10 +51,10 @@ extern "C" int mdp_initialize_cpu(MDP *mdp, unsigned int n, unsigned int ns, uns
  *  @param  mdp     The MDP object. Only arrays within will be freed.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int mdp_uninitialize_cpu(MDP *mdp);
+extern "C" int mdp_uninitialize(MDP *mdp);
 
 };
 
 
-#endif // NOVA_MDP_MODEL_CPU_H
+#endif // NOVA_MDP_MODEL_H
 

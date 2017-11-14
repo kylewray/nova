@@ -22,7 +22,7 @@
  */
 
 
-#include <nova/mdp/utilities/mdp_model_cpu.h>
+#include <nova/mdp/utilities/mdp_model.h>
 
 #include <stdio.h>
 #include <cstring>
@@ -32,14 +32,14 @@
 
 namespace nova {
 
-int mdp_initialize_cpu(MDP *mdp, unsigned int n, unsigned int ns, unsigned int m, float gamma,
+int mdp_initialize(MDP *mdp, unsigned int n, unsigned int ns, unsigned int m, float gamma,
     unsigned int horizon, float epsilon, unsigned int s0, unsigned int ng)
 {
     if (mdp == nullptr || mdp->goals != nullptr || mdp->S != nullptr ||
             mdp->T != nullptr || mdp->R != nullptr || n == 0 || ns == 0 || n < ns ||
             m == 0 || gamma < 0.0f || gamma > 1.0f || horizon == 0 || epsilon < 0.0f ||
             s0 >= n || ng >= n) {
-        fprintf(stderr, "Error[mdp_initialize_cpu]: %s\n", "Invalid input.");
+        fprintf(stderr, "Error[mdp_initialize]: %s\n", "Invalid input.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
@@ -82,10 +82,10 @@ int mdp_initialize_cpu(MDP *mdp, unsigned int n, unsigned int ns, unsigned int m
 }
 
 
-int mdp_uninitialize_cpu(MDP *mdp)
+int mdp_uninitialize(MDP *mdp)
 {
     if (mdp == nullptr) {
-        fprintf(stderr, "Error[mdp_uninitialize_cpu]: %s\n", "Invalid input.");
+        fprintf(stderr, "Error[mdp_uninitialize]: %s\n", "Invalid input.");
         return NOVA_ERROR_INVALID_DATA;
     }
 

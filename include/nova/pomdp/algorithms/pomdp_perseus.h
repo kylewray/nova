@@ -22,8 +22,8 @@
  */
 
 
-#ifndef NOVA_POMDP_PERSEUS_CPU_H
-#define NOVA_POMDP_PERSEUS_CPU_H
+#ifndef NOVA_POMDP_PERSEUS_H
+#define NOVA_POMDP_PERSEUS_H
 
 
 #include <nova/pomdp/pomdp.h>
@@ -44,7 +44,7 @@ namespace nova {
  *  @param  pi              The action to take at each state (n-array).
  *  @param  pi              The action to take at each state (n-array) copy.
  */
-typedef struct NovaPOMDPPerseusCPU {
+typedef struct NovaPOMDPPerseus {
     float *GammaInitial;
 
     unsigned int currentHorizon;
@@ -59,55 +59,55 @@ typedef struct NovaPOMDPPerseusCPU {
     float *GammaPrime;
     unsigned int *pi;
     unsigned int *piPrime;
-} POMDPPerseusCPU;
+} POMDPPerseus;
 
 /**
- *  Step 1/3: The initialization step of Perseus. This sets up the Gamma and pi variables.
+ *  Execute all steps of Perseus for the infinite horizon POMDP model specified.
  *  @param  pomdp       The POMDP object.
- *  @param  per         The POMDPPerseusCPU object containing algorithm variables.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-extern "C" int pomdp_perseus_initialize_cpu(const POMDP *pomdp, POMDPPerseusCPU *per);
-
-/**
- *  Step 2/3: Execute Perseus for the infinite horizon POMDP model specified.
- *  @param  pomdp       The POMDP object.
- *  @param  per         The POMDPPerseusCPU object containing algorithm variables.
+ *  @param  per         The POMDPPerseus object containing algorithm variables.
  *  @param  policy      The resultant set of alpha-vectors. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_perseus_execute_cpu(const POMDP *pomdp, POMDPPerseusCPU *per,
+extern "C" int pomdp_perseus_execute(const POMDP *pomdp, POMDPPerseus *per,
         POMDPAlphaVectors *policy);
 
 /**
- *  Step 3/3: The uninitialization step of Perseus. This sets up the Gamma and pi variables.
+ *  Step 1/4: The initialization step of Perseus. This sets up the Gamma and pi variables.
  *  @param  pomdp       The POMDP object.
- *  @param  per         The POMDPPerseusCPU object containing algorithm variables.
+ *  @param  per         The POMDPPerseus object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_perseus_uninitialize_cpu(const POMDP *pomdp, POMDPPerseusCPU *per);
+extern "C" int pomdp_perseus_initialize(const POMDP *pomdp, POMDPPerseus *per);
 
 /**
- *  The update step of Perseus. This applies the Perseus procedure once.
+ *  Step 2/4: The update step of Perseus. This applies the Perseus procedure once.
  *  @param  pomdp       The POMDP object.
- *  @param  per         The POMDPPerseusCPU object containing algorithm variables.
+ *  @param  per         The POMDPPerseus object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_perseus_update_cpu(const POMDP *pomdp, POMDPPerseusCPU *per);
+extern "C" int pomdp_perseus_update(const POMDP *pomdp, POMDPPerseus *per);
 
 /**
- *  The get resultant policy step of Perseus. This retrieves the alpha-vectors (Gamma) and
+ *  Step 3/4: The get resultant policy step of Perseus. This retrieves the alpha-vectors (Gamma) and
  *  corresponding actions (pi).
  *  @param  pomdp       The POMDP object.
- *  @param  per         The POMDPPerseusCPU object containing algorithm variables.
+ *  @param  per         The POMDPPerseus object containing algorithm variables.
  *  @param  policy      The resultant set of alpha-vectors. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_perseus_get_policy_cpu(const POMDP *pomdp, POMDPPerseusCPU *per,
+extern "C" int pomdp_perseus_get_policy(const POMDP *pomdp, POMDPPerseus *per,
         POMDPAlphaVectors *policy);
+
+/**
+ *  Step 4/4: The uninitialization step of Perseus. This sets up the Gamma and pi variables.
+ *  @param  pomdp       The POMDP object.
+ *  @param  per         The POMDPPerseus object containing algorithm variables.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int pomdp_perseus_uninitialize(const POMDP *pomdp, POMDPPerseus *per);
 
 };
 
 
-#endif // NOVA_POMDP_PERSEUS_CPU_H
+#endif // NOVA_POMDP_PERSEUS_H
 

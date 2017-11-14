@@ -22,10 +22,11 @@
  */
 
 
-#include <nova/mdp/algorithms/ssp_lrtdp_cpu.h>
+#include <nova/mdp/algorithms/ssp_lrtdp.h>
 
 #include <nova/mdp/policies/mdp_value_function.h>
-#include <nova/mdp/utilities/ssp_functions_cpu.h>
+#include <nova/mdp/utilities/ssp_functions.h>
+#include <nova/mdp/utilities/ssp_stack.h>
 #include <nova/error_codes.h>
 #include <nova/constants.h>
 
@@ -38,19 +39,19 @@
 
 namespace nova {
 
-bool ssp_lrtdp_is_solved_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, unsigned int s)
+bool ssp_lrtdp_is_solved(const MDP *mdp, SSPLRTDP *lrtdp, unsigned int s)
 {
     return std::signbit(lrtdp->V[s]);
 }
 
 
-void ssp_lrtdp_mark_solved_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, unsigned int s)
+void ssp_lrtdp_mark_solved(const MDP *mdp, SSPLRTDP *lrtdp, unsigned int s)
 {
     lrtdp->V[s] = -std::fabs(lrtdp->V[s]);
 }
 
 
-int ssp_lrtdp_check_solved_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, unsigned int s0, bool &solved)
+int ssp_lrtdp_check_solved(const MDP *mdp, SSPLRTDP *lrtdp, unsigned int s0, bool &solved)
 {
     solved = true;
 
@@ -60,7 +61,7 @@ int ssp_lrtdp_check_solved_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, unsigned int 
     open.stackSize = 0;
     open.stack = nullptr;
 
-    ssp_stack_create_cpu(open);
+    ssp_stack_create(open);
 
     // Create a closed state list (stack).
     SSPStack closed;
@@ -68,24 +69,24 @@ int ssp_lrtdp_check_solved_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, unsigned int 
     closed.stackSize = 0;
     closed.stack = nullptr;
 
-    ssp_stack_create_cpu(closed);
+    ssp_stack_create(closed);
 
     // If the initial state is not solved, then push it.
-    if (!ssp_lrtdp_is_solved_cpu(mdp, lrtdp, s0)) {
-        ssp_stack_push_cpu(open, s0);
+    if (!ssp_lrtdp_is_solved(mdp, lrtdp, s0)) {
+        ssp_stack_push(open, s0);
     }
 
     // Iterate until there are no more elements in the open list.
     while (open.stackSize != 0) {
         // Pop the last element off the stack.
         unsigned int s = 0;
-        ssp_stack_pop_cpu(open, s);
-        ssp_stack_push_cpu(closed, s);
+        ssp_stack_pop(open, s);
+        ssp_stack_push(closed, s);
 
         // Perform a Bellman update on this state if it is not already solved.
         float Vs = lrtdp->V[s];
-        if (!ssp_lrtdp_is_solved_cpu(mdp, lrtdp, s)) {
-            ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->S, mdp->T, mdp->R,
+        if (!ssp_lrtdp_is_solved(mdp, lrtdp, s)) {
+            ssp_bellman_update(mdp->n, mdp->ns, mdp->m, mdp->S, mdp->T, mdp->R,
                                    s, lrtdp->V, lrtdp->pi);
 
             // This lets us compute the residual. We are not solved if it is too large.
@@ -103,10 +104,10 @@ int ssp_lrtdp_check_solved_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, unsigned int 
                 break;
             }
 
-            if (!ssp_lrtdp_is_solved_cpu(mdp, lrtdp, sp)
-                    && !ssp_stack_in_cpu(open, sp)
-                    && !ssp_stack_in_cpu(closed, sp)) {
-                ssp_stack_push_cpu(open, sp);
+            if (!ssp_lrtdp_is_solved(mdp, lrtdp, sp)
+                    && !ssp_stack_in(open, sp)
+                    && !ssp_stack_in(closed, sp)) {
+                ssp_stack_push(open, sp);
             }
         }
     }
@@ -115,26 +116,94 @@ int ssp_lrtdp_check_solved_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, unsigned int 
     // Otherwise, update all of these states.
     while (closed.stackSize != 0) {
         unsigned int s = 0;
-        ssp_stack_pop_cpu(closed, s);
+        ssp_stack_pop(closed, s);
         if (solved) {
-            ssp_lrtdp_mark_solved_cpu(mdp, lrtdp, s);
+            ssp_lrtdp_mark_solved(mdp, lrtdp, s);
         } else {
-            ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m, mdp->S, mdp->T, mdp->R,
+            ssp_bellman_update(mdp->n, mdp->ns, mdp->m, mdp->S, mdp->T, mdp->R,
                                    s, lrtdp->V, lrtdp->pi);
         }
     }
 
-    ssp_stack_destroy_cpu(open);
-    ssp_stack_destroy_cpu(closed);
+    ssp_stack_destroy(open);
+    ssp_stack_destroy(closed);
 
     return NOVA_SUCCESS;
 }
 
 
-int ssp_lrtdp_initialize_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp)
+int ssp_lrtdp_execute(const MDP *mdp, SSPLRTDP *lrtdp, MDPValueFunction *policy)
+{
+    // First, ensure data is valid.
+    if (mdp == nullptr || mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
+            mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
+            mdp->horizon < 1 || mdp->epsilon < 0.0f ||
+            mdp->ng < 1 || mdp->goals == nullptr ||
+            lrtdp == nullptr || lrtdp->trials < 1 || policy == nullptr) {
+        fprintf(stderr, "Error[ssp_lrtdp_execute]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    int result = ssp_lrtdp_initialize(mdp, lrtdp);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[ssp_lrtdp_execute]: %s\n", "Failed to initialize the  variables.");
+        return result;
+    }
+
+    // Iterate until you have done the desired number of trials.
+    for (lrtdp->currentTrial = 0;
+            lrtdp->currentTrial < lrtdp->trials && result != NOVA_CONVERGED;
+            lrtdp->currentTrial++) {
+
+        result = ssp_lrtdp_update(mdp, lrtdp);
+        if (result != NOVA_SUCCESS && result != NOVA_CONVERGED) {
+            fprintf(stderr, "Error[ssp_lrtdp_execute]: %s\n",
+                            "Failed to perform trial of lrtdp on the .");
+
+            unsigned int resultPrime = ssp_lrtdp_uninitialize(mdp, lrtdp);
+            if (resultPrime != NOVA_SUCCESS) {
+                fprintf(stderr, "Error[ssp_lrtdp_execute]: %s\n",
+                                "Failed to uninitialize the  variables.");
+            }
+
+            return result;
+        }
+    }
+
+    result = ssp_lrtdp_get_policy(mdp, lrtdp, policy);
+    if (result != NOVA_SUCCESS && result != NOVA_WARNING_APPROXIMATE_SOLUTION) {
+        fprintf(stderr, "Error[ssp_lrtdp_execute]: %s\n", "Failed to get the policy.");
+
+        unsigned int resultPrime = ssp_lrtdp_uninitialize(mdp, lrtdp);
+        if (resultPrime != NOVA_SUCCESS) {
+            fprintf(stderr, "Error[ssp_lrtdp_execute]: %s\n",
+                            "Failed to uninitialize the  variables.");
+        }
+
+        return result;
+    }
+
+    bool approximateSolution = (result == NOVA_WARNING_APPROXIMATE_SOLUTION);
+
+    result = ssp_lrtdp_uninitialize(mdp, lrtdp);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[ssp_lrtdp_execute]: %s\n", "Failed to uninitialize the  variables.");
+    }
+
+    // If this was an approximate solution, return this warning. Otherwise, return success.
+    if (approximateSolution) {
+        fprintf(stderr, "Warning[ssp_lrtdp_execute]: %s\n", "Approximate solution due to early termination and/or dead ends.");
+        return NOVA_WARNING_APPROXIMATE_SOLUTION;
+    }
+
+    return NOVA_SUCCESS;
+}
+
+
+int ssp_lrtdp_initialize(const MDP *mdp, SSPLRTDP *lrtdp)
 {
     if (mdp == nullptr || mdp->n == 0 || lrtdp == nullptr) {
-        fprintf(stderr, "Error[ssp_lrtdp_initialize_cpu]: %s\n", "Invalid arguments.");
+        fprintf(stderr, "Error[ssp_lrtdp_initialize]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
@@ -165,67 +234,158 @@ int ssp_lrtdp_initialize_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp)
 }
 
 
-int ssp_lrtdp_execute_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, MDPValueFunction *policy)
+int ssp_lrtdp_update(const MDP *mdp, SSPLRTDP *lrtdp)
 {
-    // First, ensure data is valid.
-    if (mdp == nullptr || mdp->n == 0 || mdp->ns == 0 || mdp->m == 0 ||
-            mdp->S == nullptr || mdp->T == nullptr || mdp->R == nullptr ||
-            mdp->horizon < 1 || mdp->epsilon < 0.0f ||
-            mdp->ng < 1 || mdp->goals == nullptr ||
-            lrtdp == nullptr || lrtdp->trials < 1 || policy == nullptr) {
-        fprintf(stderr, "Error[ssp_lrtdp_execute_cpu]: %s\n", "Invalid arguments.");
+    // Create a visited state list (stack) variable, with just state s0.
+    SSPStack visited;
+    visited.maxStackSize = mdp->horizon; // flares->maxStackSize;
+    visited.stackSize = 0;
+    visited.stack = nullptr;
+
+    ssp_stack_create(visited);
+
+    unsigned int s = mdp->s0;
+
+    for (lrtdp->currentHorizon = 0; lrtdp->currentHorizon < mdp->horizon; lrtdp->currentHorizon++) {
+        // Push this new state onto the visited stack. Break if this is absorbing.
+        ssp_stack_push(visited, s);
+
+        // Check if this is a goal or an explicit dead end.
+        if (ssp_is_goal(mdp, s)) {
+           lrtdp->V[s] = 0.0f;
+           lrtdp->pi[s] = 0;
+           break;
+        } else if (ssp_is_dead_end(mdp, s)) {
+            lrtdp->V[s] = NOVA_FLT_MAX;
+            lrtdp->pi[s] = 0;
+           break;
+        }
+
+        // Take a greedy action and update the value of this state.
+        ssp_bellman_update(mdp->n, mdp->ns, mdp->m,
+                                     mdp->S, mdp->T, mdp->R,
+                                     s, lrtdp->V, lrtdp->pi);
+
+        // Randomly explore the state space using the greedy action.
+        unsigned int sp = 0;
+        ssp_random_successor(mdp, s, lrtdp->pi[s], sp);
+
+        // Transition to the next state. Break if this is solved already.
+        s = sp;
+        if (ssp_lrtdp_is_solved(mdp, lrtdp, s)) {
+            break;
+        }
+    }
+
+    // At the end, in post order visited, and check for convergence ("solved").
+    while (visited.stackSize != 0) {
+        // Pop the node off of the traversal stack.
+        unsigned int s = 0;
+        ssp_stack_pop(visited, s);
+
+        // Keep checking if we "solved" these states; just return if we find one that is not.
+        bool solved = false;
+        int result = ssp_lrtdp_check_solved(mdp, lrtdp, s, solved);
+        if (result != NOVA_SUCCESS) {
+            fprintf(stderr, "Error[ssp_lrtdp_update]: %s\n", "Failed to check solved.");
+            ssp_stack_destroy(visited);
+            return result;
+        }
+
+        if (!solved) {
+            ssp_stack_destroy(visited);
+            return NOVA_SUCCESS;
+        }
+    }
+
+    // If we got here, then we have solved the initial state or run out of time and are done.
+    ssp_stack_destroy(visited);
+
+    if (!ssp_lrtdp_is_solved(mdp, lrtdp, mdp->s0)) {
+        return NOVA_WARNING_APPROXIMATE_SOLUTION;
+    }
+
+    return NOVA_CONVERGED;
+}
+
+
+int ssp_lrtdp_get_policy(const MDP *mdp, SSPLRTDP *lrtdp, MDPValueFunction *policy)
+{
+    if (mdp == nullptr || lrtdp == nullptr || policy == nullptr) {
+        fprintf(stderr, "Error[ssp_lrtdp_get_policy]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    int result = ssp_lrtdp_initialize_cpu(mdp, lrtdp);
-    if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[ssp_lrtdp_execute_cpu]: %s\n", "Failed to initialize the CPU variables.");
-        return result;
-    }
+    // First, find the best partial solution graph (nodes, which are states).
+    // This is stored in the closed state list (below).
 
-    // Iterate until you have done the desired number of trials.
-    for (lrtdp->currentTrial = 0;
-            lrtdp->currentTrial < lrtdp->trials && result != NOVA_CONVERGED;
-            lrtdp->currentTrial++) {
+    // Create a open state list (stack).
+    SSPStack open;
+    open.maxStackSize = lrtdp->maxStackSize; //mdp->n;
+    open.stackSize = 0;
+    open.stack = nullptr;
 
-        result = ssp_lrtdp_update_cpu(mdp, lrtdp);
-        if (result != NOVA_SUCCESS && result != NOVA_CONVERGED) {
-            fprintf(stderr, "Error[ssp_lrtdp_execute_cpu]: %s\n",
-                            "Failed to perform trial of lrtdp on the CPU.");
+    ssp_stack_create(open);
+    ssp_stack_push(open, mdp->s0);
 
-            unsigned int resultPrime = ssp_lrtdp_uninitialize_cpu(mdp, lrtdp);
-            if (resultPrime != NOVA_SUCCESS) {
-                fprintf(stderr, "Error[ssp_lrtdp_execute_cpu]: %s\n",
-                                "Failed to uninitialize the CPU variables.");
+    // Create a closed state list (stack).
+    SSPStack closed;
+    closed.maxStackSize = lrtdp->maxStackSize; //mdp->n;
+    closed.stackSize = 0;
+    closed.stack = nullptr;
+
+    ssp_stack_create(closed);
+
+    // Iterate until there are no more elements in the open list.
+    while (open.stackSize != 0) {
+        // Pop the last element off the stack.
+        unsigned int s = 0;
+        ssp_stack_pop(open, s);
+        ssp_stack_push(closed, s);
+
+        // If this is a goal or dead end we do not add successors.
+        if (ssp_is_goal(mdp, s) || ssp_is_dead_end(mdp, s)) {
+            continue;
+        }
+
+        // Expand the successors, following the greedy action. Add all successors
+        // to the open list.
+        for (unsigned int i = 0; i < mdp->ns; i++) {
+            int sp = mdp->S[s * mdp->m * mdp->ns + lrtdp->pi[s] * mdp->ns + i];
+            if (sp < 0) {
+                break;
             }
 
-            return result;
+            // Only add to the stack if it is not already in the open or closed lists.
+            if (!ssp_stack_in(open, sp) && !ssp_stack_in(closed, sp)) {
+                ssp_stack_push(open, sp);
+            }
         }
     }
 
-    result = ssp_lrtdp_get_policy_cpu(mdp, lrtdp, policy);
-    if (result != NOVA_SUCCESS && result != NOVA_WARNING_APPROXIMATE_SOLUTION) {
-        fprintf(stderr, "Error[ssp_lrtdp_execute_cpu]: %s\n", "Failed to get the policy.");
-
-        unsigned int resultPrime = ssp_lrtdp_uninitialize_cpu(mdp, lrtdp);
-        if (resultPrime != NOVA_SUCCESS) {
-            fprintf(stderr, "Error[ssp_lrtdp_execute_cpu]: %s\n",
-                            "Failed to uninitialize the CPU variables.");
-        }
-
-        return result;
-    }
-
-    bool approximateSolution = (result == NOVA_WARNING_APPROXIMATE_SOLUTION);
-
-    result = ssp_lrtdp_uninitialize_cpu(mdp, lrtdp);
+    // Now we know how many states are in the policy. So, initialize the policy,
+    // which allocates memory.
+    int result = mdp_value_function_initialize(policy, mdp->n, mdp->m, closed.stackSize);
     if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[ssp_lrtdp_execute_cpu]: %s\n", "Failed to uninitialize the CPU variables.");
+        fprintf(stderr, "Error[ssp_lrtdp_get_policy]: %s\n", "Could not create the policy.");
+        return NOVA_ERROR_POLICY_CREATION;
     }
 
-    // If this was an approximate solution, return this warning. Otherwise, return success.
-    if (approximateSolution) {
-        fprintf(stderr, "Warning[ssp_lrtdp_execute_cpu]: %s\n", "Approximate solution due to early termination and/or dead ends.");
+    // Copy the final (or intermediate) result, both V and pi.
+    for (unsigned int i = 0; i < closed.stackSize; i++) {
+        unsigned int s = closed.stack[i];
+        policy->S[i] = s;
+        policy->V[i] = lrtdp->V[s];
+        policy->pi[i] = lrtdp->pi[s];
+    }
+
+    ssp_stack_destroy(open);
+    ssp_stack_destroy(closed);
+
+    // If the initial state is not marked as solved, then return a warning regarding the solution quality.
+    if (!ssp_lrtdp_is_solved(mdp, lrtdp, mdp->s0)) {
+        fprintf(stderr, "Warning[ssp_lrtdp_get_policy]: %s\n",
+                "Failed to create a policy without a solved initial state.");
         return NOVA_WARNING_APPROXIMATE_SOLUTION;
     }
 
@@ -233,10 +393,10 @@ int ssp_lrtdp_execute_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, MDPValueFunction *
 }
 
 
-int ssp_lrtdp_uninitialize_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp)
+int ssp_lrtdp_uninitialize(const MDP *mdp, SSPLRTDP *lrtdp)
 {
     if (mdp == nullptr || lrtdp == nullptr) {
-        fprintf(stderr, "Error[ssp_lrtdp_uninitialize_cpu]: %s\n", "Invalid arguments.");
+        fprintf(stderr, "Error[ssp_lrtdp_uninitialize]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
@@ -254,165 +414,6 @@ int ssp_lrtdp_uninitialize_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp)
         delete [] lrtdp->pi;
     }
     lrtdp->pi = nullptr;
-
-    return NOVA_SUCCESS;
-}
-
-
-int ssp_lrtdp_update_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp)
-{
-    // Create a visited state list (stack) variable, with just state s0.
-    SSPStack visited;
-    visited.maxStackSize = mdp->horizon; // flares->maxStackSize;
-    visited.stackSize = 0;
-    visited.stack = nullptr;
-
-    ssp_stack_create_cpu(visited);
-
-    unsigned int s = mdp->s0;
-
-    for (lrtdp->currentHorizon = 0; lrtdp->currentHorizon < mdp->horizon; lrtdp->currentHorizon++) {
-        // Push this new state onto the visited stack. Break if this is absorbing.
-        ssp_stack_push_cpu(visited, s);
-
-        // Check if this is a goal or an explicit dead end.
-        if (ssp_is_goal_cpu(mdp, s)) {
-           lrtdp->V[s] = 0.0f;
-           lrtdp->pi[s] = 0;
-           break;
-        } else if (ssp_is_dead_end_cpu(mdp, s)) {
-            lrtdp->V[s] = NOVA_FLT_MAX;
-            lrtdp->pi[s] = 0;
-           break;
-        }
-
-        // Take a greedy action and update the value of this state.
-        ssp_bellman_update_cpu(mdp->n, mdp->ns, mdp->m,
-                                     mdp->S, mdp->T, mdp->R,
-                                     s, lrtdp->V, lrtdp->pi);
-
-        // Randomly explore the state space using the greedy action.
-        unsigned int sp = 0;
-        ssp_random_successor_cpu(mdp, s, lrtdp->pi[s], sp);
-
-        // Transition to the next state. Break if this is solved already.
-        s = sp;
-        if (ssp_lrtdp_is_solved_cpu(mdp, lrtdp, s)) {
-            break;
-        }
-    }
-
-    // At the end, in post order visited, and check for convergence ("solved").
-    while (visited.stackSize != 0) {
-        // Pop the node off of the traversal stack.
-        unsigned int s = 0;
-        ssp_stack_pop_cpu(visited, s);
-
-        // Keep checking if we "solved" these states; just return if we find one that is not.
-        bool solved = false;
-        int result = ssp_lrtdp_check_solved_cpu(mdp, lrtdp, s, solved);
-        if (result != NOVA_SUCCESS) {
-            fprintf(stderr, "Error[ssp_lrtdp_update_cpu]: %s\n", "Failed to check solved.");
-            ssp_stack_destroy_cpu(visited);
-            return result;
-        }
-
-        if (!solved) {
-            ssp_stack_destroy_cpu(visited);
-            return NOVA_SUCCESS;
-        }
-    }
-
-    // If we got here, then we have solved the initial state or run out of time and are done.
-    ssp_stack_destroy_cpu(visited);
-
-    if (!ssp_lrtdp_is_solved_cpu(mdp, lrtdp, mdp->s0)) {
-        return NOVA_WARNING_APPROXIMATE_SOLUTION;
-    }
-
-    return NOVA_CONVERGED;
-}
-
-
-int ssp_lrtdp_get_policy_cpu(const MDP *mdp, SSPLRTDPCPU *lrtdp, MDPValueFunction *policy)
-{
-    if (mdp == nullptr || lrtdp == nullptr || policy == nullptr) {
-        fprintf(stderr, "Error[ssp_lrtdp_get_policy_cpu]: %s\n", "Invalid arguments.");
-        return NOVA_ERROR_INVALID_DATA;
-    }
-
-    // First, find the best partial solution graph (nodes, which are states).
-    // This is stored in the closed state list (below).
-
-    // Create a open state list (stack).
-    SSPStack open;
-    open.maxStackSize = lrtdp->maxStackSize; //mdp->n;
-    open.stackSize = 0;
-    open.stack = nullptr;
-
-    ssp_stack_create_cpu(open);
-    ssp_stack_push_cpu(open, mdp->s0);
-
-    // Create a closed state list (stack).
-    SSPStack closed;
-    closed.maxStackSize = lrtdp->maxStackSize; //mdp->n;
-    closed.stackSize = 0;
-    closed.stack = nullptr;
-
-    ssp_stack_create_cpu(closed);
-
-    // Iterate until there are no more elements in the open list.
-    while (open.stackSize != 0) {
-        // Pop the last element off the stack.
-        unsigned int s = 0;
-        ssp_stack_pop_cpu(open, s);
-        ssp_stack_push_cpu(closed, s);
-
-        // If this is a goal or dead end we do not add successors.
-        if (ssp_is_goal_cpu(mdp, s) || ssp_is_dead_end_cpu(mdp, s)) {
-            continue;
-        }
-
-        // Expand the successors, following the greedy action. Add all successors
-        // to the open list.
-        for (unsigned int i = 0; i < mdp->ns; i++) {
-            int sp = mdp->S[s * mdp->m * mdp->ns + lrtdp->pi[s] * mdp->ns + i];
-            if (sp < 0) {
-                break;
-            }
-
-            // Only add to the stack if it is not already in the open or closed lists.
-            if (!ssp_stack_in_cpu(open, sp) && !ssp_stack_in_cpu(closed, sp)) {
-                ssp_stack_push_cpu(open, sp);
-            }
-        }
-    }
-
-    // Now we know how many states are in the policy. So, initialize the policy,
-    // which allocates memory.
-    int result = mdp_value_function_initialize(policy, mdp->n, mdp->m, closed.stackSize);
-    if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[ssp_lrtdp_get_policy_cpu]: %s\n", "Could not create the policy.");
-        return NOVA_ERROR_POLICY_CREATION;
-    }
-
-    // Copy the final (or intermediate) result, both V and pi.
-    for (unsigned int i = 0; i < closed.stackSize; i++) {
-        unsigned int s = closed.stack[i];
-        policy->S[i] = s;
-        policy->V[i] = lrtdp->V[s];
-        policy->pi[i] = lrtdp->pi[s];
-    }
-
-    ssp_stack_destroy_cpu(open);
-    ssp_stack_destroy_cpu(closed);
-
-    // If the initial state is not marked as solved, then return a warning regarding the solution quality.
-    if (!ssp_lrtdp_is_solved_cpu(mdp, lrtdp, mdp->s0)) {
-        fprintf(stderr, "Warning[ssp_lrtdp_get_policy_cpu]: %s\n",
-                "Failed to create a policy without a solved initial state.");
-        return NOVA_WARNING_APPROXIMATE_SOLUTION;
-    }
 
     return NOVA_SUCCESS;
 }

@@ -52,15 +52,7 @@ typedef struct NovaMDPVIGPU {
 } MDPVIGPU;
 
 /**
- *  Step 1/3: The initialization step of VI. This sets up the V and pi variables.
- *  @param  mdp         The MDP object.
- *  @param  vi          The MDPVIGPU object containing algorithm variables.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-extern "C" int mdp_vi_initialize_gpu(const MDP *mdp, MDPVIGPU *vi);
-
-/**
- *  Step 2/3: Execute VI for the MDP model specified.
+ *  Execute all steps of VI for the MDP model specified.
  *  @param  mdp         The MDP object.
  *  @param  vi          The MDPVIGPU object containing algorithm variables.
  *  @param  policy      The resulting value function policy. This will be modified.
@@ -69,15 +61,15 @@ extern "C" int mdp_vi_initialize_gpu(const MDP *mdp, MDPVIGPU *vi);
 extern "C" int mdp_vi_execute_gpu(const MDP *mdp, MDPVIGPU *vi, MDPValueFunction *policy);
 
 /**
- *  Step 3/3: The uninitialization step of VI. This sets up the V and pi variables.
+ *  Step 1/4: The initialization step of VI. This sets up the V and pi variables.
  *  @param  mdp         The MDP object.
  *  @param  vi          The MDPVIGPU object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int mdp_vi_uninitialize_gpu(const MDP *mdp, MDPVIGPU *vi);
+extern "C" int mdp_vi_initialize_gpu(const MDP *mdp, MDPVIGPU *vi);
 
 /**
- *  The update step of VI. This applies the VI procedure once.
+ *  Step 2/4: The update step of VI. This applies the VI procedure once.
  *  @param  mdp         The MDP object.
  *  @param  vi          The MDPVIGPU object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
@@ -85,7 +77,7 @@ extern "C" int mdp_vi_uninitialize_gpu(const MDP *mdp, MDPVIGPU *vi);
 extern "C" int mdp_vi_update_gpu(const MDP *mdp, MDPVIGPU *vi);
 
 /**
- *  The get resultant policy step of VI. This retrieves the values of states (V) and
+ *  Step 3/4: The get resultant policy step of VI. This retrieves the values of states (V) and
  *  the corresponding actions at each state (pi).
  *  @param  mdp         The MDP object.
  *  @param  vi          The MDPVIGPU object containing algorithm variables.
@@ -93,6 +85,14 @@ extern "C" int mdp_vi_update_gpu(const MDP *mdp, MDPVIGPU *vi);
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int mdp_vi_get_policy_gpu(const MDP *mdp, MDPVIGPU *vi, MDPValueFunction *policy);
+
+/**
+ *  Step 4/4: The uninitialization step of VI. This sets up the V and pi variables.
+ *  @param  mdp         The MDP object.
+ *  @param  vi          The MDPVIGPU object containing algorithm variables.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int mdp_vi_uninitialize_gpu(const MDP *mdp, MDPVIGPU *vi);
 
 };
 

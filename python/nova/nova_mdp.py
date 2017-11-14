@@ -64,7 +64,7 @@ class NovaMDP(ct.Structure):
 
 
 # Functions from 'mdp_model_gpu.h'.
-_nova.mdp_initialize_cpu.argtypes = (ct.POINTER(NovaMDP),
+_nova.mdp_initialize.argtypes = (ct.POINTER(NovaMDP),
                                      ct.c_uint,     # n
                                      ct.c_uint,     # ns
                                      ct.c_uint,     # m
@@ -73,7 +73,7 @@ _nova.mdp_initialize_cpu.argtypes = (ct.POINTER(NovaMDP),
                                      ct.c_float,    # epsilon
                                      ct.c_uint,     # s0
                                      ct.c_uint)     # ng
-_nova.mdp_uninitialize_cpu.argtypes = tuple([ct.POINTER(NovaMDP)])
+_nova.mdp_uninitialize.argtypes = tuple([ct.POINTER(NovaMDP)])
 
 
 # Functions from 'mdp_model_gpu.h'.

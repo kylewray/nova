@@ -22,8 +22,8 @@
  */
 
 
-#ifndef NOVA_POMDP_FUNCTIONS_CPU_H
-#define NOVA_POMDP_FUNCTIONS_CPU_H
+#ifndef NOVA_POMDP_FUNCTIONS_H
+#define NOVA_POMDP_FUNCTIONS_H
 
 
 namespace nova {
@@ -37,7 +37,7 @@ namespace nova {
  *  @param  alpha       The alpha vector to take the dot product with.
  *  @return The result of the compuation of b dot alpha.
  */
-float pomdp_compute_b_dot_alpha_cpu(unsigned int rz, const int *Z, const float *B, unsigned int bIndex, const float *alpha);
+float pomdp_compute_b_dot_alpha(unsigned int rz, const int *Z, const float *B, unsigned int bIndex, const float *alpha);
 
 /**
  *  Compute the value of V(b) by looking over all alpha-vectors for the max b dot alpha.
@@ -51,7 +51,7 @@ float pomdp_compute_b_dot_alpha_cpu(unsigned int rz, const int *Z, const float *
  *  @param  Vnb                 The value of V(b). This will be modified.
  *  @param  alphaPrimeIndex     The index of the maximal alpha-vector in Gamma. This will be modified.
  */
-void pomdp_compute_Vb_cpu(unsigned int n, unsigned int rz, const int *Z, const float *B, unsigned int bIndex,
+void pomdp_compute_Vb(unsigned int n, unsigned int rz, const int *Z, const float *B, unsigned int bIndex,
     const float *Gamma, unsigned int rGamma, float *Vnb, unsigned int *alphaPrimeIndex);
 
 /**
@@ -75,7 +75,7 @@ void pomdp_compute_Vb_cpu(unsigned int n, unsigned int rz, const int *Z, const f
  *  @param  alphaPrime  The resulting alpha-vector. This will be modified. Memory is expected to be allocated.
  *  @param  aPrime      The resulting action for this alpha-vector. This will be modified.
  */
-void pomdp_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
+void pomdp_bellman_update(unsigned int n, unsigned int ns, unsigned int m, unsigned int z,
     unsigned int r, unsigned int rz, float gamma,
     const int *S, const float *T, const float *O, const float *R, const int *Z, const float *B,
     const float *Gamma, unsigned int rGamma,
@@ -84,5 +84,5 @@ void pomdp_bellman_update_cpu(unsigned int n, unsigned int ns, unsigned int m, u
 }; // namespace nova
 
 
-#endif // NOVA_POMDP_FUNCTIONS_CPU_H
+#endif // NOVA_POMDP_FUNCTIONS_H
 

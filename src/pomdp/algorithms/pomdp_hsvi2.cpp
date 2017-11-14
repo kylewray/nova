@@ -22,15 +22,15 @@
  */
 
 
-#include <nova/pomdp/algorithms/pomdp_hsvi2_cpu.h>
+#include <nova/pomdp/algorithms/pomdp_hsvi2.h>
 
 #include <nova/pomdp/policies/pomdp_alpha_vectors.h>
-#include <nova/pomdp/utilities/pomdp_model_cpu.h>
-#include <nova/pomdp/utilities/pomdp_functions_cpu.h>
+#include <nova/pomdp/utilities/pomdp_model.h>
+#include <nova/pomdp/utilities/pomdp_functions.h>
 
-#include <nova/mdp/algorithms/mdp_vi_cpu.h>
+#include <nova/mdp/algorithms/mdp_vi.h>
 #include <nova/mdp/policies/mdp_value_function.h>
-#include <nova/mdp/utilities/mdp_model_cpu.h>
+#include <nova/mdp/utilities/mdp_model.h>
 
 #include <nova/error_codes.h>
 #include <nova/constants.h>
@@ -45,10 +45,10 @@
 
 namespace nova {
 
-int pomdp_hsvi2_lower_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
+int pomdp_hsvi2_lower_bound_initialize(const POMDP *pomdp, POMDPHSVI2 *hsvi2)
 {
     if (hsvi2->maxAlphaVectors < pomdp->m) {
-        fprintf(stderr, "Error[pomdp_hsvi2_lower_bound_initialize_cpu]: Cannot initialize upper bound. Not enough memory.");
+        fprintf(stderr, "Error[pomdp_hsvi2_lower_bound_initialize]: Cannot initialize upper bound. Not enough memory.");
         return NOVA_ERROR_OUT_OF_MEMORY;
     }
 
@@ -108,10 +108,10 @@ int pomdp_hsvi2_lower_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hs
 }
 
 
-int pomdp_hsvi2_upper_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
+int pomdp_hsvi2_upper_bound_initialize(const POMDP *pomdp, POMDPHSVI2 *hsvi2)
 {
     if (hsvi2->maxAlphaVectors < pomdp->n) {
-        fprintf(stderr, "Error[pomdp_hsvi2_upper_bound_initialize_cpu]: Cannot initialize upper bound. Not enough memory.");
+        fprintf(stderr, "Error[pomdp_hsvi2_upper_bound_initialize]: Cannot initialize upper bound. Not enough memory.");
         return NOVA_ERROR_OUT_OF_MEMORY;
     }
 
@@ -159,7 +159,7 @@ int pomdp_hsvi2_upper_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hs
     mdp.d_T = nullptr;
     mdp.d_R = nullptr;
 
-    MDPVICPU mdpVI;
+    MDPVI mdpVI;
     mdpVI.VInitial = nullptr;
     mdpVI.currentHorizon = 0;
     mdpVI.V = nullptr;
@@ -174,7 +174,7 @@ int pomdp_hsvi2_upper_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hs
     mdpPolicy.V = nullptr;
     mdpPolicy.pi = nullptr;
 
-    int result = mdp_vi_execute_cpu(&mdp, &mdpVI, &mdpPolicy);
+    int result = mdp_vi_execute(&mdp, &mdpVI, &mdpPolicy);
 
     // Assign alpha^a_0 = maxV to all initial alpha values.
     float *alpha = new float[pomdp->m * pomdp->n];
@@ -264,7 +264,7 @@ int pomdp_hsvi2_upper_bound_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hs
 }
 
 
-float pomdp_hsvi2_upper_Vb_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float *b)
+float pomdp_hsvi2_upper_Vb(const POMDP *pomdp, POMDPHSVI2 *hsvi2, float *b)
 {
     float x0 = 0.0f;
     for (unsigned int s = 0; s < pomdp->n; s++) {
@@ -301,7 +301,7 @@ float pomdp_hsvi2_upper_Vb_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float *
 }
 
 
-float pomdp_hsvi2_compute_prob_observation_given_belief_action_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float *b, unsigned int a, unsigned int o)
+float pomdp_hsvi2_compute_prob_observation_given_belief_action(const POMDP *pomdp, POMDPHSVI2 *hsvi2, float *b, unsigned int a, unsigned int o)
 {
     float probObservationGivenBeliefAction = 0.0f;
 
@@ -319,7 +319,7 @@ float pomdp_hsvi2_compute_prob_observation_given_belief_action_cpu(const POMDP *
 }
 
 
-float pomdp_hsvi2_upper_Qba_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float *b, unsigned int a)
+float pomdp_hsvi2_upper_Qba(const POMDP *pomdp, POMDPHSVI2 *hsvi2, float *b, unsigned int a)
 {
     float Qba = 0.0f;
 
@@ -327,13 +327,13 @@ float pomdp_hsvi2_upper_Qba_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float 
     float *bp = nullptr;
 
     for (unsigned int o = 0; o < pomdp->z; o++) {
-        // Note: pomdp_belief_update_cpu allocates memory for bp.
-        int result = pomdp_belief_update_cpu(pomdp, b, a, o, bp);
+        // Note: pomdp_belief_update allocates memory for bp.
+        int result = pomdp_belief_update(pomdp, b, a, o, bp);
         if (result != NOVA_SUCCESS) {
             continue;
         }
 
-        Qba += pomdp_hsvi2_compute_prob_observation_given_belief_action_cpu(pomdp, hsvi2, b, a, o) * pomdp_hsvi2_upper_Vb_cpu(pomdp, hsvi2, bp);
+        Qba += pomdp_hsvi2_compute_prob_observation_given_belief_action(pomdp, hsvi2, b, a, o) * pomdp_hsvi2_upper_Vb(pomdp, hsvi2, bp);
 
         delete [] bp;
         bp = nullptr;
@@ -351,10 +351,10 @@ float pomdp_hsvi2_upper_Qba_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float 
 }
 
 
-float pomdp_hsvi2_width_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float *b)
+float pomdp_hsvi2_width(const POMDP *pomdp, POMDPHSVI2 *hsvi2, float *b)
 {
     // The primary challenge is computing the upper bound on V(b) from the point set representation.
-    float upperVb = pomdp_hsvi2_upper_Vb_cpu(pomdp, hsvi2, b);
+    float upperVb = pomdp_hsvi2_upper_Vb(pomdp, hsvi2, b);
     float lowerVb = NOVA_FLT_MIN;
 
     // Compute the lower bound on V(b) and return the width.
@@ -373,14 +373,14 @@ float pomdp_hsvi2_width_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float *b)
 }
 
 
-unsigned int pomdp_hsvi2_compute_a_star_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float *b)
+unsigned int pomdp_hsvi2_compute_a_star(const POMDP *pomdp, POMDPHSVI2 *hsvi2, float *b)
 {
     // Compute the argmax over the actions for the upper bound's Q-values given this action at the belief given.
     unsigned int aStar = 0;
     float bestQba = NOVA_FLT_MIN;
 
     for (unsigned int a = 0; a < pomdp->m; a++) {
-        float Qba = pomdp_hsvi2_upper_Qba_cpu(pomdp, hsvi2, b, a);
+        float Qba = pomdp_hsvi2_upper_Qba(pomdp, hsvi2, b, a);
         if (Qba > bestQba) {
             bestQba = Qba;
             aStar = a;
@@ -391,7 +391,7 @@ unsigned int pomdp_hsvi2_compute_a_star_cpu(const POMDP *pomdp, POMDPHSVI2CPU *h
 }
 
 
-unsigned int pomdp_hsvi2_compute_o_star_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float *b, unsigned int aStar, float gammaPowerT)
+unsigned int pomdp_hsvi2_compute_o_star(const POMDP *pomdp, POMDPHSVI2 *hsvi2, float *b, unsigned int aStar, float gammaPowerT)
 {
     unsigned int oStar = 0;
     float bestValue = NOVA_FLT_MIN;
@@ -399,8 +399,8 @@ unsigned int pomdp_hsvi2_compute_o_star_cpu(const POMDP *pomdp, POMDPHSVI2CPU *h
     float *bp = nullptr;
 
     for (unsigned int o = 0; o < pomdp->z; o++) {
-        // Note: pomdp_belief_update_cpu allocates memory for bp.
-        int result = pomdp_belief_update_cpu(pomdp, b, aStar, o, bp);
+        // Note: pomdp_belief_update allocates memory for bp.
+        int result = pomdp_belief_update(pomdp, b, aStar, o, bp);
         if (result != NOVA_SUCCESS) {
             if (bp != nullptr) {
                 delete [] bp;
@@ -409,8 +409,8 @@ unsigned int pomdp_hsvi2_compute_o_star_cpu(const POMDP *pomdp, POMDPHSVI2CPU *h
             continue;
         }
 
-        float excess = pomdp_hsvi2_width_cpu(pomdp, hsvi2, bp) - hsvi2->epsilon / (gammaPowerT * pomdp->gamma);
-        float value = pomdp_hsvi2_compute_prob_observation_given_belief_action_cpu(pomdp, hsvi2, b, aStar, o) * excess;
+        float excess = pomdp_hsvi2_width(pomdp, hsvi2, bp) - hsvi2->epsilon / (gammaPowerT * pomdp->gamma);
+        float value = pomdp_hsvi2_compute_prob_observation_given_belief_action(pomdp, hsvi2, b, aStar, o) * excess;
         if (value > bestValue) {
             bestValue = value;
             oStar = o;
@@ -424,10 +424,10 @@ unsigned int pomdp_hsvi2_compute_o_star_cpu(const POMDP *pomdp, POMDPHSVI2CPU *h
 }
 
 
-int pomdp_hsvi2_lower_bound_update_step_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float *b)
+int pomdp_hsvi2_lower_bound_update_step(const POMDP *pomdp, POMDPHSVI2 *hsvi2, float *b)
 {
     if (hsvi2->lowerGammaSize >= hsvi2->maxAlphaVectors - 1) {
-        fprintf(stderr, "Error[pomdp_hsvi2_lower_bound_update_step_cpu]: %s\n",
+        fprintf(stderr, "Error[pomdp_hsvi2_lower_bound_update_step]: %s\n",
                 "Cannot add any more lower bound alpha-vectors. Out of memory.");
         return NOVA_ERROR_OUT_OF_MEMORY;
     }
@@ -442,7 +442,7 @@ int pomdp_hsvi2_lower_bound_update_step_cpu(const POMDP *pomdp, POMDPHSVI2CPU *h
     unsigned int rz = pomdp->n;
     unsigned int bIndex = 0;
 
-    pomdp_bellman_update_cpu(pomdp->n, pomdp->ns, pomdp->m, pomdp->z, r, rz, pomdp->gamma,
+    pomdp_bellman_update(pomdp->n, pomdp->ns, pomdp->m, pomdp->z, r, rz, pomdp->gamma,
                              pomdp->S, pomdp->T, pomdp->O, pomdp->R, Z, B,
                              hsvi2->lowerGamma, hsvi2->lowerGammaSize,
                              bIndex, &hsvi2->lowerGamma[hsvi2->lowerGammaSize * pomdp->n], &hsvi2->lowerPi[hsvi2->lowerGammaSize]);
@@ -457,10 +457,10 @@ int pomdp_hsvi2_lower_bound_update_step_cpu(const POMDP *pomdp, POMDPHSVI2CPU *h
 }
 
 
-int pomdp_hsvi2_upper_bound_update_step_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, float *b)
+int pomdp_hsvi2_upper_bound_update_step(const POMDP *pomdp, POMDPHSVI2 *hsvi2, float *b)
 {
     if (hsvi2->upperGammaSize >= hsvi2->maxAlphaVectors - 1) {
-        fprintf(stderr, "Error[pomdp_hsvi2_upper_bound_update_step_cpu]: %s\n",
+        fprintf(stderr, "Error[pomdp_hsvi2_upper_bound_update_step]: %s\n",
                 "Cannot add any more upper bound points to the point set. Out of memory.");
         return NOVA_ERROR_OUT_OF_MEMORY;
     }
@@ -468,7 +468,7 @@ int pomdp_hsvi2_upper_bound_update_step_cpu(const POMDP *pomdp, POMDPHSVI2CPU *h
     float VStar = 0.0f;
 
     for (unsigned int a = 0; a < pomdp->m; a++) {
-        float Qba = pomdp_hsvi2_upper_Qba_cpu(pomdp, hsvi2, b, a);
+        float Qba = pomdp_hsvi2_upper_Qba(pomdp, hsvi2, b, a);
         if (VStar < Qba) {
             VStar = Qba;
         }
@@ -482,7 +482,7 @@ int pomdp_hsvi2_upper_bound_update_step_cpu(const POMDP *pomdp, POMDPHSVI2CPU *h
 }
 
 
-void pomdp_hsvi2_lower_bound_prune_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
+void pomdp_hsvi2_lower_bound_prune(const POMDP *pomdp, POMDPHSVI2 *hsvi2)
 {
     // We will not waste time doing pruning if: (1) there are no lower bound alpha-vectors, or (2) you have pruned before
     // but the size has not grown enough (i.e., greater than the growth threshold).
@@ -526,7 +526,7 @@ void pomdp_hsvi2_lower_bound_prune_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
 }
 
 
-void pomdp_hsvi2_upper_bound_prune_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
+void pomdp_hsvi2_upper_bound_prune(const POMDP *pomdp, POMDPHSVI2 *hsvi2)
 {
     // We will not waste time doing pruning if: (1) there are no upper bound points in the point set, or (2) you have not
     // pruned before but the size has not grown enough (i.e., greater than the growth threshold).
@@ -581,10 +581,72 @@ void pomdp_hsvi2_upper_bound_prune_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
 }
 
 
-int pomdp_hsvi2_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
+int pomdp_hsvi2_execute(const POMDP *pomdp, POMDPHSVI2 *hsvi2, POMDPAlphaVectors *policy)
+{
+    // Ensure the data is valid.
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
+            pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
+            pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
+            pomdp->Z == nullptr || pomdp->B == nullptr ||
+            pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
+            hsvi2 == nullptr || policy == nullptr) {
+        fprintf(stderr, "Error[pomdp_hsvi2_execute]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    int result = pomdp_hsvi2_initialize(pomdp, hsvi2);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[pomdp_hsvi2_execute]: %s\n", "Failed to initialize  variables.");
+        return result;
+    }
+
+    // Iterate until either the algorithm has converged or you have reached the maximal number of trials.
+    for (hsvi2->currentTrial = 0;
+            hsvi2->currentTrial < hsvi2->trials && result != NOVA_CONVERGED;
+            hsvi2->currentTrial++) {
+        result = pomdp_hsvi2_update(pomdp, hsvi2);
+        if (result != NOVA_SUCCESS && result != NOVA_CONVERGED) {
+            fprintf(stderr, "Error[pomdp_hsvi2_execute]: %s\n",
+                            "Failed to perform trial of HSVI2 on the .");
+
+            unsigned int resultPrime = pomdp_hsvi2_uninitialize(pomdp, hsvi2);
+            if (resultPrime != NOVA_SUCCESS) {
+                fprintf(stderr, "Error[pomdp_hsvi2_execute]: %s\n",
+                                "Failed to uninitialize the  variables.");
+            }
+
+            return result;
+        }
+    }
+
+    result = pomdp_hsvi2_get_policy(pomdp, hsvi2, policy);
+    if (result != NOVA_SUCCESS && result != NOVA_WARNING_APPROXIMATE_SOLUTION) {
+        fprintf(stderr, "Error[pomdp_hsvi2_execute]: %s\n", "Failed to get the policy.");
+    }
+
+    bool approximateSolution = (result == NOVA_WARNING_APPROXIMATE_SOLUTION);
+
+    result = pomdp_hsvi2_uninitialize(pomdp, hsvi2);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[pomdp_hsvi2_execute]: %s\n", "Failed to uninitialize the  variables.");
+        return result;
+    }
+
+    // If this was an approximate solution, return this warning. Otherwise, return success.
+    if (approximateSolution) {
+        fprintf(stderr, "Warning[ssp_hsvi2_execute]: %s\n",
+                "Approximate solution due to reaching the maximum number of trials.");
+        return NOVA_WARNING_APPROXIMATE_SOLUTION;
+    }
+
+    return NOVA_SUCCESS;
+}
+
+
+int pomdp_hsvi2_initialize(const POMDP *pomdp, POMDPHSVI2 *hsvi2)
 {
     if (pomdp == nullptr || pomdp->n == 0 || hsvi2 == nullptr || hsvi2->maxAlphaVectors == 0) {
-        fprintf(stderr, "Error[pomdp_hsvi2_initialize_cpu]: %s\n", "Invalid arguments.");
+        fprintf(stderr, "Error[pomdp_hsvi2_initialize]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
@@ -612,15 +674,15 @@ int pomdp_hsvi2_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
         hsvi2->upperGammaHVb[i] = 0.0f;
     }
 
-    int result = pomdp_hsvi2_lower_bound_initialize_cpu(pomdp, hsvi2);
+    int result = pomdp_hsvi2_lower_bound_initialize(pomdp, hsvi2);
     if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[pomdp_hsvi2_initialize_cpu]: Failed to initialize the lower bound.");
+        fprintf(stderr, "Error[pomdp_hsvi2_initialize]: Failed to initialize the lower bound.");
         return result;
     }
 
-    result = pomdp_hsvi2_upper_bound_initialize_cpu(pomdp, hsvi2);
+    result = pomdp_hsvi2_upper_bound_initialize(pomdp, hsvi2);
     if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[pomdp_hsvi2_initialize_cpu]: Failed to initialize the upper bound.");
+        fprintf(stderr, "Error[pomdp_hsvi2_initialize]: Failed to initialize the upper bound.");
         return result;
     }
 
@@ -628,7 +690,7 @@ int pomdp_hsvi2_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
 }
 
 
-int pomdp_hsvi2_execute_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, POMDPAlphaVectors *policy)
+int pomdp_hsvi2_update(const POMDP *pomdp, POMDPHSVI2 *hsvi2)
 {
     // Ensure the data is valid.
     if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
@@ -636,64 +698,151 @@ int pomdp_hsvi2_execute_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, POMDPAlpha
             pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
             pomdp->Z == nullptr || pomdp->B == nullptr ||
             pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
-            hsvi2 == nullptr || policy == nullptr) {
-        fprintf(stderr, "Error[pomdp_hsvi2_execute_cpu]: %s\n", "Invalid arguments.");
+            hsvi2 == nullptr || hsvi2->lowerGamma == nullptr || hsvi2->lowerPi == nullptr ||
+            hsvi2->upperGammaB == nullptr || hsvi2->upperGammaHVb == nullptr) {
+        fprintf(stderr, "Error[pomdp_hsvi2_update]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    int result = pomdp_hsvi2_initialize_cpu(pomdp, hsvi2);
-    if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[pomdp_hsvi2_execute_cpu]: %s\n", "Failed to initialize CPU variables.");
-        return result;
+    // Check if we ran out of memory.
+    if (hsvi2->lowerGammaSize >= hsvi2->maxAlphaVectors || hsvi2->upperGammaSize >= hsvi2->maxAlphaVectors) {
+        fprintf(stderr, "Error[pomdp_hsvi2_update]: %s\n", "Out of memory in HSVI2 exploration step.");
+        return NOVA_ERROR_OUT_OF_MEMORY;
     }
 
-    // Iterate until either the algorithm has converged or you have reached the maximal number of trials.
-    for (hsvi2->currentTrial = 0;
-            hsvi2->currentTrial < hsvi2->trials && result != NOVA_CONVERGED;
-            hsvi2->currentTrial++) {
-        result = pomdp_hsvi2_update_cpu(pomdp, hsvi2);
-        if (result != NOVA_SUCCESS && result != NOVA_CONVERGED) {
-            fprintf(stderr, "Error[pomdp_hsvi2_execute_cpu]: %s\n",
-                            "Failed to perform trial of HSVI2 on the CPU.");
+    // Note: This is essentially "explore(b0, epsilon, 0)" from the HSVI2 paper.
 
-            unsigned int resultPrime = pomdp_hsvi2_uninitialize_cpu(pomdp, hsvi2);
-            if (resultPrime != NOVA_SUCCESS) {
-                fprintf(stderr, "Error[pomdp_hsvi2_execute_cpu]: %s\n",
-                                "Failed to uninitialize the CPU variables.");
-            }
+    // Create the history of beliefs for post order traversal lower and upper bound updating.
+    float *traversalBeliefStack = new float[pomdp->horizon * pomdp->n];
+    for (unsigned int i = 0; i < pomdp->horizon * pomdp->n; i++) {
+        traversalBeliefStack[i] = 0.0f;
+    }
 
-            return result;
+    // Copy the initial belief in the POMDP to begin the search.
+    float *b = new float[pomdp->n];
+    for (unsigned int s = 0; s < pomdp->n; s++) {
+        b[s] = 0.0f;
+    }
+    for (unsigned int i = 0; i < pomdp->rz; i++) {
+        int s = pomdp->Z[0 * pomdp->rz + i];
+        if (s < 0) {
+            break;
+        }
+        b[s] = pomdp->B[0 * pomdp->rz + i];
+    }
+
+
+    // Compute the width before we do this update step. This is used to check an optional
+    // convergence criterion based on the width delta.
+    float previousWidth = pomdp_hsvi2_width(pomdp, hsvi2, b);
+
+    // Iterate until either the width is less than the convergence criterion or
+    // the maximum horizon depth is reached.
+    float gammaPowerT = 1.0f;
+    unsigned int currentHorizon = 0;
+
+    for (currentHorizon = 0; currentHorizon < pomdp->horizon; currentHorizon++) {
+        // Check if the width is smaller than the convergence criterion; break if this is the case.
+        float excess = pomdp_hsvi2_width(pomdp, hsvi2, b) - hsvi2->epsilon / gammaPowerT;
+        if (excess <= 0.0f) {
+            break;
+        }
+
+        gammaPowerT *= pomdp->gamma;
+
+        // Select an action according to the forward exploration heuristics.
+        unsigned int aStar = pomdp_hsvi2_compute_a_star(pomdp, hsvi2, b);
+
+        // Select an observation according to the forward exploration heuristics.
+        unsigned int oStar = pomdp_hsvi2_compute_o_star(pomdp, hsvi2, b, aStar, gammaPowerT);
+
+        // Push the current belief point on the "traversal belief stack".
+        memcpy(&traversalBeliefStack[currentHorizon * pomdp->n], b, pomdp->n * sizeof(float));
+
+        // Transition to the new belief given this action-observation. Note: The update allocates more memory.
+        delete [] b;
+        b = nullptr;
+
+        int updateResult = pomdp_belief_update(pomdp, &traversalBeliefStack[currentHorizon * pomdp->n], aStar, oStar, b);
+        if (updateResult != NOVA_SUCCESS) {
+            fprintf(stderr, "Warning[pomdp_hsvi2_update]: %s\n",
+                    "Invalid action-observation pair chosen in HSVI2 exploration step. Terminating early.");
+            break;
         }
     }
 
-    result = pomdp_hsvi2_get_policy_cpu(pomdp, hsvi2, policy);
-    if (result != NOVA_SUCCESS && result != NOVA_WARNING_APPROXIMATE_SOLUTION) {
-        fprintf(stderr, "Error[pomdp_hsvi2_execute_cpu]: %s\n", "Failed to get the policy.");
+    // In post-order traversal, perform an update on each belief points for both the lower and upper bounds.
+    bool ranOutOfMemory = false;
+
+    for (int i = std::max((int)currentHorizon - 1, 0); i >= 0 && !ranOutOfMemory; i--) {
+        int lowerResult = pomdp_hsvi2_lower_bound_update_step(pomdp, hsvi2, &traversalBeliefStack[i * pomdp->n]);
+        int upperResult = pomdp_hsvi2_upper_bound_update_step(pomdp, hsvi2, &traversalBeliefStack[i * pomdp->n]);
+
+        if (lowerResult == NOVA_ERROR_OUT_OF_MEMORY || upperResult == NOVA_ERROR_OUT_OF_MEMORY) {
+            ranOutOfMemory = true;
+            break;
+        }
+
+        // Also, prune extra lower bound alpha-vectors and upper bound points. Note: These functions do the check as well.
+        pomdp_hsvi2_lower_bound_prune(pomdp, hsvi2);
+        pomdp_hsvi2_upper_bound_prune(pomdp, hsvi2);
     }
 
-    bool approximateSolution = (result == NOVA_WARNING_APPROXIMATE_SOLUTION);
-
-    result = pomdp_hsvi2_uninitialize_cpu(pomdp, hsvi2);
-    if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[pomdp_hsvi2_execute_cpu]: %s\n", "Failed to uninitialize the CPU variables.");
-        return result;
+    // The entire algorithm has converged if the width(b0) is ever less than epsilon.
+    bool converged = false;
+    float width = pomdp_hsvi2_width(pomdp, hsvi2, &traversalBeliefStack[0]);
+    float widthDelta = std::fabs(previousWidth - width);
+    if (width < hsvi2->epsilon || widthDelta < hsvi2->delta) {
+        converged = true;
     }
 
-    // If this was an approximate solution, return this warning. Otherwise, return success.
-    if (approximateSolution) {
-        fprintf(stderr, "Warning[ssp_hsvi2_execute_cpu]: %s\n",
-                "Approximate solution due to reaching the maximum number of trials.");
-        return NOVA_WARNING_APPROXIMATE_SOLUTION;
+    // Cleanup memory and return the appropriate error (e.g., converged, ran out of memory, or just success).
+    delete [] traversalBeliefStack;
+    if (b != nullptr) {
+        delete [] b;
+    }
+    traversalBeliefStack = nullptr;
+    b = nullptr;
+
+    if (converged) {
+        return NOVA_CONVERGED;
+    } else if (ranOutOfMemory) {
+        fprintf(stderr, "Error[pomdp_hsvi2_update]: %s\n", "Out of memory in HSVI2 exploration step.");
+        return NOVA_ERROR_OUT_OF_MEMORY;
     }
 
     return NOVA_SUCCESS;
 }
 
 
-int pomdp_hsvi2_uninitialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
+int pomdp_hsvi2_get_policy(const POMDP *pomdp, POMDPHSVI2 *hsvi2, POMDPAlphaVectors *policy)
+{
+    if (pomdp == nullptr || pomdp->n == 0 || pomdp->m == 0 || pomdp->r == 0 ||
+            hsvi2 == nullptr || hsvi2->lowerGammaSize == 0 || hsvi2->lowerGamma == nullptr || hsvi2->lowerPi == nullptr ||
+            policy == nullptr) {
+        fprintf(stderr, "Error[pomdp_hsvi2_get_policy]: %s\n", "Invalid arguments. Policy must be undefined.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    // Initialize the policy, which allocates memory.
+    int result = pomdp_alpha_vectors_initialize(policy, pomdp->n, pomdp->m, hsvi2->lowerGammaSize);
+    if (result != NOVA_SUCCESS) {
+        fprintf(stderr, "Error[pomdp_hsvi2_get_policy]: %s\n", "Could not create the policy.");
+        return NOVA_ERROR_POLICY_CREATION;
+    }
+
+    // Copy the final (or intermediate) result of Gamma and pi to the variables.
+    memcpy(policy->Gamma, hsvi2->lowerGamma, hsvi2->lowerGammaSize * pomdp->n * sizeof(float));
+    memcpy(policy->pi, hsvi2->lowerPi, hsvi2->lowerGammaSize * sizeof(unsigned int));
+
+    return NOVA_SUCCESS;
+}
+
+
+int pomdp_hsvi2_uninitialize(const POMDP *pomdp, POMDPHSVI2 *hsvi2)
 {
     if (pomdp == nullptr || hsvi2 == nullptr) {
-        fprintf(stderr, "Error[pomdp_hsvi2_uninitialize_cpu]: %s\n", "Invalid arguments.");
+        fprintf(stderr, "Error[pomdp_hsvi2_uninitialize]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
@@ -725,155 +874,6 @@ int pomdp_hsvi2_uninitialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
         delete [] hsvi2->upperGammaHVb;
     }
     hsvi2->upperGammaHVb = nullptr;
-
-    return NOVA_SUCCESS;
-}
-
-
-int pomdp_hsvi2_update_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2)
-{
-    // Ensure the data is valid.
-    if (pomdp == nullptr || pomdp->n == 0 || pomdp->ns == 0 || pomdp->m == 0 ||
-            pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
-            pomdp->S == nullptr || pomdp->T == nullptr || pomdp->O == nullptr || pomdp->R == nullptr ||
-            pomdp->Z == nullptr || pomdp->B == nullptr ||
-            pomdp->gamma < 0.0f || pomdp->gamma > 1.0f || pomdp->horizon < 1 ||
-            hsvi2 == nullptr || hsvi2->lowerGamma == nullptr || hsvi2->lowerPi == nullptr ||
-            hsvi2->upperGammaB == nullptr || hsvi2->upperGammaHVb == nullptr) {
-        fprintf(stderr, "Error[pomdp_hsvi2_update_cpu]: %s\n", "Invalid arguments.");
-        return NOVA_ERROR_INVALID_DATA;
-    }
-
-    // Check if we ran out of memory.
-    if (hsvi2->lowerGammaSize >= hsvi2->maxAlphaVectors || hsvi2->upperGammaSize >= hsvi2->maxAlphaVectors) {
-        fprintf(stderr, "Error[pomdp_hsvi2_update_cpu]: %s\n", "Out of memory in HSVI2 exploration step.");
-        return NOVA_ERROR_OUT_OF_MEMORY;
-    }
-
-    // Note: This is essentially "explore(b0, epsilon, 0)" from the HSVI2 paper.
-
-    // Create the history of beliefs for post order traversal lower and upper bound updating.
-    float *traversalBeliefStack = new float[pomdp->horizon * pomdp->n];
-    for (unsigned int i = 0; i < pomdp->horizon * pomdp->n; i++) {
-        traversalBeliefStack[i] = 0.0f;
-    }
-
-    // Copy the initial belief in the POMDP to begin the search.
-    float *b = new float[pomdp->n];
-    for (unsigned int s = 0; s < pomdp->n; s++) {
-        b[s] = 0.0f;
-    }
-    for (unsigned int i = 0; i < pomdp->rz; i++) {
-        int s = pomdp->Z[0 * pomdp->rz + i];
-        if (s < 0) {
-            break;
-        }
-        b[s] = pomdp->B[0 * pomdp->rz + i];
-    }
-
-
-    // Compute the width before we do this update step. This is used to check an optional
-    // convergence criterion based on the width delta.
-    float previousWidth = pomdp_hsvi2_width_cpu(pomdp, hsvi2, b);
-
-    // Iterate until either the width is less than the convergence criterion or
-    // the maximum horizon depth is reached.
-    float gammaPowerT = 1.0f;
-    unsigned int currentHorizon = 0;
-
-    for (currentHorizon = 0; currentHorizon < pomdp->horizon; currentHorizon++) {
-        // Check if the width is smaller than the convergence criterion; break if this is the case.
-        float excess = pomdp_hsvi2_width_cpu(pomdp, hsvi2, b) - hsvi2->epsilon / gammaPowerT;
-        if (excess <= 0.0f) {
-            break;
-        }
-
-        gammaPowerT *= pomdp->gamma;
-
-        // Select an action according to the forward exploration heuristics.
-        unsigned int aStar = pomdp_hsvi2_compute_a_star_cpu(pomdp, hsvi2, b);
-
-        // Select an observation according to the forward exploration heuristics.
-        unsigned int oStar = pomdp_hsvi2_compute_o_star_cpu(pomdp, hsvi2, b, aStar, gammaPowerT);
-
-        // Push the current belief point on the "traversal belief stack".
-        memcpy(&traversalBeliefStack[currentHorizon * pomdp->n], b, pomdp->n * sizeof(float));
-
-        // Transition to the new belief given this action-observation. Note: The update allocates more memory.
-        delete [] b;
-        b = nullptr;
-
-        int updateResult = pomdp_belief_update_cpu(pomdp, &traversalBeliefStack[currentHorizon * pomdp->n], aStar, oStar, b);
-        if (updateResult != NOVA_SUCCESS) {
-            fprintf(stderr, "Warning[pomdp_hsvi2_update_cpu]: %s\n",
-                    "Invalid action-observation pair chosen in HSVI2 exploration step. Terminating early.");
-            break;
-        }
-    }
-
-    // In post-order traversal, perform an update on each belief points for both the lower and upper bounds.
-    bool ranOutOfMemory = false;
-
-    for (int i = std::max((int)currentHorizon - 1, 0); i >= 0 && !ranOutOfMemory; i--) {
-        int lowerResult = pomdp_hsvi2_lower_bound_update_step_cpu(pomdp, hsvi2, &traversalBeliefStack[i * pomdp->n]);
-        int upperResult = pomdp_hsvi2_upper_bound_update_step_cpu(pomdp, hsvi2, &traversalBeliefStack[i * pomdp->n]);
-
-        if (lowerResult == NOVA_ERROR_OUT_OF_MEMORY || upperResult == NOVA_ERROR_OUT_OF_MEMORY) {
-            ranOutOfMemory = true;
-            break;
-        }
-
-        // Also, prune extra lower bound alpha-vectors and upper bound points. Note: These functions do the check as well.
-        pomdp_hsvi2_lower_bound_prune_cpu(pomdp, hsvi2);
-        pomdp_hsvi2_upper_bound_prune_cpu(pomdp, hsvi2);
-    }
-
-    // The entire algorithm has converged if the width(b0) is ever less than epsilon.
-    bool converged = false;
-    float width = pomdp_hsvi2_width_cpu(pomdp, hsvi2, &traversalBeliefStack[0]);
-    float widthDelta = std::fabs(previousWidth - width);
-    if (width < hsvi2->epsilon || widthDelta < hsvi2->delta) {
-        converged = true;
-    }
-
-    // Cleanup memory and return the appropriate error (e.g., converged, ran out of memory, or just success).
-    delete [] traversalBeliefStack;
-    if (b != nullptr) {
-        delete [] b;
-    }
-    traversalBeliefStack = nullptr;
-    b = nullptr;
-
-    if (converged) {
-        return NOVA_CONVERGED;
-    } else if (ranOutOfMemory) {
-        fprintf(stderr, "Error[pomdp_hsvi2_update_cpu]: %s\n", "Out of memory in HSVI2 exploration step.");
-        return NOVA_ERROR_OUT_OF_MEMORY;
-    }
-
-    return NOVA_SUCCESS;
-}
-
-
-int pomdp_hsvi2_get_policy_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, POMDPAlphaVectors *policy)
-{
-    if (pomdp == nullptr || pomdp->n == 0 || pomdp->m == 0 || pomdp->r == 0 ||
-            hsvi2 == nullptr || hsvi2->lowerGammaSize == 0 || hsvi2->lowerGamma == nullptr || hsvi2->lowerPi == nullptr ||
-            policy == nullptr) {
-        fprintf(stderr, "Error[pomdp_hsvi2_get_policy_cpu]: %s\n", "Invalid arguments. Policy must be undefined.");
-        return NOVA_ERROR_INVALID_DATA;
-    }
-
-    // Initialize the policy, which allocates memory.
-    int result = pomdp_alpha_vectors_initialize(policy, pomdp->n, pomdp->m, hsvi2->lowerGammaSize);
-    if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[pomdp_hsvi2_get_policy_cpu]: %s\n", "Could not create the policy.");
-        return NOVA_ERROR_POLICY_CREATION;
-    }
-
-    // Copy the final (or intermediate) result of Gamma and pi to the variables.
-    memcpy(policy->Gamma, hsvi2->lowerGamma, hsvi2->lowerGammaSize * pomdp->n * sizeof(float));
-    memcpy(policy->pi, hsvi2->lowerPi, hsvi2->lowerGammaSize * sizeof(unsigned int));
 
     return NOVA_SUCCESS;
 }

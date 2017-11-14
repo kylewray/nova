@@ -22,8 +22,8 @@
  */
 
 
-#ifndef NOVA_POMDP_HSVI2_CPU_H
-#define NOVA_POMDP_HSVI2_CPU_H
+#ifndef NOVA_POMDP_HSVI2_H
+#define NOVA_POMDP_HSVI2_H
 
 
 #include <nova/pomdp/pomdp.h>
@@ -48,7 +48,7 @@ namespace nova {
  *  @param  upperGammaB                 The upper bound beliefs in the point set (maxAlphaVectors-n-array).
  *  @param  upperGammaHVb               The upper bound value of the corresponding belief in the point set (maxAlphaVectors-array).
  */
-typedef struct NovaPOMDPHSVI2CPU {
+typedef struct NovaPOMDPHSVI2 {
     unsigned int trials;
     float epsilon;
     float delta;
@@ -66,54 +66,54 @@ typedef struct NovaPOMDPHSVI2CPU {
     unsigned int upperGammaSizeLastPruned;
     float *upperGammaB;
     float *upperGammaHVb;
-} POMDPHSVI2CPU;
+} POMDPHSVI2;
 
 /**
- *  Step 1/3: The initialization step of HSVI2. This sets up the Gamma and pi variables.
+ *  Execute all steps of HSVI2 for the infinite horizon POMDP model specified.
  *  @param  pomdp       The POMDP object.
- *  @param  hsvi2       The POMDPHSVI2CPU object containing algorithm variables.
- *  @return Returns zero upon success, non-zero otherwise.
- */
-extern "C" int pomdp_hsvi2_initialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2);
-
-/**
- *  Step 2/3: Execute HSVI2 for the infinite horizon POMDP model specified.
- *  @param  pomdp       The POMDP object.
- *  @param  hsvi2       The POMDPHSVI2CPU object containing algorithm variables.
+ *  @param  hsvi2       The POMDPHSVI2 object containing algorithm variables.
  *  @param  policy      The resultant set of alpha-vectors. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_hsvi2_execute_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, POMDPAlphaVectors *policy);
+extern "C" int pomdp_hsvi2_execute(const POMDP *pomdp, POMDPHSVI2 *hsvi2, POMDPAlphaVectors *policy);
 
 /**
- *  Step 3/3: The uninitialization step of HSVI2. This sets up the Gamma and pi variables.
+ *  Step 1/4: The initialization step of HSVI2. This sets up the Gamma and pi variables.
  *  @param  pomdp       The POMDP object.
- *  @param  hsvi2       The POMDPHSVI2CPU object containing algorithm variables.
+ *  @param  hsvi2       The POMDPHSVI2 object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_hsvi2_uninitialize_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2);
+extern "C" int pomdp_hsvi2_initialize(const POMDP *pomdp, POMDPHSVI2 *hsvi2);
 
 /**
- *  The update step of HSVI2. This applies the HSVI2 procedure once.
+ *  Step 2/4: The update step of HSVI2. This applies the HSVI2 procedure once.
  *  @param  pomdp       The POMDP object.
- *  @param  hsvi2       The POMDPHSVI2CPU object containing algorithm variables.
+ *  @param  hsvi2       The POMDPHSVI2 object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_hsvi2_update_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2);
+extern "C" int pomdp_hsvi2_update(const POMDP *pomdp, POMDPHSVI2 *hsvi2);
 
 /**
- *  The get resultant policy step of HSVI2. This retrieves the alpha-vectors (Gamma) and
+ *  Step 3/4: The get resultant policy step of HSVI2. This retrieves the alpha-vectors (Gamma) and
  *  corresponding actions (pi).
  *  @param  pomdp       The POMDP object.
- *  @param  hsvi2       The POMDPHSVI2CPU object containing algorithm variables.
+ *  @param  hsvi2       The POMDPHSVI2 object containing algorithm variables.
  *  @param  policy      The resultant set of alpha-vectors. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_hsvi2_get_policy_cpu(const POMDP *pomdp, POMDPHSVI2CPU *hsvi2, POMDPAlphaVectors *policy);
+extern "C" int pomdp_hsvi2_get_policy(const POMDP *pomdp, POMDPHSVI2 *hsvi2, POMDPAlphaVectors *policy);
+
+/**
+ *  Step 4/4: The uninitialization step of HSVI2. This sets up the Gamma and pi variables.
+ *  @param  pomdp       The POMDP object.
+ *  @param  hsvi2       The POMDPHSVI2 object containing algorithm variables.
+ *  @return Returns zero upon success, non-zero otherwise.
+ */
+extern "C" int pomdp_hsvi2_uninitialize(const POMDP *pomdp, POMDPHSVI2 *hsvi2);
 
 }; // namespace nova
 
  
-#endif // NOVA_POMDP_HSVI2_CPU_H
+#endif // NOVA_POMDP_HSVI2_H
 
 

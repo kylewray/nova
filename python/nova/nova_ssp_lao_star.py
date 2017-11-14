@@ -44,8 +44,8 @@ else:
                     "..", "..", "lib", "libnova.so"))
 
 
-class NovaSSPLAOStarCPU(ct.Structure):
-    """ The C struct SSPLAOStarCPU object. """
+class NovaSSPLAOStar(ct.Structure):
+    """ The C struct SSPLAOStar object. """
 
     _fields_ = [("VInitial", ct.POINTER(ct.c_float)),
                 ("maxStackSize", ct.c_uint),
@@ -55,21 +55,21 @@ class NovaSSPLAOStarCPU(ct.Structure):
                 ]
 
 
-_nova.ssp_lao_star_initialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                              ct.POINTER(NovaSSPLAOStarCPU))
+_nova.ssp_lao_star_execute.argtypes = (ct.POINTER(mdp.MDP),
+                                       ct.POINTER(NovaSSPLAOStar),
+                                       ct.POINTER(mvf.MDPValueFunction))
 
-_nova.ssp_lao_star_execute_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                           ct.POINTER(NovaSSPLAOStarCPU),
-                                           ct.POINTER(mvf.MDPValueFunction))
+_nova.ssp_lao_star_initialize.argtypes = (ct.POINTER(mdp.MDP),
+                                          ct.POINTER(NovaSSPLAOStar))
 
-_nova.ssp_lao_star_uninitialize_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                                ct.POINTER(NovaSSPLAOStarCPU))
+_nova.ssp_lao_star_update.argtypes = (ct.POINTER(mdp.MDP),
+                                      ct.POINTER(NovaSSPLAOStar))
 
-_nova.ssp_lao_star_update_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                          ct.POINTER(NovaSSPLAOStarCPU))
+_nova.ssp_lao_star_get_policy.argtypes = (ct.POINTER(mdp.MDP),
+                                          ct.POINTER(NovaSSPLAOStar),
+                                          ct.POINTER(mvf.MDPValueFunction))
 
-_nova.ssp_lao_star_get_policy_cpu.argtypes = (ct.POINTER(mdp.MDP),
-                                              ct.POINTER(NovaSSPLAOStarCPU),
-                                              ct.POINTER(mvf.MDPValueFunction))
+_nova.ssp_lao_star_uninitialize.argtypes = (ct.POINTER(mdp.MDP),
+                                            ct.POINTER(NovaSSPLAOStar))
 
 

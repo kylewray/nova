@@ -35,14 +35,14 @@ import mdp_value_function as mvf
 import nova_ssp_lrtdp as nsl
 
 
-class SSPLRTDPCPU(nsl.NovaSSPLRTDPCPU):
+class SSPLRTDP(nsl.NovaSSPLRTDP):
     """ The LRTDP solver for SSP MDPs.
 
         This class provides a clean python wrapper for simple interactions with this solver.
     """
 
     def __init__(self, mdpObject, VInitial=None):
-        """ The constructor for the SSPLRTDPCPU class.
+        """ The constructor for the SSPLRTDP class.
 
             Parameters:
                 mdpObject   --  The MDP object on which to run value iteration.
@@ -65,15 +65,15 @@ class SSPLRTDPCPU(nsl.NovaSSPLRTDPCPU):
         self.V = ct.POINTER(ct.c_float)()
         self.pi = ct.POINTER(ct.c_uint)()
 
-        result = nsl._nova.ssp_lrtdp_initialize_cpu(self.mdpPtr, self)
+        result = nsl._nova.ssp_lrtdp_initialize(self.mdpPtr, self)
         if result != 0:
             print("Failed to initialize the LRTDP (CPU) algorithm.")
             raise Exception()
 
     def __del__(self):
-        """ The deconstructor for the SSPLRTDPCPU class which automatically frees memory. """
+        """ The deconstructor for the SSPLRTDP class which automatically frees memory. """
 
-        result = nsl._nova.ssp_lrtdp_uninitialize_cpu(self.mdpPtr, self)
+        result = nsl._nova.ssp_lrtdp_uninitialize(self.mdpPtr, self)
         if result != 0:
             print("Failed to free the LRTDP (CPU) algorithm.")
             raise Exception()
@@ -87,7 +87,7 @@ class SSPLRTDPCPU(nsl.NovaSSPLRTDPCPU):
 
         policy = mvf.MDPValueFunction()
 
-        result = nsl._nova.ssp_lrtdp_execute_cpu(self.mdpPtr, self, ct.byref(policy))
+        result = nsl._nova.ssp_lrtdp_execute(self.mdpPtr, self, ct.byref(policy))
         if result != 0 and result != 13: # Success or approximate solution.
             print("Failed to execute the 'nova' library's CPU LRTDP solver.")
             raise Exception()

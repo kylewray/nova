@@ -22,7 +22,7 @@
  */
 
 
-#include <nova/pomdp/utilities/pomdp_sigma_cpu.h>
+#include <nova/pomdp/utilities/pomdp_sigma.h>
 
 #include <nova/error_codes.h>
 #include <nova/constants.h>
@@ -41,19 +41,19 @@ typedef std::pair<float, int> SigmaPair;
  *  A comparator function for SigmaPair types. It returns true if left is greater
  *  than right, false otherwise.
  */
-bool pomdp_sigma_pair_comparator_cpu(const SigmaPair &bl, const SigmaPair &br)
+bool pomdp_sigma_pair_comparator(const SigmaPair &bl, const SigmaPair &br)
 {
     return bl.first > br.first;
 }
 
 
-int pomdp_sigma_cpu(POMDP *pomdp, unsigned int numDesiredNonZeroValues, float &sigma)
+int pomdp_sigma(POMDP *pomdp, unsigned int numDesiredNonZeroValues, float &sigma)
 {
     // Ensure the data is valid.
     if (pomdp == nullptr || pomdp->z == 0 || pomdp->r == 0 || pomdp->rz == 0 ||
             pomdp->Z == nullptr || pomdp->B == nullptr ||
             numDesiredNonZeroValues == 0) {
-        fprintf(stderr, "Error[pomdp_sigma_cpu]: %s\n", "Invalid arguments.");
+        fprintf(stderr, "Error[pomdp_sigma]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
@@ -77,7 +77,7 @@ int pomdp_sigma_cpu(POMDP *pomdp, unsigned int numDesiredNonZeroValues, float &s
             b.push_back(SigmaPair(pomdp->B[i * pomdp->rz + k], pomdp->Z[i * pomdp->rz + k]));
         }
 
-        std::sort(b.begin(), b.end(), pomdp_sigma_pair_comparator_cpu);
+        std::sort(b.begin(), b.end(), pomdp_sigma_pair_comparator);
 
         // Compute the normalization constant (sigma_b).
         float sigmab = 0.0f;

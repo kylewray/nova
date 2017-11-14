@@ -35,14 +35,14 @@ import mdp_value_function as mvf
 import nova_ssp_lao_star as nsls
 
 
-class SSPLAOStarCPU(nsls.NovaSSPLAOStarCPU):
+class SSPLAOStar(nsls.NovaSSPLAOStar):
     """ The LAO* solver for SSP MDPs.
 
         This class provides a clean python wrapper for simple interactions with this solver.
     """
 
     def __init__(self, mdpObject, VInitial=None):
-        """ The constructor for the SSPLAOStarCPU class.
+        """ The constructor for the SSPLAOStar class.
 
             Parameters:
                 mdpObject   --  The MDP object on which to run value iteration.
@@ -63,15 +63,15 @@ class SSPLAOStarCPU(nsls.NovaSSPLAOStarCPU):
         self.V = ct.POINTER(ct.c_float)()
         self.pi = ct.POINTER(ct.c_uint)()
 
-        result = nsls._nova.ssp_lao_star_initialize_cpu(self.mdpPtr, self)
+        result = nsls._nova.ssp_lao_star_initialize(self.mdpPtr, self)
         if result != 0:
             print("Failed to initialize the LAO* (CPU) algorithm.")
             raise Exception()
 
     def __del__(self):
-        """ The deconstructor for the SSPLAOStarCPU class which automatically frees memory. """
+        """ The deconstructor for the SSPLAOStar class which automatically frees memory. """
 
-        result = nsls._nova.ssp_lao_star_uninitialize_cpu(self.mdpPtr, self)
+        result = nsls._nova.ssp_lao_star_uninitialize(self.mdpPtr, self)
         if result != 0:
             print("Failed to free the LAO* (CPU) algorithm.")
             raise Exception()
@@ -85,7 +85,7 @@ class SSPLAOStarCPU(nsls.NovaSSPLAOStarCPU):
 
         policy = mvf.MDPValueFunction()
 
-        result = nsls._nova.ssp_lao_star_execute_cpu(self.mdpPtr, self, ct.byref(policy))
+        result = nsls._nova.ssp_lao_star_execute(self.mdpPtr, self, ct.byref(policy))
         if result != 0 and result != 13: # Success or approximate solution.
             print("Failed to execute the 'nova' library's CPU LAO* solver.")
             raise Exception()

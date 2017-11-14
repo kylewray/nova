@@ -22,8 +22,8 @@
  */
 
 
-#ifndef NOVA_POMDP_SIGMA_CPU_H
-#define NOVA_POMDP_SIGMA_CPU_H
+#ifndef NOVA_POMDP_SIGMA_H
+#define NOVA_POMDP_SIGMA_H
 
 
 #include <nova/pomdp/pomdp.h>
@@ -40,10 +40,10 @@ namespace nova {
  *                                      This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_sigma_cpu(POMDP *pomdp, unsigned int numDesiredNonZeroValues, float &sigma);
+extern "C" int pomdp_sigma(POMDP *pomdp, unsigned int numDesiredNonZeroValues, float &sigma);
 
 };
 
 
-#endif // NOVA_POMDP_SIGMA_CPU_H
+#endif // NOVA_POMDP_SIGMA_H
 

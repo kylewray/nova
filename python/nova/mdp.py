@@ -96,7 +96,7 @@ class MDP(nm.NovaMDP):
         if self.cpuIsInitialized:
             return
 
-        result = nm._nova.mdp_initialize_cpu(self, n, ns, m, gamma, horizon, epsilon, s0, ng)
+        result = nm._nova.mdp_initialize(self, n, ns, m, gamma, horizon, epsilon, s0, ng)
         if result != 0:
             print("Failed to initialize the MDP.")
             raise Exception()
@@ -109,7 +109,7 @@ class MDP(nm.NovaMDP):
         if not self.cpuIsInitialized:
             return
 
-        result = nm._nova.mdp_uninitialize_cpu(self)
+        result = nm._nova.mdp_uninitialize(self)
         if result != 0:
             print("Failed to uninitialize the MDP.")
             raise Exception()
@@ -201,82 +201,6 @@ class MDP(nm.NovaMDP):
 
         self.Rmin = fileLoader.Rmin
         self.Rmax = fileLoader.Rmax
-
-    # TODO: REMOVE THIS. IT HAS BEEN REPLACED BY SEPARATE CLASSES.
-    def solve(self, algorithm='vi', process='gpu', numThreads=1024, heuristic=None):
-        """ Solve the MDP using the nova Python wrapper.
-
-            Parameters:
-                algorithm   --  The algorithm to use, either 'vi', 'lao*', or 'rtdp'. Default is 'vi'.
-                process     --  Use the 'cpu' or 'gpu'. If 'gpu' fails, it tries 'cpu'. Default is 'gpu'.
-                numThreads  --  The number of CUDA threads to execute (multiple of 32). Default is 1024.
-                heuristic   --  For 'lao*', this function or list maps state indexes to heuristic values.
-                                Optional. Default value is None, yielding an n-array of zeros.
-
-            Returns:
-                V, pi, timing           -- If algorithm is 'vi'.
-                r, S, V, pi, timing     -- If algorithm is 'lao*'.
-                r       --  The size of the valid states found by heuristic search algorithms (e.g., 'lao*').
-                S       --  The actual r state indexes found by heuristic search algorithms (e.g., 'lao*').
-                V       --  The values of each state, mapping states to values. In heuristic search, S contains the state index.
-                pi      --  The policy, mapping states to actions. In heuristic search, S contains the state index.
-                timing  --  A pair (wall-time, cpu-time) for solver execution time, not including (un)initialization.
-        """
-
-        # Create V and pi, assigning them their respective initial values.
-        Vinitial = np.array([0.0 for s in range(self.n)])
-        if self.gamma < 1.0:
-            Vinitial = np.array([float(self.Rmin / (1.0 - self.gamma)) for s in range(self.n)])
-
-        # Create a function to convert a flattened numpy arrays to a C array, then convert Vinitial.
-        array_type_n_float = ct.c_float * self.n
-        Vinitial = array_type_n_float(*Vinitial)
-
-        # For informed search algorithms, define the heuristic, which is stored in V initially.
-        if algorithm == 'lao*' and heuristic is not None:
-            self.V = array_type_n_float(*np.array([float(heuristic[s]) for s in range(self.n)]))
-
-        policy = ct.POINTER(mvf.MDPValueFunction)()
-        timing = None
-
-        # If the process is 'gpu', then attempt to solve it. If an error arises, then
-        # assign process to 'cpu' and attempt to solve it using that.
-        if process == 'gpu':
-            timing = (time.time(), time.clock())
-            if algorithm == 'vi':
-                result = nm._nova.mdp_vi_complete_gpu(self, int(numThreads), Vinitial,
-                                                            ct.byref(policy))
-            elif algorithm == 'lao*':
-                result = nm._nova.ssp_lao_star_complete_gpu(self, int(numThreads), Vinitial,
-                                                            ct.byref(policy))
-            elif algorithm == 'rtdp':
-                result = nm._nova.ssp_rtdp_complete_gpu(self, int(numThreads), Vinitial,
-                                                            ct.byref(policy))
-            timing = (time.time() - timing[0], time.clock() - timing[1])
-
-            if result != 0:
-                print("Failed to execute the 'nova' library's GPU MDP solver.")
-                process = 'cpu'
-
-        # If the process is 'cpu', then attempt to solve it.
-        if process == 'cpu':
-            timing = (time.time(), time.clock())
-            if algorithm == 'vi':
-                result = nm._nova.mdp_vi_complete_cpu(self, Vinitial, ct.byref(policy))
-            elif algorithm == 'lao*':
-                result = nm._nova.ssp_lao_star_complete_cpu(self, Vinitial, ct.byref(policy))
-            elif algorithm == 'rtdp':
-                result = nm._nova.ssp_rtdp_complete_cpu(self, Vinitial, ct.byref(policy))
-            timing = (time.time() - timing[0], time.clock() - timing[1])
-
-            if result != 0:
-                print("Failed to execute the 'nova' library's CPU MDP solver.")
-                raise Exception()
-
-        # Dereference the pointer (this is how you do it in ctypes).
-        policy = policy.contents
-
-        return policy, timing
 
     def __str__(self):
         """ Return the string of the MDP values akin to the raw file format.

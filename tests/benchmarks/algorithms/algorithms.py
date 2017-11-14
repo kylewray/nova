@@ -95,12 +95,12 @@ for f in files:
 
                 if a == "pbvi":
                     pomdp.expand(method='random_unique', numBeliefsToAdd=f['numBeliefsToAdd'], maxTrials=f['maxTrials'])
-                    algorithm = POMDPPBVICPU(pomdp)
+                    algorithm = POMDPPBVI(pomdp)
                 elif a == "perseus":
                     pomdp.expand(method='random_unique', numBeliefsToAdd=f['numBeliefsToAdd'], maxTrials=f['maxTrials'])
-                    algorithm = POMDPPerseusCPU(pomdp)
+                    algorithm = POMDPPerseus(pomdp)
                 elif a == "hsvi2":
-                    algorithm = POMDPHSVI2CPU(pomdp)
+                    algorithm = POMDPHSVI2(pomdp)
                     algorithm.trials = 1000
                     algorithm.epsilon = 0.001
                     algorithm.delta = 0.0001

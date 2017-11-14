@@ -29,6 +29,7 @@ sys.path.append(os.path.join(thisFilePath, "..", "..", "..", "python"))
 from nova.pomdp import *
 from nova.pomdp_pbvi import *
 from nova.pomdp_perseus import *
+from nova.pomdp_hsvi2 import *
 
 from pylab import *
 
@@ -101,11 +102,13 @@ for f in files:
                     pomdp.initialize_gpu()
 
                 if fixedAlgorithm == "pbvi" and fixedProcess == "cpu":
-                    algorithm = POMDPPBVICPU(pomdp)
+                    algorithm = POMDPPBVI(pomdp)
                 elif fixedAlgorithm == "pbvi" and fixedProcess == "gpu":
                     algorithm = POMDPPBVIGPU(pomdp)
                 elif fixedAlgorithm == "perseus" and fixedProcess == "cpu":
-                    algorithm = POMDPPerseusCPU(pomdp)
+                    algorithm = POMDPPerseus(pomdp)
+                elif fixedAlgorithm == "hsvi2" and fixedProcess == "cpu":
+                    algorithm = POMDPPerseus(pomdp)
 
                 timing = (time.time(), time.clock())
                 policy = algorithm.solve()
