@@ -41,6 +41,7 @@
 #include <time.h>
 #include <algorithm>
 #include <iostream>
+#include <math.h>
 
 namespace nova {
 

@@ -24,11 +24,12 @@
 
 #include <nova/pomdp/utilities/pomdp_sigma_cpu.h>
 
-#include <stdio.h>
-#include <algorithm>
-
 #include <nova/error_codes.h>
 #include <nova/constants.h>
+
+#include <stdio.h>
+#include <algorithm>
+#include <vector>
 
 namespace nova {
 

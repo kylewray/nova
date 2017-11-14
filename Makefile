@@ -3,7 +3,7 @@ FLAGS = -std=c++11 -O3 -use_fast_math -Xcompiler -fPIC -Iinclude -shared -g -Wno
 #COMMAND = g++
 #FLAGS = -std=c++11 -O3 -use_fast_math -fPIC -Iinclude -shared
 
-CUDA_INSTALL_DIR = /usr/local/cuda
+CUDA_INSTALL_DIR = /opt/cuda
 
 CUDA_COMMAND = $(CUDA_INSTALL_DIR)/bin/nvcc
 CUDA_FLAGS = -std=c++11 -O3 -use_fast_math -Xcompiler -fPIC -Iinclude -shared -Wno-deprecated-gpu-targets
