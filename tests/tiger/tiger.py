@@ -32,12 +32,13 @@ from nova.pomdp import *
 from nova.pomdp_pbvi import *
 from nova.pomdp_perseus import *
 from nova.pomdp_hsvi2 import *
+from nova.pomdp_nlp import *
 
 
 files = [
         #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': None},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "random"},
-        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "random_unique"},
+#        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "random_unique"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "distinct_beliefs"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "pema"},
 
@@ -49,12 +50,15 @@ files = [
 
         #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'perseus', 'expand': None},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "random"},
-        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "random_unique"},
+#        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "random_unique"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "distinct_beliefs"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "pema"},
 
         #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'hsvi2', 'expand': None},
-        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'hsvi2', 'expand': None},
+#        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'hsvi2', 'expand': None},
+
+        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'nlp', 'expand': None},
+        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'nlp', 'expand': None},
         ]
 
 for f in files:
@@ -95,9 +99,13 @@ for f in files:
         algorithm.trials = 100
         algorithm.delta = 0.0001
         algorithm.maxAlphaVectors = int(max(tiger.n, tiger.m) + algorithm.trials * tiger.horizon + 1)
+    elif f['algorithm'] == "nlp" and f['process'] == "cpu":
+        algorithm = POMDPNLP(tiger, path=thisFilePath, command="echo \"Hello World!\";", k=3)
 
     policy = algorithm.solve()
     #print(policy)
+
+    # TODO: Graph for FSC policies!
 
     #pylab.hold(True)
     pylab.title("Tiger Alpha-Vectors (Algorithm: %s, Expand: %s)" % (f['algorithm'], f['expand']))

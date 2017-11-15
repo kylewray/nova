@@ -1,6 +1,6 @@
 """ The MIT License (MIT)
 
-    Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+    Copyright (c) 2017 Kyle Hollins Wray, University of Massachusetts
 
     Permission is hereby granted, free of charge, to any person obtaining a copy of
     this software and associated documentation files (the "Software"), to deal in
@@ -26,6 +26,7 @@ import sys
 import csv
 import numpy as np
 import time
+import random
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import nova_mdp_value_function as nmvf
@@ -73,4 +74,76 @@ class MDPValueFunction(nmvf.NovaMDPValueFunction):
                     for i in range(self.r)]))) + "\n\n"
 
         return result
+
+    def value_and_action(self, s):
+        """ Compute the optimal value and action at a state.
+
+            Parameters:
+                s   --  The state (index).
+
+            Returns:
+                V   --  The optimal value at this state.
+                a   --  The optimal action at this state.
+        """
+
+        Vs = self.V[s].value
+        a = self.pi[s].value
+
+        return Vs, a
+
+    def value(self, s):
+        """ Compute the optimal value at a state.
+
+            Parameters:
+                s   --  The state (index).
+
+            Returns:
+                The optimal value at this state.
+        """
+
+        Vs, a = self.value_and_action(s)
+        return Vs
+
+    def action(self, s):
+        """ Compute the optimal action at a belief state.
+
+            Parameters:
+                s   --  The state (index).
+
+            Returns:
+                The optimal action at this state.
+        """
+
+        Vs, a = self.value_and_action(s)
+        return a
+
+    def compute_adr(self, mdp, s0, trials=100):
+        """ Compute the average discounted reward (ADR) at a given start state.
+
+            Parameters:
+                mdp     --  The MDP to compute the ADR.
+                s0      --  The initial state index.
+                trials  --  The number of trials to average over. Default is 100.
+
+            Returns:
+                The ADR value at this state.
+        """
+
+        adr = 0.0
+
+        for trial in range(trials):
+            s = s0
+            discount = 1.0
+            discountedReward = 0.0
+
+            for t in range(mdp.horizon):
+                a = self.action(s)
+                sp = mdp.random_successor(s, a)
+                discountedReward += discount * mdp.R[s * mdp.m + a]
+                discount *= mdp.gamma
+                s = sp
+
+            adr = (float(trial) * adr + discountedReward) / float(trial + 1)
+
+        return adr
 

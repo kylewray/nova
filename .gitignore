@@ -7,3 +7,5 @@ ve_nova
 *.pyc
 *.gc*
 *.o
+*.mod
+*.dat

@@ -26,6 +26,7 @@ import sys
 import csv
 import numpy as np
 import time
+import random
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import nova_pomdp_alpha_vectors as npav
@@ -98,4 +99,68 @@ class POMDPAlphaVectors(npav.NovaPOMDPAlphaVectors):
         a = a.value
 
         return Vb, a
+
+    def value(self, b):
+        """ Compute the optimal value at a belief state.
+
+            Parameters:
+                b   --  A numpy array for the belief (n array).
+
+            Returns:
+                The optimal value at this belief.
+        """
+
+        Vb, a = self.value_and_action(b)
+        return Vb
+
+    def action(self, b):
+        """ Compute the optimal action at a belief state.
+
+            Parameters:
+                b   --  A numpy array for the belief (n array).
+
+            Returns:
+                The optimal action at this belief.
+        """
+
+        Vb, a = self.value_and_action(b)
+        return a
+
+    def compute_adr(self, pomdp, b0, trials=100):
+        """ Compute the average discounted reward (ADR) at a given belief.
+
+            Parameters:
+                pomdp   --  The POMDP to compute the ADR.
+                b0      --  A numpy array for the belief (n array).
+                trials  --  The number of trials to average over. Default is 100.
+
+            Returns:
+                The ADR value at this belief.
+        """
+
+        adr = 0.0
+
+        for trial in range(trials):
+            b = b0.copy()
+            s = random.choice([i for i in range(pomdp.n) if b0[i] > 0.0])
+            discount = 1.0
+            discountedReward = 0.0
+
+            for t in range(pomdp.horizon):
+                a = self.action(b)
+                sp = pomdp.random_successor(s, a)
+                o = pomdp.random_observation(a, sp)
+
+                beliefReward = 0.0
+                for i in range(pomdp.n):
+                    beliefReward += b[i] * pomdp.R[i * pomdp.m + a]
+                discountedReward += discount * beliefReward
+
+                discount *= pomdp.gamma
+                b = pomdp.belief_update(b, a, o)
+                s = sp
+
+            adr = (float(trial) * adr + discountedReward) / float(trial + 1)
+
+        return adr
 

@@ -84,6 +84,42 @@ class POMDP(npm.NovaPOMDP):
         self.uninitialize_gpu()
         self.uninitialize()
 
+    def __str__(self):
+        """ Return the string of the POMDP values akin to the raw file format.
+
+            Returns:
+                The string of the MOPOMDP in a similar format as the raw file format.
+        """
+
+        result = "n:       " + str(self.n) + "\n"
+        result += "ns:      " + str(self.ns) + "\n"
+        result += "m:       " + str(self.m) + "\n"
+        result += "z:       " + str(self.z) + "\n"
+        result += "r:       " + str(self.r) + "\n"
+        result += "rz:      " + str(self.rz) + "\n"
+        result += "horizon: " + str(self.horizon) + "\n"
+        result += "gamma:   " + str(self.gamma) + "\n"
+
+        result += "S(s, a, s'):\n%s" % (str(np.array([self.S[i] \
+                    for i in range(self.n * self.m * self.ns)]).reshape((self.n, self.m, self.ns)))) + "\n\n"
+
+        result += "T(s, a, s'):\n%s" % (str(np.array([self.T[i] \
+                    for i in range(self.n * self.m * self.ns)]).reshape((self.n, self.m, self.ns)))) + "\n\n"
+
+        result += "O(a, s', o):\n%s" % (str(np.array([self.O[i] \
+                    for i in range(self.m * self.n * self.z)]).reshape((self.m, self.n, self.z)))) + "\n\n"
+
+        result += "R(s, a):\n%s" % (str(np.array([self.R[i] \
+                    for i in range(self.n * self.m)]).reshape((self.n, self.m)))) + "\n\n"
+
+        result += "Z(i, s):\n%s" % (str(np.array([self.Z[i] \
+                    for i in range(self.r * self.rz)]).reshape((self.r, self.rz)))) + "\n\n"
+
+        result += "B(i, s):\n%s" % (str(np.array([self.B[i] \
+                    for i in range(self.r * self.rz)]).reshape((self.r, self.rz)))) + "\n\n"
+
+        return result
+
     def initialize(self, n, ns, m, z, r, rz, gamma, horizon):
         """ Initialize the POMDP's internal arrays, allocating memory.
 
@@ -338,78 +374,4 @@ class POMDP(npm.NovaPOMDP):
             observation = random.choice([o for o in range(self.z) if self.O[a * self.n * self.z + sp * self.z + o] > 0.0])
 
         return observation
-
-    def compute_adr(self, policy, b0, trials=100):
-        """ Compute the average discounted reward (ADR) at a given belief.
-
-            Parameters:
-                policy  --  The policy to use to compute the ADR.
-                b0      --  A numpy array for the belief (n array).
-                trials  --  The number of trials to average over.
-
-            Returns:
-                The ADR value at this belief.
-        """
-
-        adr = 0.0
-
-        for trial in range(trials):
-            b = b0.copy()
-            s = random.choice([i for i in range(self.n) if b0[i] > 0.0])
-            discount = 1.0
-            discountedReward = 0.0
-
-            for t in range(self.horizon):
-                Vb, a = policy.value_and_action(b)
-                sp = self.random_successor(s, a)
-                o = self.random_observation(a, sp)
-
-                beliefReward = 0.0
-                for i in range(self.n):
-                    beliefReward += b[i] * self.R[i * self.m + a]
-                discountedReward += discount * beliefReward
-
-                discount *= self.gamma
-                b = self.belief_update(b, a, o)
-                s = sp
-
-            adr = (float(trial) * adr + discountedReward) / float(trial + 1)
-
-        return adr
-
-    def __str__(self):
-        """ Return the string of the POMDP values akin to the raw file format.
-
-            Returns:
-                The string of the MOPOMDP in a similar format as the raw file format.
-        """
-
-        result = "n:       " + str(self.n) + "\n"
-        result += "ns:      " + str(self.ns) + "\n"
-        result += "m:       " + str(self.m) + "\n"
-        result += "z:       " + str(self.z) + "\n"
-        result += "r:       " + str(self.r) + "\n"
-        result += "rz:      " + str(self.rz) + "\n"
-        result += "horizon: " + str(self.horizon) + "\n"
-        result += "gamma:   " + str(self.gamma) + "\n"
-
-        result += "S(s, a, s'):\n%s" % (str(np.array([self.S[i] \
-                    for i in range(self.n * self.m * self.ns)]).reshape((self.n, self.m, self.ns)))) + "\n\n"
-
-        result += "T(s, a, s'):\n%s" % (str(np.array([self.T[i] \
-                    for i in range(self.n * self.m * self.ns)]).reshape((self.n, self.m, self.ns)))) + "\n\n"
-
-        result += "O(a, s', o):\n%s" % (str(np.array([self.O[i] \
-                    for i in range(self.m * self.n * self.z)]).reshape((self.m, self.n, self.z)))) + "\n\n"
-
-        result += "R(s, a):\n%s" % (str(np.array([self.R[i] \
-                    for i in range(self.n * self.m)]).reshape((self.n, self.m)))) + "\n\n"
-
-        result += "Z(i, s):\n%s" % (str(np.array([self.Z[i] \
-                    for i in range(self.r * self.rz)]).reshape((self.r, self.rz)))) + "\n\n"
-
-        result += "B(i, s):\n%s" % (str(np.array([self.B[i] \
-                    for i in range(self.r * self.rz)]).reshape((self.r, self.rz)))) + "\n\n"
-
-        return result
 

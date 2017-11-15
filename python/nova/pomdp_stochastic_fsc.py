@@ -120,3 +120,48 @@ class POMDPStochasticFSC(npfsc.NovaPOMDPStochasticFSC):
 
         return qp.value
 
+    def compute_adr(self, pomdp, b0, q0, trials=100):
+        """ Compute the average discounted reward (ADR) at a given belief.
+
+            Parameters:
+                pomdp   --  The POMDP to compute the ADR.
+                b0      --  A numpy array for the initial belief (n array).
+                q0      --  A numpy array for the initial controller node (n array).
+                trials  --  The number of trials to average over. Default is 100.
+
+            Returns:
+                The ADR value at this belief.
+        """
+
+        adr = 0.0
+
+        for trial in range(trials):
+            b = b0.copy()
+            s = random.choice([i for i in range(pomdp.n) if b0[i] > 0.0])
+            q = random.choice([i for i in range(pomdp.n) if q0[i] > 0.0])
+            discount = 1.0
+            discountedReward = 0.0
+
+            for t in range(pomdp.horizon):
+                a = self.random_action(q)
+                sp = pomdp.random_successor(s, a)
+                o = pomdp.random_observation(a, sp)
+                qp = self.random_successor(q, a, o)
+
+                # Important: We obtain a reward from the *true* POMDP model,
+                # not the FSC model! This is essentially sampling from the
+                # true policy tree. So we retain the belief over time
+                # and compute the average discounted belief-reward.
+                beliefReward = 0.0
+                for i in range(pomdp.n):
+                    beliefReward += b[i] * pomdp.R[i * pomdp.m + a]
+                discountedReward += discount * beliefReward
+
+                discount *= pomdp.gamma
+                b = pomdp.belief_update(b, a, o)
+                s = sp
+                q = qp
+
+            adr = (float(trial) * adr + discountedReward) / float(trial + 1)
+
+        return adr

@@ -23,6 +23,7 @@
 import os
 import sys
 import time
+import random
 
 import ctypes as ct
 import numpy as np
@@ -78,6 +79,32 @@ class MDP(nm.NovaMDP):
 
         self.uninitialize_gpu()
         self.uninitialize()
+
+    def __str__(self):
+        """ Return the string of the MDP values akin to the raw file format.
+
+            Returns:
+                The string of the MDP in a similar format as the raw file format.
+        """
+
+        result = "n:       " + str(self.n) + "\n"
+        result += "m:       " + str(self.m) + "\n"
+        result += "ns:      " + str(self.ns) + "\n"
+        result += "s0:      " + str(self.s0) + "\n"
+        result += "goals:   " + str([self.goals[i] for i in range(self.ng)]) + "\n"
+        result += "horizon: " + str(self.horizon) + "\n"
+        result += "gamma:   " + str(self.gamma) + "\n\n"
+
+        result += "S(s, a, s'):\n%s" % (str(np.array([self.S[i] \
+                    for i in range(self.n * self.m * self.ns)]).reshape((self.n, self.m, self.ns)))) + "\n\n"
+
+        result += "T(s, a, s'):\n%s" % (str(np.array([self.T[i] \
+                    for i in range(self.n * self.m * self.ns)]).reshape((self.n, self.m, self.ns)))) + "\n\n"
+
+        result += "R(s, a):\n%s" % (str(np.array([self.R[i] \
+                    for i in range(self.n * self.m)]).reshape((self.n, self.m)))) + "\n\n"
+
+        return result
 
     def initialize(self, n, ns, m, gamma, horizon, epsilon, s0, ng):
         """ Initialize the MDP object, allocating array memory, given the parameters.
@@ -202,29 +229,35 @@ class MDP(nm.NovaMDP):
         self.Rmin = fileLoader.Rmin
         self.Rmax = fileLoader.Rmax
 
-    def __str__(self):
-        """ Return the string of the MDP values akin to the raw file format.
+    def random_successor(self, s, a):
+        """ Return a random successor from the state transitions.
+
+            Parameters:
+                s   --  The state.
+                a   --  The action.
 
             Returns:
-                The string of the MDP in a similar format as the raw file format.
+                The random successor state.
         """
 
-        result = "n:       " + str(self.n) + "\n"
-        result += "m:       " + str(self.m) + "\n"
-        result += "ns:      " + str(self.ns) + "\n"
-        result += "s0:      " + str(self.s0) + "\n"
-        result += "goals:   " + str([self.goals[i] for i in range(self.ng)]) + "\n"
-        result += "horizon: " + str(self.horizon) + "\n"
-        result += "gamma:   " + str(self.gamma) + "\n\n"
+        successor = None
+        current = 0.0
+        target = random.random()
 
-        result += "S(s, a, s'):\n%s" % (str(np.array([self.S[i] \
-                    for i in range(self.n * self.m * self.ns)]).reshape((self.n, self.m, self.ns)))) + "\n\n"
+        for i in range(self.ns):
+            sp = self.S[s * self.m * self.ns + a * self.ns + i]
+            if sp < 0:
+                break
 
-        result += "T(s, a, s'):\n%s" % (str(np.array([self.T[i] \
-                    for i in range(self.n * self.m * self.ns)]).reshape((self.n, self.m, self.ns)))) + "\n\n"
+            current += self.T[s * self.m * self.ns + a * self.ns + i]
+            if current >= target:
+                successor = sp
+                break
 
-        result += "R(s, a):\n%s" % (str(np.array([self.R[i] \
-                    for i in range(self.n * self.m)]).reshape((self.n, self.m)))) + "\n\n"
+        if successor is None:
+            successor = random.choice([self.S[s * self.m * self.ns + a * self.ns + i]
+                                       for i in range(self.ns)
+                                       if self.S[s * self.m * self.ns + a * self.ns + i] >= 0])
 
-        return result
+        return successor
 

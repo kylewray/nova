@@ -1,6 +1,6 @@
 """ The MIT License (MIT)
 
-    Copyright (c) 2016 Kyle Hollins Wray, University of Massachusetts
+    Copyright (c) 2017 Kyle Hollins Wray, University of Massachusetts
 
     Permission is hereby granted, free of charge, to any person obtaining a copy of
     this software and associated documentation files (the "Software"), to deal in
@@ -121,7 +121,7 @@ for f in files:
                     sizeOfSolution = 0
 
                 Vb0, ab0 = policy.value_and_action(b0)
-                adrb0 = pomdp.compute_adr(policy, b0, trials=adrTrials)
+                adrb0 = policy.compute_adr(pomdp, b0, trials=adrTrials)
 
                 # Note: use the time.time() function, which measures wall-clock time.
                 out.write("%i,%i,%i,%i,%i,%i,%i,%.5f,%.5f,%.5f\n" % (pomdp.n, pomdp.m, pomdp.z, pomdp.r, pomdp.ns,
