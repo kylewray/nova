@@ -44,46 +44,21 @@ int pomdp_ampl_save_data_file(const POMDP *pomdp, unsigned int k, const char *pa
     }
 
     file << "data;" << std::endl;
+    file << std::endl;
 
-    file << "set STATES :=";
-    for (unsigned int s = 0; s < pomdp->n; s++) {
-        file << " s" << s;
-    }
-    file << ";" << std::endl;
-
-    file << "set ACTIONS :=";
-    for (unsigned int a = 0; a < pomdp->m; a++) {
-        file << " a" << a;
-    }
-    file << ";" << std::endl;
-
-    file << "set OBSERVATIONS :=";
-    for (unsigned int o = 0; o < pomdp->z; o++) {
-        file << " o" << o;
-    }
-    file << ";" << std::endl;
-
-    file << "set CONTROLLER_NODES :=";
-    for (unsigned int i = 0; i < k; i++) {
-        file << " q" << i;
-    }
-    file << ";" << std::endl;
-
-    for (unsigned int q = 0; q < k; q++) {
-        file << "let q0[\"q" << q << "\"] := ";
-        if (q == 0) {
-            file << "1.0";
-        } else {
-            file << "0.0";
-        }
-        file << ";" << std::endl;
-    }
+    file << "let NUM_STATES := " << pomdp->n << ";" << std::endl;
+    file << "let NUM_ACTIONS := " << pomdp->m << ";" << std::endl;
+    file << "let NUM_OBSERVATIONS := " << pomdp->z << ";" << std::endl;
+    file << "let NUM_NODES := " << k << ";" << std::endl;
+    file << std::endl;
 
     for (unsigned int s = 0; s < pomdp->n; s++) {
-        file << "let b0[\"s" << s << "\"] := " << pomdp->B[0 * pomdp->n + s] << ";" << std::endl;
+        file << "let b0[" << (s + 1) << "] := " << pomdp->B[0 * pomdp->n + s] << ";" << std::endl;
     }
+    file << std::endl;
 
     file << "let gamma := " << pomdp->gamma << ";" << std::endl;
+    file << std::endl;
 
     for (unsigned int s = 0; s < pomdp->n; s++) {
         for (unsigned int a = 0; a < pomdp->m; a++) {
@@ -93,28 +68,31 @@ int pomdp_ampl_save_data_file(const POMDP *pomdp, unsigned int k, const char *pa
                     break;
                 }
 
-                file << "let T[\"s" << s << "\", \"a" << a << "\", \"s" << sp << "\"] := ";
+                file << "let T[" << (s + 1) << ", " << (a + 1) << ", " << (sp + 1) << "] := ";
                 file << pomdp->T[s * pomdp->m * pomdp->ns + a * pomdp->ns + i] << ";" << std::endl;
             }
         }
     }
+    file << std::endl;
 
     for (unsigned int a = 0; a < pomdp->m; a++) {
         for (unsigned int sp = 0; sp < pomdp->n; sp++) {
             for (unsigned int o = 0; o < pomdp->z; o++) {
-                file << "let O[\"a" << a << "\", \"s" << sp << "\", \"o" << o << "\"] := ";
+                file << "let O[" << (a + 1) << ", " << (sp + 1) << ", " << (o + 1) << "] := ";
                 file << pomdp->O[a * pomdp->n * pomdp->z + sp * pomdp->z + o] << ";" << std::endl;
             }
         }
     }
+    file << std::endl;
 
     for (unsigned int s = 0; s < pomdp->n; s++) {
         for (unsigned int a = 0; a < pomdp->m; a++) {
 
-            file << "let R[\"s" << s << "\", \"a" << a << "\"] := ";
+            file << "let R[" << (s + 1) << ", " << (a + 1) << "] := ";
             file << pomdp->R[s * pomdp->m + a] << ";" << std::endl;
         }
     }
+    file << std::endl;
 
     file.close();
 

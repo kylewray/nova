@@ -66,13 +66,17 @@ class POMDPStochasticFSC(npfsc.NovaPOMDPStochasticFSC):
         result = "m: %i" % (self.m) + "\n\n"
         result = "z: %i" % (self.z) + "\n\n"
 
-        result += "psi:\n%s" % (str(np.array([[self.psi[i * self.n + a] \
+        result += "psi:\n%s" % (str(np.array([[self.psi[i * self.m + a] \
                                             for i in range(self.k)] \
                                         for a in range(self.m)]))) + "\n\n"
 
-        result += "eta:\n%s" % (str(np.array([[self.eta[i * self.k + qp] \
-                                    for i in range(self.k * self.m * self.z)] \
-                                for qp in range(self.k)]))) + "\n\n"
+        result += "eta:\n%s" % (str(np.array([[[[self.eta[q * self.m * self.z * self.k +
+                                                          a * self.z * self.k +
+                                                          o * self.k + qp] \
+                                            for qp in range(self.k)] \
+                                        for o in range(self.z)] \
+                                    for a in range(self.m)] \
+                                for q in range(self.k)]))) + "\n\n"
 
         return result
 
@@ -165,3 +169,4 @@ class POMDPStochasticFSC(npfsc.NovaPOMDPStochasticFSC):
             adr = (float(trial) * adr + discountedReward) / float(trial + 1)
 
         return adr
+

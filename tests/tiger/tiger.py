@@ -1,6 +1,6 @@
 """ The MIT License (MIT)
 
-    Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+    Copyright (c) 2017 Kyle Hollins Wray, University of Massachusetts
 
     Permission is hereby granted, free of charge, to any person obtaining a copy of
     this software and associated documentation files (the "Software"), to deal in
@@ -23,6 +23,7 @@
 import os
 import sys
 import pylab
+import networkx as nx
 
 thisFilePath = os.path.dirname(os.path.realpath(__file__))
 
@@ -100,29 +101,89 @@ for f in files:
         algorithm.delta = 0.0001
         algorithm.maxAlphaVectors = int(max(tiger.n, tiger.m) + algorithm.trials * tiger.horizon + 1)
     elif f['algorithm'] == "nlp" and f['process'] == "cpu":
-        algorithm = POMDPNLP(tiger, path=thisFilePath, command="echo \"Hello World!\";", k=3)
+        cmd = "python3 "
+        cmd += os.path.join(thisFilePath, "..", "..", "python", "neos_snopt.py") + " "
+        cmd += os.path.join(thisFilePath, "nova_nlp_ampl.mod") + " "
+        cmd += os.path.join(thisFilePath, "nova_nlp_ampl.dat")
+        algorithm = POMDPNLP(tiger, path=thisFilePath, command=cmd, k=3)
 
     policy = algorithm.solve()
     #print(policy)
 
-    # TODO: Graph for FSC policies!
+    if f['algorithm'] in ["pbvi", "perseus", "hsvi2"]:
+        #pylab.hold(True)
+        pylab.title("Tiger Alpha-Vectors (Algorithm: %s, Expand: %s)" % (f['algorithm'], f['expand']))
+        pylab.xlabel("Belief of State s2: b(s2)")
+        pylab.ylabel("Value of Belief: V(b(s2))")
+        for i in range(policy.r):
+            if policy.pi[i] == 0:
+                pylab.plot([0.0, 1.0],
+                        [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]],
+                        linewidth=10, color='red')
+            elif policy.pi[i] == 1:
+                pylab.plot([0.0, 1.0],
+                        [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]],
+                        linewidth=10, color='green')
+            elif policy.pi[i] == 2:
+                pylab.plot([0.0, 1.0],
+                        [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]],
+                        linewidth=10, color='blue')
+        pylab.show()
+    else:
+        G = nx.DiGraph()
 
-    #pylab.hold(True)
-    pylab.title("Tiger Alpha-Vectors (Algorithm: %s, Expand: %s)" % (f['algorithm'], f['expand']))
-    pylab.xlabel("Belief of State s2: b(s2)")
-    pylab.ylabel("Value of Belief: V(b(s2))")
-    for i in range(policy.r):
-        if policy.pi[i] == 0:
-            pylab.plot([0.0, 1.0],
-                       [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]],
-                       linewidth=10, color='red')
-        elif policy.pi[i] == 1:
-            pylab.plot([0.0, 1.0],
-                       [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]],
-                       linewidth=10, color='green')
-        elif policy.pi[i] == 2:
-            pylab.plot([0.0, 1.0],
-                       [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]],
-                       linewidth=10, color='blue')
-    pylab.show()
+        Q = ["q%i" % (q) for q in range(policy.k)]
+        A = ["q%i-a%i" % (q, a) for q in range(policy.k) for a in range(policy.m)]
+        O = ["q%i-a%i-o%i" % (q, a, o) for q in range(policy.k)
+                                    for a in range(policy.m) for o in range(policy.z)]
+
+        edges = list()
+        psi = list()
+        obs = list()
+        eta = list()
+
+        psiW = list()
+        etaW = list()
+
+        for q in range(policy.k):
+            for a in range(policy.m):
+                w = policy.psi[q * policy.m + a]
+                if w > 0.0 and w <= 1.0:
+                    psi += [("q%i" % (q), "q%i-a%i" % (q, a), w)]
+                    psiW += [w * 6.0]
+                else:
+                    A.remove("q%i-a%i" % (q, a))
+                    continue
+
+                for o in range(policy.z):
+                    obs += [("q%i-a%i" % (q, a), "q%i-a%i-o%i" % (q, a, o))]
+
+                    for qp in range(policy.k):
+                        w = policy.eta[q * policy.m * policy.z * policy.k +
+                                       a * policy.z * policy.k +
+                                       o * policy.k + qp]
+                        if w > 0.0 and w <= 1.0:
+                            eta += [("q%i-a%i-o%i" % (q, a, o), "q%i" % (qp), w)]
+                            etaW += [w * 6.0]
+
+        G.add_weighted_edges_from(psi)
+        G.add_edges_from(obs)
+        G.add_weighted_edges_from(eta)
+
+        shells = [Q, A, O]
+        pos = nx.shell_layout(G, shells)
+        #pos = nx.circular_layout(G)
+
+        nx.draw_networkx_nodes(G, pos, node_list=Q, node_color='k', node_shape='o', node_size=1000)
+        nx.draw_networkx_nodes(G, pos, node_list=A, node_color='r', node_shape='s', node_size=1000)
+        nx.draw_networkx_nodes(G, pos, node_list=O, node_color='y', node_shape='^', node_size=1000)
+
+        nx.draw_networkx_edges(G, pos, edgelist=psi, width=psiW, alpha=0.75, edge_color='k', arrows=True)
+        nx.draw_networkx_edges(G, pos, edgelist=obs, width=2.0, alpha=0.5, edge_color='k', arrows=True)
+        nx.draw_networkx_edges(G, pos, edgelist=eta, width=etaW, alpha=0.75, edge_color='k', arrows=True)
+
+        nx.draw_networkx_labels(G, pos, font_size=18, font_family='sans-serif')
+
+        pylab.axis('off')
+        pylab.show()
 

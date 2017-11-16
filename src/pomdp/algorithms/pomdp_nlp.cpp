@@ -29,10 +29,16 @@
 #include <nova/constants.h>
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <cctype>
+
 #include <stdexcept>
 #include <fstream>
 #include <string>
+#include <sstream>
+
+#include <iostream>
 
 namespace nova {
 
@@ -47,44 +53,55 @@ int pomdp_ampl_save_nlp_model_file(const POMDP *pomdp, const char *path)
     }
 
     file << "model;" << std::endl;
+    file << std::endl;
 
-    file << "set STATES;" << std::endl;
-    file << "set ACTIONS;" << std::endl;
-    file << "set OBSERVATIONS;" << std::endl;
-    file << "set CONTROLLER_NODES;" << std::endl;
+    file << "param NUM_STATES;" << std::endl;
+    file << "param NUM_ACTIONS;" << std::endl;
+    file << "param NUM_OBSERVATIONS;" << std::endl;
+    file << "param NUM_NODES;" << std::endl;
+    file << std::endl;
 
-    file << "param q0 {q in CONTROLLER_NODES} default 0.0, >= 0.0, <= 1.0;" << std::endl;
-    file << "param b0 {s in STATES} default 0.0, >= 0.0, <= 1.0;" << std::endl;
     file << "param gamma default 0.95, >= 0.0, <= 1.0;" << std::endl;
-    file << "param T {s in STATES, a in ACTIONS, sp in STATES} default 0.0, >= 0.0, <= 1.0;" << std::endl;
-    file << "param O {a in ACTIONS, s in STATES, o in OBSERVATIONS} default 0.0, >= 0.0, <= 1.0;" << std::endl;
-    file << "param R {s in STATES, a in ACTIONS} default 0.0;" << std::endl;
+    file << "param b0 {s in 1..NUM_STATES} default 0.0, >= 0.0, <= 1.0;" << std::endl;
+    file << std::endl;
 
-    file << "var V {CONTROLLER_NODES, STATES};" << std::endl;
-    file << "var psi {CONTROLLER_NODES, ACTIONS} >= 0.0, <= 1.0;" << std::endl;
-    file << "var eta {CONTROLLER_NODES, ACTIONS, OBSERVATIONS, CONTROLLER_NODES} >= 0.0, <= 1.0;" << std::endl;
+    file << "param T {s in 1..NUM_STATES, a in 1..NUM_ACTIONS, sp in 1..NUM_STATES} ";
+    file << "default 0.0, >= 0.0, <= 1.0;" << std::endl;
+    file << "param O {a in 1..NUM_ACTIONS, s in 1..NUM_STATES, o in 1..NUM_OBSERVATIONS} ";
+    file << "default 0.0, >= 0.0, <= 1.0;" << std::endl;
+    file << "param R {s in 1..NUM_STATES, a in 1..NUM_ACTIONS} default 0.0;" << std::endl;
+    file << std::endl;
+
+    file << "var V {1..NUM_NODES, 1..NUM_STATES};" << std::endl;
+    file << "var psi {1..NUM_NODES, 1..NUM_ACTIONS} >= 0.0, <= 1.0;" << std::endl;
+    file << "var eta {1..NUM_NODES, 1..NUM_ACTIONS, 1..NUM_OBSERVATIONS, 1..NUM_NODES} ";
+    file << ">= 0.0, <= 1.0;" << std::endl;
+    file << std::endl;
 
     file << "maximize Value:" << std::endl;
-    file << "    sum {q in CONTROLLER_NODES, s in STATES} q0[q] * b0[s] * V[q, s];" << std::endl;
+    file << "   sum {s in 1..NUM_STATES} b0[s] * V[1, s];" << std::endl;
+    file << std::endl;
 
-    file << "subject to Bellman_Constraint_V {q in CONTROLLER_NODES, s in STATES}:" << std::endl;
-    file << "    V[q, s] = sum {a in ACTIONS} (psi[q, a] * (R[s, a] + gamma * sum {sp in STATES} ";
-    file << "(T[s, a, sp] * sum {o in OBSERVATIONS} (O[a, sp, o] * sum {qp in CONTROLLER_NODES} ";
-    file << "(eta[q, a, o, qp] * V[qp, sp])))));" << std::endl;
+    file << "subject to Bellman_Constraint_V {q in 1..NUM_NODES, s in 1..NUM_STATES}:" << std::endl;
+    file << "   V[q, s] = sum {a in 1..NUM_ACTIONS} (psi[q, a] * (R[s, a] + gamma * ";
+    file << "sum {sp in 1..NUM_STATES} (T[s, a, sp] * sum {o in 1..NUM_OBSERVATIONS} (O[a, sp, o] * ";
+    file << "sum {qp in 1..NUM_NODES} (eta[q, a, o, qp] * V[qp, sp])))));" << std::endl;
+    file << std::endl;
 
-    file << "subject to Probability_Constraint_Psi_Nonnegative {q in CONTROLLER_NODES, a in ACTIONS}:" << std::endl;
-    file << "    psi[q, a] >= 0.0;" << std::endl;
+    file << "subject to Probability_Constraint_Psi_Nonnegative ";
+    file << "{q in 1..NUM_NODES, a in 1..NUM_ACTIONS}:" << std::endl;
+    file << "   psi[q, a] >= 0.0;" << std::endl;
+    file << "subject to Probability_Constraint_Psi_Normalization {q in 1..NUM_NODES}:" << std::endl;
+    file << "   sum {a in 1..NUM_ACTIONS} psi[q, a] = 1.0;" << std::endl;
+    file << std::endl;
 
-    file << "subject to Probability_Constraint_Psi_Normalization {q in CONTROLLER_NODES}:" << std::endl;
-    file << "    sum {a in ACTIONS} psi[q, a] = 1.0;" << std::endl;
-
-    file << "subject to Probability_Constraint_Eta_Nonnegative {q in CONTROLLER_NODES, a in ACTIONS, ";
-    file << "o in OBSERVATIONS, qp in CONTROLLER_NODES}:" << std::endl;
-    file << "    eta[q, a, o, qp] >= 0.0;" << std::endl;
-
-    file << "subject to Probability_Constraint_Eta_Normalization {q in CONTROLLER_NODES, a in ACTIONS, ";
-    file << "o in OBSERVATIONS}:" << std::endl;
-    file << "    sum {qp in CONTROLLER_NODES} eta[q, a, o, qp] = 1.0;" << std::endl;
+    file << "subject to Probability_Constraint_Eta_Nonnegative ";
+    file << "{q in 1..NUM_NODES, a in 1..NUM_ACTIONS, o in 1..NUM_OBSERVATIONS, qp in 1..NUM_NODES}:" << std::endl;
+    file << "   eta[q, a, o, qp] >= 0.0;" << std::endl;
+    file << "subject to Probability_Constraint_Eta_Normalization ";
+    file << "{q in 1..NUM_NODES, a in 1..NUM_ACTIONS, o in 1..NUM_OBSERVATIONS}:" << std::endl;
+    file << "   sum {qp in 1..NUM_NODES} eta[q, a, o, qp] = 1.0;" << std::endl;
+    file << std::endl;
 
     file.close();
 
@@ -128,6 +145,7 @@ int pomdp_nlp_execute_solver(const POMDP *pomdp, POMDPNLP *nlp, std::string &res
 
 int pomdp_nlp_parse_solver_output(const POMDP *pomdp, POMDPNLP *nlp, std::string &solverOutput)
 {
+    // Set the default values to 0.0. Not all of the values need to be set because of this.
     for (unsigned int q = 0; q < nlp->k; q++) {
         for (unsigned int a = 0; a < pomdp->m; a++) {
             nlp->psi[q * pomdp->m + a] = 0.0f;
@@ -145,8 +163,71 @@ int pomdp_nlp_parse_solver_output(const POMDP *pomdp, POMDPNLP *nlp, std::string
         }
     }
 
-    // TODO
-    printf("%s", solverOutput);
+    // Go through every line in the output and parse the result of the solver.
+    // Importantly, we assume the solver's output is of the form:
+    // if psi, then <psi> <q> <a> <probability>
+    // else if eta, then <eta> <q> <a> <o> <probability>.
+    std::stringstream stream(solverOutput);
+    std::string line;
+
+    while (std::getline(stream, line, '\n')) {
+        // Get the relevant data from the line.
+        std::string data[6];
+        unsigned int counter = 0;
+        bool newSpace = true;
+
+        for (unsigned int i = 0; i < line.length(); i++) {
+            if (line[i] == ' ' && newSpace) {
+                counter++;
+                newSpace = false;
+            } else if (line[i] != ' ' && !newSpace) {
+                newSpace = true;
+            }
+
+            if (counter >= 6) {
+                break;
+            }
+
+            if (line[i] != ' ') {
+                data[counter] += line[i];
+            }
+        }
+
+        // Check if this is psi or eta. If so, parse the indices and the value.
+        if (data[0].length() >= 3) {
+            if (data[0][0] == 'p' && data[0][1] == 's' && data[0][2] == 'i') {
+                int q = std::atoi(data[1].c_str()) - 1;
+                int a = std::atoi(data[2].c_str()) - 1;
+                float probability = std::atof(data[3].c_str());
+
+                if (q < 0 || q >= nlp->k || a < 0 || a >= pomdp->m ||
+                        probability < 0.0f || probability > 1.0f) {
+                    fprintf(stderr, "Error[pomdp_nlp_parse_solver_output]: %s\n",
+                                    "Failed to parse psi.");
+                    return NOVA_ERROR_INVALID_DATA;
+                } else {
+                    nlp->psi[q * pomdp->m + a] = probability;
+                }
+            } else if (data[0][0] == 'e' && data[0][1] == 't' && data[0][2] == 'a') {
+                int q = std::atoi(data[1].c_str()) - 1;
+                int a = std::atoi(data[2].c_str()) - 1;
+                int o = std::atoi(data[3].c_str()) - 1;
+                int qp = std::atoi(data[4].c_str()) - 1;
+                float probability = std::atof(data[5].c_str());
+
+                if (q < 0 || q >= nlp->k || a < 0 || a >= pomdp->m ||
+                        o < 0 || o >= pomdp->z || qp < 0 || qp >= nlp->k ||
+                        probability < 0.0f || probability > 1.0f) {
+                    fprintf(stderr, "Error[pomdp_nlp_parse_solver_output]: %s\n",
+                                    "Failed to parse eta.");
+                    return NOVA_ERROR_INVALID_DATA;
+                } else {
+                    nlp->eta[q * pomdp->m * pomdp->z * nlp->k +
+                             a * pomdp->z * nlp->k + o * nlp->k + qp] = probability; 
+                }
+            }
+        }
+    }
 
     return NOVA_SUCCESS;
 }
