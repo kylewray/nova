@@ -37,15 +37,13 @@ namespace nova {
  *  @param  path    The path where the AMPL files will be saved.
  *  @param  command The command to execute the AMPL solver; the policy will be extracted from stdout.
  *  @param  k       The number of controller nodes desired in the final policy.
- *  @param  psi     The resultant (intermediate) action selection probabilities.
- *  @param  eta     The resultant (intermediate) controller transition probabilities.
+ *  @param  policy  The resultant (intermediate) controller action and transition probabilities.
  */
 typedef struct NovaPOMDPNLP {
     char *path;
     char *command;
     unsigned int k;
-    float *psi;
-    float *eta;
+    float *policy;
 } POMDPNLP;
 
 /**

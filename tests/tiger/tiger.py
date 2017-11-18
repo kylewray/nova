@@ -108,7 +108,7 @@ for f in files:
         algorithm = POMDPNLP(tiger, path=thisFilePath, command=cmd, k=3)
 
     policy = algorithm.solve()
-    #print(policy)
+    print(policy)
 
     if f['algorithm'] in ["pbvi", "perseus", "hsvi2"]:
         #pylab.hold(True)

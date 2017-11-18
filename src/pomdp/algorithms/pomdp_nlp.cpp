@@ -38,8 +38,6 @@
 #include <string>
 #include <sstream>
 
-#include <iostream>
-
 namespace nova {
 
 int pomdp_ampl_save_nlp_model_file(const POMDP *pomdp, const char *path)
@@ -73,9 +71,7 @@ int pomdp_ampl_save_nlp_model_file(const POMDP *pomdp, const char *path)
     file << std::endl;
 
     file << "var V {1..NUM_NODES, 1..NUM_STATES};" << std::endl;
-    file << "var psi {1..NUM_NODES, 1..NUM_ACTIONS} >= 0.0, <= 1.0;" << std::endl;
-    file << "var eta {1..NUM_NODES, 1..NUM_ACTIONS, 1..NUM_OBSERVATIONS, 1..NUM_NODES} ";
-    file << ">= 0.0, <= 1.0;" << std::endl;
+    file << "var policy {1..NUM_NODES, 1..NUM_ACTIONS, 1..NUM_OBSERVATIONS, 1..NUM_NODES} >= 0.0;" << std::endl;
     file << std::endl;
 
     file << "maximize Value:" << std::endl;
@@ -83,24 +79,19 @@ int pomdp_ampl_save_nlp_model_file(const POMDP *pomdp, const char *path)
     file << std::endl;
 
     file << "subject to Bellman_Constraint_V {q in 1..NUM_NODES, s in 1..NUM_STATES}:" << std::endl;
-    file << "   V[q, s] = sum {a in 1..NUM_ACTIONS} (psi[q, a] * (R[s, a] + gamma * ";
-    file << "sum {sp in 1..NUM_STATES} (T[s, a, sp] * sum {o in 1..NUM_OBSERVATIONS} (O[a, sp, o] * ";
-    file << "sum {qp in 1..NUM_NODES} (eta[q, a, o, qp] * V[qp, sp])))));" << std::endl;
+    file << "   V[q, s] = sum {a in 1..NUM_ACTIONS} ((sum {qp in 1..NUM_NODES} policy[q, a, 1, qp]) * R[s, a] + ";
+    file << "gamma * sum {sp in 1..NUM_STATES} (T[s, a, sp] * sum {o in 1..NUM_OBSERVATIONS} (O[a, sp, o] * ";
+    file << "sum {qp in 1..NUM_NODES} (policy[q, a, o, qp] * V[qp, sp]))));" << std::endl;
     file << std::endl;
 
-    file << "subject to Probability_Constraint_Psi_Nonnegative ";
-    file << "{q in 1..NUM_NODES, a in 1..NUM_ACTIONS}:" << std::endl;
-    file << "   psi[q, a] >= 0.0;" << std::endl;
-    file << "subject to Probability_Constraint_Psi_Normalization {q in 1..NUM_NODES}:" << std::endl;
-    file << "   sum {a in 1..NUM_ACTIONS} psi[q, a] = 1.0;" << std::endl;
+    file << "subject to Probability_Constraint_Normalization ";
+    file << "{q in 1..NUM_NODES, o in 1..NUM_OBSERVATIONS}:" << std::endl;
+    file << "   sum {qp in 1..NUM_NODES, a in 1..NUM_ACTIONS} policy[q, a, o, qp] = 1.0;" << std::endl;
     file << std::endl;
 
-    file << "subject to Probability_Constraint_Eta_Nonnegative ";
-    file << "{q in 1..NUM_NODES, a in 1..NUM_ACTIONS, o in 1..NUM_OBSERVATIONS, qp in 1..NUM_NODES}:" << std::endl;
-    file << "   eta[q, a, o, qp] >= 0.0;" << std::endl;
-    file << "subject to Probability_Constraint_Eta_Normalization ";
+    file << "subject to Probability_Constraint_Action_Probabilities ";
     file << "{q in 1..NUM_NODES, a in 1..NUM_ACTIONS, o in 1..NUM_OBSERVATIONS}:" << std::endl;
-    file << "   sum {qp in 1..NUM_NODES} eta[q, a, o, qp] = 1.0;" << std::endl;
+    file << "   sum {qp in 1..NUM_NODES} policy[q, a, o, qp] = sum {qp in 1..NUM_NODES} policy[q, a, 1, qp];" << std::endl;
     file << std::endl;
 
     file.close();
@@ -148,16 +139,10 @@ int pomdp_nlp_parse_solver_output(const POMDP *pomdp, POMDPNLP *nlp, std::string
     // Set the default values to 0.0. Not all of the values need to be set because of this.
     for (unsigned int q = 0; q < nlp->k; q++) {
         for (unsigned int a = 0; a < pomdp->m; a++) {
-            nlp->psi[q * pomdp->m + a] = 0.0f;
-        }
-    }
-
-    for (unsigned int q = 0; q < nlp->k; q++) {
-        for (unsigned int a = 0; a < pomdp->m; a++) {
             for (unsigned int o = 0; o < pomdp->z; o++) {
                 for (unsigned int qp = 0; qp < nlp->k; qp++) {
-                    nlp->eta[q * pomdp->m * pomdp->z * nlp->k +
-                             a * pomdp->z * nlp->k + o * nlp->k + qp] = 0.0f; 
+                    nlp->policy[q * pomdp->m * pomdp->z * nlp->k +
+                                a * pomdp->z * nlp->k + o * nlp->k + qp] = 0.0f; 
                 }
             }
         }
@@ -165,14 +150,13 @@ int pomdp_nlp_parse_solver_output(const POMDP *pomdp, POMDPNLP *nlp, std::string
 
     // Go through every line in the output and parse the result of the solver.
     // Importantly, we assume the solver's output is of the form:
-    // if psi, then <psi> <q> <a> <probability>
-    // else if eta, then <eta> <q> <a> <o> <probability>.
+    // <q> <a> <o> <qp> <probability>.
     std::stringstream stream(solverOutput);
     std::string line;
 
     while (std::getline(stream, line, '\n')) {
         // Get the relevant data from the line.
-        std::string data[6];
+        std::string data[5];
         unsigned int counter = 0;
         bool newSpace = true;
 
@@ -184,48 +168,32 @@ int pomdp_nlp_parse_solver_output(const POMDP *pomdp, POMDPNLP *nlp, std::string
                 newSpace = true;
             }
 
-            if (counter >= 6) {
-                break;
-            }
-
             if (line[i] != ' ') {
                 data[counter] += line[i];
             }
         }
 
-        // Check if this is psi or eta. If so, parse the indices and the value.
-        if (data[0].length() >= 3) {
-            if (data[0][0] == 'p' && data[0][1] == 's' && data[0][2] == 'i') {
-                int q = std::atoi(data[1].c_str()) - 1;
-                int a = std::atoi(data[2].c_str()) - 1;
-                float probability = std::atof(data[3].c_str());
+        // All data elements need to store some kind of data.
+        if (counter != 4) {
+            continue;
+        }
 
-                if (q < 0 || q >= nlp->k || a < 0 || a >= pomdp->m ||
-                        probability < 0.0f || probability > 1.0f) {
-                    fprintf(stderr, "Error[pomdp_nlp_parse_solver_output]: %s\n",
-                                    "Failed to parse psi.");
-                    return NOVA_ERROR_INVALID_DATA;
-                } else {
-                    nlp->psi[q * pomdp->m + a] = probability;
-                }
-            } else if (data[0][0] == 'e' && data[0][1] == 't' && data[0][2] == 'a') {
-                int q = std::atoi(data[1].c_str()) - 1;
-                int a = std::atoi(data[2].c_str()) - 1;
-                int o = std::atoi(data[3].c_str()) - 1;
-                int qp = std::atoi(data[4].c_str()) - 1;
-                float probability = std::atof(data[5].c_str());
+        // Read the raw data as 'policy' for now, which contains psi and eta.
+        int q = std::atoi(data[0].c_str()) - 1;
+        int a = std::atoi(data[1].c_str()) - 1;
+        int o = std::atoi(data[2].c_str()) - 1;
+        int qp = std::atoi(data[3].c_str()) - 1;
+        float probability = std::atof(data[4].c_str());
 
-                if (q < 0 || q >= nlp->k || a < 0 || a >= pomdp->m ||
-                        o < 0 || o >= pomdp->z || qp < 0 || qp >= nlp->k ||
-                        probability < 0.0f || probability > 1.0f) {
-                    fprintf(stderr, "Error[pomdp_nlp_parse_solver_output]: %s\n",
-                                    "Failed to parse eta.");
-                    return NOVA_ERROR_INVALID_DATA;
-                } else {
-                    nlp->eta[q * pomdp->m * pomdp->z * nlp->k +
-                             a * pomdp->z * nlp->k + o * nlp->k + qp] = probability; 
-                }
-            }
+        if (q < 0 || q >= nlp->k || a < 0 || a >= pomdp->m ||
+                o < 0 || o >= pomdp->z || qp < 0 || qp >= nlp->k ||
+                probability < 0.0f || probability > 1.0f) {
+            fprintf(stderr, "Error[pomdp_nlp_parse_solver_output]: %s\n",
+                            "Failed to parse the policy.");
+            return NOVA_ERROR_INVALID_DATA;
+        } else {
+            nlp->policy[q * pomdp->m * pomdp->z * nlp->k +
+                        a * pomdp->z * nlp->k + o * nlp->k + qp] = probability; 
         }
     }
 
@@ -286,14 +254,9 @@ int pomdp_nlp_initialize(const POMDP *pomdp, POMDPNLP *nlp)
     }
 
     // Create the variables that change over iteration (i.e., not the path and command).
-    nlp->psi = new float[nlp->k * pomdp->m];
-    nlp->eta = new float[nlp->k * pomdp->m * pomdp->z * nlp->k];
-
-    for (unsigned int i = 0; i < nlp->k * pomdp->m; i++) {
-        nlp->psi[i] = 0.0f;
-    }
+    nlp->policy = new float[nlp->k * pomdp->m * pomdp->z * nlp->k];
     for (unsigned int i = 0; i < nlp->k * pomdp->m * pomdp->z * nlp->k; i++) {
-        nlp->eta[i] = 0.0f;
+        nlp->policy[i] = 0.0f;
     }
 
     // Create the model and data files. Save them for solving.
@@ -361,8 +324,51 @@ int pomdp_nlp_get_policy(const POMDP *pomdp, POMDPNLP *nlp, POMDPStochasticFSC *
         return NOVA_ERROR_POLICY_CREATION;
     }
 
-    memcpy(policy->psi, nlp->psi, nlp->k * pomdp->m * sizeof(float));
-    memcpy(policy->eta, nlp->eta, nlp->k * pomdp->m * pomdp->z * nlp->k * sizeof(float));
+    // Reset psi and compute it by summing over qp with observation index 0 (arbitrary).
+    for (unsigned int q = 0; q < nlp->k; q++) {
+        for (unsigned int a = 0; a < pomdp->m; a++) {
+            policy->psi[q * pomdp->m + a] = 0.0f;
+            for (unsigned int qp = 0; qp < nlp->k; qp++) {
+                policy->psi[q * pomdp->m + a] += nlp->policy[q * pomdp->m * pomdp->z * nlp->k +
+                                                             a * pomdp->z * nlp->k + 0 * nlp->k + qp]; 
+            }
+        }
+    }
+
+    // For eta, first copy the entire policy, then normalize. The math works out that this is
+    // equivalent to the original eta.
+    memcpy(policy->eta, nlp->policy, nlp->k * pomdp->m * pomdp->z * nlp->k * sizeof(float));
+    for (unsigned int q = 0; q < nlp->k; q++) {
+        for (unsigned int a = 0; a < pomdp->m; a++) {
+            for (unsigned int o = 0; o < pomdp->z; o++) {
+                float prActionGivenControllerNode = 0.0f;
+                for (unsigned int qp = 0; qp < nlp->k; qp++) {
+                    // Note: The observation is again zero because we are essentially normalizing
+                    // by the probability the action is selected.
+                    prActionGivenControllerNode += policy->eta[q * pomdp->m * pomdp->z * nlp->k +
+                                                               a * pomdp->z * nlp->k + 0 * nlp->k + qp]; 
+                }
+
+                // Note: If the probability of taking this action is zero, this is going to
+                // divide by zero. Normally, this would be invalid; however, recall the stochastic
+                // process in the stochastic FSC. First it randomly selects an action, then transitions
+                // after an observation. Thus, if the action is never taken, then the state transition
+                // does not matter at all; it will never be used. Thus, we can safely assign these to
+                // zero to prevent the needless nan.
+
+                for (unsigned int qp = 0; qp < nlp->k; qp++) {
+                    if (prActionGivenControllerNode > 0.0f && prActionGivenControllerNode) {
+                        policy->eta[q * pomdp->m * pomdp->z * nlp->k +
+                                    a * pomdp->z * nlp->k + o * nlp->k + qp] /= prActionGivenControllerNode;
+                    } else {
+                        policy->eta[q * pomdp->m * pomdp->z * nlp->k +
+                                    a * pomdp->z * nlp->k + o * nlp->k + qp] = 0.0f;
+                    }
+                }
+            }
+        }
+    }
+
 
     return NOVA_SUCCESS;
 }
@@ -378,15 +384,10 @@ int pomdp_nlp_uninitialize(const POMDP *pomdp, POMDPNLP *nlp)
     // Note: Only free memory of the variables that change
     // during execution (i.e., not path or command).
 
-    if (nlp->psi != nullptr) {
-        delete [] nlp->psi;
+    if (nlp->policy != nullptr) {
+        delete [] nlp->policy;
     }
-    nlp->psi = nullptr;
-
-    if (nlp->eta != nullptr) {
-        delete [] nlp->eta;
-    }
-    nlp->eta = nullptr;
+    nlp->policy = nullptr;
 
     return NOVA_SUCCESS;
 }

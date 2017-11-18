@@ -125,17 +125,13 @@ class NEOSSNOPT(object):
                 break
 
             param = line[1][1:-1]
-            var = [int(v) for v in param[4:-1].split(',')]
-            value = max(0.0, min(1.0, float(line[2])))
 
-            #if value == 0.0:
-            #    counter += 1
-            #    continue
+            if param[0:6] == "policy":
+                var = [int(v) for v in param[7:-1].split(',')]
+                value = max(0.0, min(1.0, float(line[2])))
 
-            if param[0:3] == "psi" and len(var) == 2:
-                result += "psi %i %i %.5f\n" % (var[0], var[1], value)
-            elif param[0:3] == "eta" and len(var) == 4:
-                result += "eta %i %i %i %i %.5f\n" % (var[0], var[1], var[2], var[3], value)
+                if len(var) == 4: # and value > 0.0:
+                    result += "%i %i %i %i %.5f\n" % (var[0], var[1], var[2], var[3], value)
 
             counter += 1
 
