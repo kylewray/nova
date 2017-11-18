@@ -33,12 +33,14 @@
 
 namespace nova {
 
-int pomdp_ampl_save_data_file(const POMDP *pomdp, unsigned int k, const char *path)
+int pomdp_ampl_save_data_file(const POMDP *pomdp, unsigned int k, unsigned int r,
+        const char *path, const char *filename)
 {
-    std::string filename(path);
-    filename += "/nova_nlp_ampl.dat";
+    std::string pathAndFilename(path);
+    pathAndFilename += "/";
+    pathAndFilename += filename;
 
-    std::ofstream file(filename, std::ofstream::out);
+    std::ofstream file(pathAndFilename, std::ofstream::out);
     if (!file.is_open()) {
         return NOVA_ERROR_FAILED_TO_OPEN_FILE;
     }
@@ -50,10 +52,21 @@ int pomdp_ampl_save_data_file(const POMDP *pomdp, unsigned int k, const char *pa
     file << "let NUM_ACTIONS := " << pomdp->m << ";" << std::endl;
     file << "let NUM_OBSERVATIONS := " << pomdp->z << ";" << std::endl;
     file << "let NUM_NODES := " << k << ";" << std::endl;
+    if (r > 1) {
+        file << "let NUM_BELIEFS := " << pomdp->r << ";" << std::endl;
+    }
     file << std::endl;
 
-    for (unsigned int s = 0; s < pomdp->n; s++) {
-        file << "let b0[" << (s + 1) << "] := " << pomdp->B[0 * pomdp->n + s] << ";" << std::endl;
+    if (r > 1) {
+        for (unsigned int i = 0; i < pomdp->r && i < r; i++) {
+            for (unsigned int s = 0; s < pomdp->n; s++) {
+                file << "let B[" << (i + 1) << ", " << (s + 1) << "] := " << pomdp->B[i * pomdp->n + s] << ";" << std::endl;
+            }
+        }
+    } else if (r == 1) {
+        for (unsigned int s = 0; s < pomdp->n; s++) {
+            file << "let b0[" << (s + 1) << "] := " << pomdp->B[0 * pomdp->n + s] << ";" << std::endl;
+        }
     }
     file << std::endl;
 

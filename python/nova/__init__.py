@@ -30,6 +30,8 @@ __all__ = ["nova_mdp", "mdp",
            "nova_pomdp_pbvi", "pomdp_pbvi",
            "nova_pomdp_perseus", "pomdp_perseus",
            "nova_pomdp_hsvi2", "pomdp_hsvi2",
+           "nova_pomdp_nlp", "pomdp_nlp",
+           "nova_pomdp_bi", "pomdp_bi",
            "nova_pomdp_alpha_vectors", "pomdp_alpha_vectors",
            "nova_pomdp_stochastic_fsc", "pomdp_stochastic_fsc",
            "file_loader"]

@@ -22,8 +22,8 @@
  */
 
 
-#ifndef NOVA_POMDP_UTILITIES_H
-#define NOVA_POMDP_UTILITIES_H
+#ifndef NOVA_POMDP_MODEL_H
+#define NOVA_POMDP_MODEL_H
 
 
 #include <nova/pomdp/pomdp.h>
@@ -79,5 +79,5 @@ extern "C" int pomdp_uninitialize(POMDP *pomdp);
 };
 
 
-#endif // NOVA_POMDP_UTILITIES_H
+#endif // NOVA_POMDP_MODEL_H
 

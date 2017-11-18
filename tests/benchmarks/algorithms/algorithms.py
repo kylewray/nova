@@ -32,6 +32,7 @@ from nova.pomdp_pbvi import *
 from nova.pomdp_perseus import*
 from nova.pomdp_hsvi2 import*
 from nova.pomdp_nlp import*
+from nova.pomdp_bi import*
 
 from pylab import *
 
@@ -39,11 +40,12 @@ from pylab import *
 numTrials = 1
 adrTrials = 100
 
-#algorithms = ['pbvi', 'perseus', 'hsvi2', 'nlp']
-algorithms = ['nlp']
+#algorithms = ['pbvi', 'perseus', 'hsvi2', 'nlp', 'bi']
+#algorithms = ['nlp', 'bi']
+algorithms = ['bi']
 
 files = [
-        {'name': "tiger", 'filename': "domains/tiger_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4, 'numBeliefsToAdd': 200, 'numControllerNodes': 5, 'maxTrials': 100},
+        {'name': "tiger", 'filename': "domains/tiger_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4, 'numBeliefsToAdd': 200, 'numControllerNodes': 7, 'maxTrials': 100},
         ##{'name': "shuttle", 'filename': "domains/shuttle_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4, 'numBeliefsToAdd': 300, 'maxTrials': 100},
         ##{'name': "paint", 'filename': "domains/paint_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4, 'numBeliefsToAdd': 300, 'maxTrials': 100},
         #{'name': "grid-4x3", 'filename': "domains/4x3_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 5, 'numBeliefsToAdd': 500, 'maxTrials': 100},
@@ -114,6 +116,18 @@ for f in files:
                     cmd += os.path.join(thisFilePath, "nova_nlp_ampl.mod") + " "
                     cmd += os.path.join(thisFilePath, "nova_nlp_ampl.dat")
                     algorithm = POMDPNLP(pomdp, path=thisFilePath, command=cmd, k=f['numControllerNodes'])
+                elif a == "bi":
+                    logNumBeliefs = 3 #min(int(log(f['numBeliefsToAdd'])), f['numControllerNodes'])
+                    pomdp.B[1 * 2 + 0] = 1.0
+                    pomdp.B[1 * 2 + 1] = 0.0
+                    pomdp.B[2 * 2 + 0] = 0.0
+                    pomdp.B[2 * 2 + 0] = 1.0
+                    pomdp.expand(method='random_unique', numBeliefsToAdd=logNumBeliefs, maxTrials=f['maxTrials'])
+                    cmd = "python3 "
+                    cmd += os.path.join(thisFilePath, "..", "..", "..", "python", "neos_snopt.py") + " "
+                    cmd += os.path.join(thisFilePath, "nova_nlp_ampl.mod") + " "
+                    cmd += os.path.join(thisFilePath, "nova_nlp_ampl.dat")
+                    algorithm = POMDPBeliefInfusion(pomdp, path=thisFilePath, command=cmd, k=f['numControllerNodes'], r=logNumBeliefs)
 
                 # Solve and count the time it takes to complete the solving step.
                 timing = (time.time(), time.clock())
@@ -128,7 +142,7 @@ for f in files:
                 if a in ["pbvi", "perseus", "hsvi2"]:
                     Vb0 = policy.value(b0)
                     sizeOfSolution = float(policy.r)
-                elif a in ["nlp"]:
+                elif a in ["nlp", "bi"]:
                     Vb0 = 0.0
                     sizeOfSolution = float(policy.k)
 

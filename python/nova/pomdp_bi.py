@@ -32,23 +32,24 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import pomdp
 import pomdp_stochastic_fsc as psfsc
 
-import nova_pomdp_nlp as npn
+import nova_pomdp_bi as npbi
 
 
-class POMDPNLP(npn.NovaPOMDPNLP):
-    """ The non-linear programming (NLP) solver for POMDPs.
+class POMDPBeliefInfusion(npbi.NovaPOMDPBeliefInfusion):
+    """ The belief-infused non-linear programming (NLP) solver for POMDPs.
 
         This class provides a clean python wrapper for simple interactions with this solver.
     """
 
-    def __init__(self, pomdpObject, path, command, k):
-        """ The constructor for the POMDPNLP class.
+    def __init__(self, pomdpObject, path, command, k, r):
+        """ The constructor for the POMDPBeliefInfusion class.
 
             Parameters:
-                pomdpObject     --  The POMDP object on which to run NLP.
+                pomdpObject     --  The POMDP object on which to run belief-infused NLP.
                 path            --  The path to the folder to store temporary AMPL files.
                 command         --  The command to use the generated AMPL files in a solver.
                 k               --  The number of controller nodes.
+                r               --  The number of beliefs to infuse into the FSC.
         """
 
         self.pomdp = pomdpObject
@@ -57,33 +58,45 @@ class POMDPNLP(npn.NovaPOMDPNLP):
         self.path = ct.create_string_buffer(str.encode(path))
         self.command = ct.create_string_buffer(str.encode(command))
         self.k = int(k)
+        self.r = int(r)
+        self.B = ct.POINTER(ct.c_float)()
+        self.lmbd = ct.POINTER(ct.c_float)()
         self.policy = ct.POINTER(ct.c_float)()
 
         # Attempt to initialize the algorithm.
-        result = npn._nova.pomdp_nlp_initialize(self.pomdpPtr, self)
+        result = npbi._nova.pomdp_bi_initialize(self.pomdpPtr, self)
         if result != 0:
-            print("Failed to initialize the NLP algorithm.")
+            print("Failed to initialize the belief-infused NLP algorithm.")
             raise Exception()
 
     def __del__(self):
-        """ The deconstructor for the POMDPNLP class which automatically frees memory. """
+        """ The deconstructor for the POMDPBeliefInfusion class which automatically frees memory. """
 
-        result = npn._nova.pomdp_nlp_uninitialize(self.pomdpPtr, self)
+        result = npbi._nova.pomdp_bi_uninitialize(self.pomdpPtr, self)
         if result != 0:
-            print("Failed to free the NLP algorithm.")
+            print("Failed to free the belief-infused NLP algorithm.")
             raise Exception()
 
     def __str__(self):
-        """ Return the string of the POMDP NLP.
+        """ Return the string of the POMDP belief-infused NLP.
 
             Returns:
-                The string of the POMDP NLP.
+                The string of the POMDP belief-infused NLP.
         """
 
 
         result = "path: %s" % (self.path) + "\n"
         result += "command: %s" % (self.command) + "\n"
-        result += "k: %i" % (self.k) + "\n\n"
+        result += "k: %i" % (self.k) + "\n"
+        result += "r: %i" % (self.k) + "\n\n"
+
+        result += "B:\n%s" % (str(np.array([[self.B[i * self.pomdp.n + s] \
+                        for s in range(self.pomdp.n)] \
+                    for i in range(self.r)]))) + "\n\n"
+
+        result += "lambda:\n%s" % (str(np.array([[self.lmbd[q * self.r + i] \
+                        for i in range(self.r)] \
+                    for q in range(self.k)]))) + "\n\n"
 
         result += "policy:\n%s" % (str(np.array([[[[self.policy[q * self.pomdp.n * self.pomdp.z * self.k
                                                                 + s * self.pomdp.z * self.k
@@ -104,7 +117,7 @@ class POMDPNLP(npn.NovaPOMDPNLP):
 
         policy = psfsc.POMDPStochasticFSC()
 
-        result = npn._nova.pomdp_nlp_execute(self.pomdpPtr, self, policy)
+        result = npbi._nova.pomdp_bi_execute(self.pomdpPtr, self, policy)
         if result != 0:
             print("Failed to execute the 'nova' library's CPU POMDP solver.")
             raise Exception()
@@ -114,7 +127,7 @@ class POMDPNLP(npn.NovaPOMDPNLP):
     def update(self):
         """ Update the POMDP by executing one step of the solver. """
 
-        result = npn._nova.pomdp_nlp_update(self.pomdpPtr, self)
+        result = npbi._nova.pomdp_bi_update(self.pomdpPtr, self)
         if result != 0:
             print("Failed to update the 'nova' library's CPU POMDP solver.")
             raise Exception()
@@ -128,11 +141,12 @@ class POMDPNLP(npn.NovaPOMDPNLP):
 
         policy = psfsc.POMDPStochasticFSC()
 
-        result = npn._nova.pomdp_nlp_get_policy(self.pomdpPtr, self, policy)
+        result = npbi._nova.pomdp_bi_get_policy(self.pomdpPtr, self, policy)
         if result != 0:
             print("Failed to get the policy for the 'nova' library's CPU POMDP solver.")
             raise Exception()
 
         return policy
+
 
 

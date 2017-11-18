@@ -44,31 +44,34 @@ else:
                     "..", "..", "lib", "libnova.so"))
 
 
-class NovaPOMDPNLP(ct.Structure):
-    """ The C struct NovaPOMDPNLP object. """
+class NovaPOMDPBeliefInfusion(ct.Structure):
+    """ The C struct NovaPOMDPBeliefInfusion object. """
 
     _fields_ = [("path", ct.POINTER(ct.c_char)),
                 ("command", ct.POINTER(ct.c_char)),
                 ("k", ct.c_uint),
+                ("r", ct.c_uint),
+                ("B", ct.POINTER(ct.c_float)),
+                ("lmbd", ct.POINTER(ct.c_float)),
                 ("policy", ct.POINTER(ct.c_float)),
                 ]
 
 
-_nova.pomdp_nlp_execute.argtypes = (ct.POINTER(pomdp.POMDP),
-                                    ct.POINTER(NovaPOMDPNLP),
-                                    ct.POINTER(psfsc.POMDPStochasticFSC))
+_nova.pomdp_bi_execute.argtypes = (ct.POINTER(pomdp.POMDP),
+                                   ct.POINTER(NovaPOMDPBeliefInfusion),
+                                   ct.POINTER(psfsc.POMDPStochasticFSC))
 
-_nova.pomdp_nlp_initialize.argtypes = (ct.POINTER(pomdp.POMDP),
-                                       ct.POINTER(NovaPOMDPNLP))
+_nova.pomdp_bi_initialize.argtypes = (ct.POINTER(pomdp.POMDP),
+                                      ct.POINTER(NovaPOMDPBeliefInfusion))
 
-_nova.pomdp_nlp_update.argtypes = (ct.POINTER(pomdp.POMDP),
-                                   ct.POINTER(NovaPOMDPNLP))
+_nova.pomdp_bi_update.argtypes = (ct.POINTER(pomdp.POMDP),
+                                  ct.POINTER(NovaPOMDPBeliefInfusion))
 
-_nova.pomdp_nlp_get_policy.argtypes = (ct.POINTER(pomdp.POMDP),
-                                       ct.POINTER(NovaPOMDPNLP),
-                                       ct.POINTER(psfsc.POMDPStochasticFSC))
+_nova.pomdp_bi_get_policy.argtypes = (ct.POINTER(pomdp.POMDP),
+                                      ct.POINTER(NovaPOMDPBeliefInfusion),
+                                      ct.POINTER(psfsc.POMDPStochasticFSC))
 
-_nova.pomdp_nlp_uninitialize.argtypes = (ct.POINTER(pomdp.POMDP),
-                                         ct.POINTER(NovaPOMDPNLP))
+_nova.pomdp_bi_uninitialize.argtypes = (ct.POINTER(pomdp.POMDP),
+                                        ct.POINTER(NovaPOMDPBeliefInfusion))
 
 

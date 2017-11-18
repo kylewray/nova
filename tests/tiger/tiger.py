@@ -34,6 +34,7 @@ from nova.pomdp_pbvi import *
 from nova.pomdp_perseus import *
 from nova.pomdp_hsvi2 import *
 from nova.pomdp_nlp import *
+from nova.pomdp_bi import *
 
 
 files = [
@@ -59,8 +60,12 @@ files = [
 #        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'hsvi2', 'expand': None},
 
         #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'nlp', 'expand': None},
-        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'nlp', 'expand': None},
+#        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'nlp', 'expand': "random_unique"},
+
+        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'bi', 'expand': None},
+        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'bi', 'expand': "random_unique"},
         ]
+
 
 for f in files:
     print("Loading File: %s" % (str(f)))
@@ -101,11 +106,15 @@ for f in files:
         algorithm.delta = 0.0001
         algorithm.maxAlphaVectors = int(max(tiger.n, tiger.m) + algorithm.trials * tiger.horizon + 1)
     elif f['algorithm'] == "nlp" and f['process'] == "cpu":
-        cmd = "python3 "
-        cmd += os.path.join(thisFilePath, "..", "..", "python", "neos_snopt.py") + " "
+        cmd = "python3 " + os.path.join(thisFilePath, "..", "..", "python", "neos_snopt.py") + " "
         cmd += os.path.join(thisFilePath, "nova_nlp_ampl.mod") + " "
         cmd += os.path.join(thisFilePath, "nova_nlp_ampl.dat")
-        algorithm = POMDPNLP(tiger, path=thisFilePath, command=cmd, k=3)
+        algorithm = POMDPNLP(tiger, path=thisFilePath, command=cmd, k=5)
+    elif f['algorithm'] == "bi" and f['process'] == "cpu":
+        cmd = "python3 " + os.path.join(thisFilePath, "..", "..", "python", "neos_snopt.py") + " "
+        cmd += os.path.join(thisFilePath, "nova_bi_ampl.mod") + " "
+        cmd += os.path.join(thisFilePath, "nova_bi_ampl.dat")
+        algorithm = POMDPBeliefInfusion(tiger, path=thisFilePath, command=cmd, k=7, r=5)
 
     policy = algorithm.solve()
     print(policy)
@@ -129,7 +138,7 @@ for f in files:
                         [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]],
                         linewidth=10, color='blue')
         pylab.show()
-    else:
+    elif f['algorithm'] in ["nlp", "bi"]:
         G = nx.DiGraph()
 
         Q = ["q%i" % (q) for q in range(policy.k)]

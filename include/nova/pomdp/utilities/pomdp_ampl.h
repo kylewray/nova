@@ -34,10 +34,13 @@ namespace nova {
  *  Export the provided POMDP as an AMPL data file to the path and filename given.
  *  @param  pomdp       The POMDP to export as an AMPL data file.
  *  @param  k           The number of controller nodes.
- *  @param  path        The desired path and name of the AMPL data file.
+ *  @param  r           The number of belief points to add from the POMDP.
+ *  @param  path        The desired path of the AMPL data file.
+ *  @param  filename    The desired name of the AMPL data file.
  *  @return Return NOVA_SUCCESS on success; otherwise return an error.
  */
-extern "C" int pomdp_ampl_save_data_file(const POMDP *pomdp, unsigned int k, const char *path);
+extern "C" int pomdp_ampl_save_data_file(const POMDP *pomdp, unsigned int k,
+        unsigned int r, const char *path, const char *filename);
 
 };
 

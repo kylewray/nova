@@ -68,9 +68,9 @@ class POMDPStochasticFSC(npfsc.NovaPOMDPStochasticFSC):
                 The string of the POMDP stochastic FSC.
         """
 
-        result = "k: %i" % (self.k) + "\n\n"
-        result = "m: %i" % (self.m) + "\n\n"
-        result = "z: %i" % (self.z) + "\n\n"
+        result = "k: %i" % (self.k) + "\n"
+        result += "m: %i" % (self.m) + "\n"
+        result += "z: %i" % (self.z) + "\n\n"
 
         result += "psi:\n%s" % (str(np.array([[self.psi[i * self.m + a] \
                                             for i in range(self.k)] \

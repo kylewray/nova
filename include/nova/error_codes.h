@@ -1,7 +1,7 @@
 /**
  *  The MIT License (MIT)
  *
- *  Copyright (c) 2015 Kyle Hollins Wray, University of Massachusetts
+ *  Copyright (c) 2017 Kyle Hollins Wray, University of Massachusetts
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of
  *  this software and associated documentation files (the "Software"), to deal in
@@ -50,6 +50,7 @@ namespace nova {
 #define NOVA_ERROR_EMPTY_CONTAINER                  14
 #define NOVA_ERROR_FAILED_TO_OPEN_FILE              15
 #define NOVA_ERROR_EXECUTING_COMMAND                16
+#define NOVA_ERROR_EXPLORING_BELIEFS                17
 
 };
 
