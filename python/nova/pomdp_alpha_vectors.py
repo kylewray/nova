@@ -95,10 +95,7 @@ class POMDPAlphaVectors(npav.NovaPOMDPAlphaVectors):
             print("Failed to compute the optimal value and action.")
             raise Exception()
 
-        Vb = Vb.value
-        a = a.value
-
-        return Vb, a
+        return Vb.value, a.value
 
     def value(self, b):
         """ Compute the optimal value at a belief state.

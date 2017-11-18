@@ -179,10 +179,10 @@ int pomdp_nlp_parse_solver_output(const POMDP *pomdp, POMDPNLP *nlp, std::string
         }
 
         // Read the raw data as 'policy' for now, which contains psi and eta.
-        int q = std::atoi(data[0].c_str()) - 1;
-        int a = std::atoi(data[1].c_str()) - 1;
-        int o = std::atoi(data[2].c_str()) - 1;
-        int qp = std::atoi(data[3].c_str()) - 1;
+        int q = std::atoi(data[0].c_str());
+        int a = std::atoi(data[1].c_str());
+        int o = std::atoi(data[2].c_str());
+        int qp = std::atoi(data[3].c_str());
         float probability = std::atof(data[4].c_str());
 
         if (q < 0 || q >= nlp->k || a < 0 || a >= pomdp->m ||

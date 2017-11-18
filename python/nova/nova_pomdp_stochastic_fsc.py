@@ -60,8 +60,8 @@ _nova.pomdp_stochastic_fsc_random_action.argtypes = (ct.POINTER(NovaPOMDPStochas
                                                      ct.POINTER(ct.c_uint))     # a
 _nova.pomdp_stochastic_fsc_random_successor.argtypes = (ct.POINTER(NovaPOMDPStochasticFSC),
                                                         ct.c_uint,              # q
-                                                        ct.POINTER(ct.c_uint),  # a
-                                                        ct.POINTER(ct.c_uint),  # o
+                                                        ct.c_uint,              # a
+                                                        ct.c_uint,              # o
                                                         ct.POINTER(ct.c_uint))  # qp
 _nova.pomdp_stochastic_fsc_uninitialize.argtypes = tuple([ct.POINTER(NovaPOMDPStochasticFSC)])
 

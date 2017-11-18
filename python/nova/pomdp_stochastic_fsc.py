@@ -21,11 +21,15 @@
 """
 
 import ctypes as ct
+
 import os
 import sys
 import csv
+
 import numpy as np
+
 import time
+import random
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import nova_pomdp_stochastic_fsc as npfsc
@@ -36,6 +40,8 @@ class POMDPStochasticFSC(npfsc.NovaPOMDPStochasticFSC):
 
         Specifically, this class is a clean python wrapper around using stochastic FSCs,
         as well as freeing the memory once created.
+
+        Note: The initial controller is always assumed to be the first one (index 0).
     """
 
     def __init__(self):
@@ -124,13 +130,12 @@ class POMDPStochasticFSC(npfsc.NovaPOMDPStochasticFSC):
 
         return qp.value
 
-    def compute_adr(self, pomdp, b0, q0, trials=100):
+    def compute_adr(self, pomdp, b0, trials=100):
         """ Compute the average discounted reward (ADR) at a given belief.
 
             Parameters:
                 pomdp   --  The POMDP to compute the ADR.
                 b0      --  A numpy array for the initial belief (n array).
-                q0      --  A numpy array for the initial controller node (n array).
                 trials  --  The number of trials to average over. Default is 100.
 
             Returns:
@@ -142,7 +147,7 @@ class POMDPStochasticFSC(npfsc.NovaPOMDPStochasticFSC):
         for trial in range(trials):
             b = b0.copy()
             s = random.choice([i for i in range(pomdp.n) if b0[i] > 0.0])
-            q = random.choice([i for i in range(pomdp.n) if q0[i] > 0.0])
+            q = 0
             discount = 1.0
             discountedReward = 0.0
 

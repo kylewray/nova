@@ -96,7 +96,8 @@ int pomdp_stochastic_fsc_random_successor(POMDPStochasticFSC *policy,
     double current = 0.0f;
 
     for (unsigned int i = 0; i < policy->k; i++) {
-        current += policy->eta[q * policy->m * policy->z * policy->k + a * policy->z * policy->k + o * policy->k + i];
+        current += policy->eta[q * policy->m * policy->z * policy->k +
+                               a * policy->z * policy->k + o * policy->k + i];
         if (current >= target) {
             qp = i;
             break;

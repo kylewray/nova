@@ -371,7 +371,8 @@ class POMDP(npm.NovaPOMDP):
                 break
 
         if observation is None:
-            observation = random.choice([o for o in range(self.z) if self.O[a * self.n * self.z + sp * self.z + o] > 0.0])
+            observation = random.choice([o for o in range(self.z)
+                                        if self.O[a * self.n * self.z + sp * self.z + o] > 0.0])
 
         return observation
 

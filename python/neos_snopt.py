@@ -127,7 +127,7 @@ class NEOSSNOPT(object):
             param = line[1][1:-1]
 
             if param[0:6] == "policy":
-                var = [int(v) for v in param[7:-1].split(',')]
+                var = [int(v) - 1 for v in param[7:-1].split(',')]
                 value = max(0.0, min(1.0, float(line[2])))
 
                 if len(var) == 4: # and value > 0.0:
