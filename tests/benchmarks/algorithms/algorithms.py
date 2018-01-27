@@ -118,11 +118,15 @@ for f in files:
                     algorithm = POMDPNLP(pomdp, path=thisFilePath, command=cmd, k=f['numControllerNodes'])
                 elif a == "bi":
                     logNumBeliefs = 3 #min(int(log(f['numBeliefsToAdd'])), f['numControllerNodes'])
+                    pomdp.expand(method='random_unique', numBeliefsToAdd=logNumBeliefs, maxTrials=f['maxTrials'])
                     pomdp.B[1 * 2 + 0] = 1.0
                     pomdp.B[1 * 2 + 1] = 0.0
                     pomdp.B[2 * 2 + 0] = 0.0
-                    pomdp.B[2 * 2 + 0] = 1.0
-                    pomdp.expand(method='random_unique', numBeliefsToAdd=logNumBeliefs, maxTrials=f['maxTrials'])
+                    pomdp.B[2 * 2 + 1] = 1.0
+                    pomdp.Z[1 * 2 + 0] = 0
+                    pomdp.Z[1 * 2 + 1] = 1
+                    pomdp.Z[2 * 2 + 0] = 0
+                    pomdp.Z[2 * 2 + 1] = 1
                     cmd = "python3 "
                     cmd += os.path.join(thisFilePath, "..", "..", "..", "python", "neos_snopt.py") + " "
                     cmd += os.path.join(thisFilePath, "nova_nlp_ampl.mod") + " "

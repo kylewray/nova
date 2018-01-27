@@ -36,7 +36,6 @@
 #include <stdexcept>
 #include <fstream>
 #include <string>
-#include <sstream>
 
 namespace nova {
 
@@ -80,20 +79,20 @@ int pomdp_nlp_save_model_file(const POMDP *pomdp, POMDPNLP *nlp, const char *fil
     file << "   sum {s in 1..NUM_STATES} b0[s] * V[1, s];" << std::endl;
     file << std::endl;
 
-    file << "subject to Bellman_Constraint_V {q in 1..NUM_NODES, s in 1..NUM_STATES}:" << std::endl;
-    file << "   V[q, s] = sum {a in 1..NUM_ACTIONS} ((sum {qp in 1..NUM_NODES} policy[q, a, 1, qp]) * R[s, a] + ";
+    file << "subject to Bellman_Constraint_V {x in 1..NUM_NODES, s in 1..NUM_STATES}:" << std::endl;
+    file << "   V[x, s] = sum {a in 1..NUM_ACTIONS} ((sum {xp in 1..NUM_NODES} policy[x, a, 1, xp]) * R[s, a] + ";
     file << "gamma * sum {sp in 1..NUM_STATES} (T[s, a, sp] * sum {o in 1..NUM_OBSERVATIONS} (O[a, sp, o] * ";
-    file << "sum {qp in 1..NUM_NODES} (policy[q, a, o, qp] * V[qp, sp]))));" << std::endl;
+    file << "sum {xp in 1..NUM_NODES} (policy[x, a, o, xp] * V[xp, sp]))));" << std::endl;
     file << std::endl;
 
     file << "subject to Probability_Constraint_Normalization ";
-    file << "{q in 1..NUM_NODES, o in 1..NUM_OBSERVATIONS}:" << std::endl;
-    file << "   sum {qp in 1..NUM_NODES, a in 1..NUM_ACTIONS} policy[q, a, o, qp] = 1.0;" << std::endl;
+    file << "{x in 1..NUM_NODES, o in 1..NUM_OBSERVATIONS}:" << std::endl;
+    file << "   sum {xp in 1..NUM_NODES, a in 1..NUM_ACTIONS} policy[x, a, o, xp] = 1.0;" << std::endl;
     file << std::endl;
 
     file << "subject to Probability_Constraint_Action_Probabilities ";
-    file << "{q in 1..NUM_NODES, a in 1..NUM_ACTIONS, o in 1..NUM_OBSERVATIONS}:" << std::endl;
-    file << "   sum {qp in 1..NUM_NODES} policy[q, a, o, qp] = sum {qp in 1..NUM_NODES} policy[q, a, 1, qp];" << std::endl;
+    file << "{x in 1..NUM_NODES, a in 1..NUM_ACTIONS, o in 1..NUM_OBSERVATIONS}:" << std::endl;
+    file << "   sum {xp in 1..NUM_NODES} policy[x, a, o, xp] = sum {xp in 1..NUM_NODES} policy[x, a, 1, xp];" << std::endl;
     file << std::endl;
 
     file.close();
@@ -131,73 +130,6 @@ int pomdp_nlp_execute_solver(const POMDP *pomdp, POMDPNLP *nlp, std::string &res
     }
 
     pclose(pipe);
-
-    return NOVA_SUCCESS;
-}
-
-
-int pomdp_nlp_parse_solver_output(const POMDP *pomdp, POMDPNLP *nlp, std::string &solverOutput)
-{
-    // Set the default values to 0.0. Not all of the values need to be set because of this.
-    for (unsigned int q = 0; q < nlp->k; q++) {
-        for (unsigned int a = 0; a < pomdp->m; a++) {
-            for (unsigned int o = 0; o < pomdp->z; o++) {
-                for (unsigned int qp = 0; qp < nlp->k; qp++) {
-                    nlp->policy[q * pomdp->m * pomdp->z * nlp->k +
-                                a * pomdp->z * nlp->k + o * nlp->k + qp] = 0.0f; 
-                }
-            }
-        }
-    }
-
-    // Go through every line in the output and parse the result of the solver.
-    // Importantly, we assume the solver's output is of the form:
-    // <q> <a> <o> <qp> <probability>.
-    std::stringstream stream(solverOutput);
-    std::string line;
-
-    while (std::getline(stream, line, '\n')) {
-        // Get the relevant data from the line.
-        std::string data[5];
-        unsigned int counter = 0;
-        bool newSpace = true;
-
-        for (unsigned int i = 0; i < line.length(); i++) {
-            if (line[i] == ' ' && newSpace) {
-                counter++;
-                newSpace = false;
-            } else if (line[i] != ' ' && !newSpace) {
-                newSpace = true;
-            }
-
-            if (line[i] != ' ') {
-                data[counter] += line[i];
-            }
-        }
-
-        // All data elements need to store some kind of data.
-        if (counter != 4) {
-            continue;
-        }
-
-        // Read the raw data as 'policy' for now, which contains psi and eta.
-        int q = std::atoi(data[0].c_str());
-        int a = std::atoi(data[1].c_str());
-        int o = std::atoi(data[2].c_str());
-        int qp = std::atoi(data[3].c_str());
-        float probability = std::atof(data[4].c_str());
-
-        if (q < 0 || q >= nlp->k || a < 0 || a >= pomdp->m ||
-                o < 0 || o >= pomdp->z || qp < 0 || qp >= nlp->k ||
-                probability < 0.0f || probability > 1.0f) {
-            fprintf(stderr, "Error[pomdp_nlp_parse_solver_output]: %s\n",
-                            "Failed to parse the policy.");
-            return NOVA_ERROR_INVALID_DATA;
-        } else {
-            nlp->policy[q * pomdp->m * pomdp->z * nlp->k +
-                        a * pomdp->z * nlp->k + o * nlp->k + qp] = probability; 
-        }
-    }
 
     return NOVA_SUCCESS;
 }
@@ -260,6 +192,10 @@ int pomdp_nlp_initialize(const POMDP *pomdp, POMDPNLP *nlp)
     for (unsigned int i = 0; i < nlp->k * pomdp->m * pomdp->z * nlp->k; i++) {
         nlp->policy[i] = 0.0f;
     }
+    nlp->V = new float[nlp->k * pomdp->n];
+    for (unsigned int i = 0; i < nlp->k * pomdp->n; i++) {
+        nlp->V[i] = 0.0f;
+    }
 
     // Create the model and data files. Save them for solving.
     int result = pomdp_nlp_save_model_file(pomdp, nlp, "nova_nlp_ampl.mod");
@@ -299,7 +235,7 @@ int pomdp_nlp_update(const POMDP *pomdp, POMDPNLP *nlp)
         return NOVA_ERROR_EXECUTING_COMMAND;
     }
 
-    result = pomdp_nlp_parse_solver_output(pomdp, nlp, solverOutput);
+    result = pomdp_ampl_parse_solver_output(pomdp, nlp->k, nlp->policy, nlp->V, solverOutput);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[pomdp_nlp_update]: %s\n",
                         "Failed to parse the result to obtain the policy.");
@@ -320,19 +256,19 @@ int pomdp_nlp_get_policy(const POMDP *pomdp, POMDPNLP *nlp, POMDPStochasticFSC *
     }
 
     // Initialize the policy. Importantly, this allocates allocates memory. Then copy the policy.
-    int result = pomdp_stochastic_fsc_initialize(policy, nlp->k, pomdp->m, pomdp->z);
+    int result = pomdp_stochastic_fsc_initialize(policy, nlp->k, pomdp->n, pomdp->m, pomdp->z);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[pomdp_nlp_get_policy]: %s\n", "Could not create the policy.");
         return NOVA_ERROR_POLICY_CREATION;
     }
 
-    // Reset psi and compute it by summing over qp with observation index 0 (arbitrary).
-    for (unsigned int q = 0; q < nlp->k; q++) {
+    // Reset psi and compute it by summing over xp with observation index 0 (arbitrary).
+    for (unsigned int x = 0; x < nlp->k; x++) {
         for (unsigned int a = 0; a < pomdp->m; a++) {
-            policy->psi[q * pomdp->m + a] = 0.0f;
-            for (unsigned int qp = 0; qp < nlp->k; qp++) {
-                policy->psi[q * pomdp->m + a] += nlp->policy[q * pomdp->m * pomdp->z * nlp->k +
-                                                             a * pomdp->z * nlp->k + 0 * nlp->k + qp]; 
+            policy->psi[x * pomdp->m + a] = 0.0f;
+            for (unsigned int xp = 0; xp < nlp->k; xp++) {
+                policy->psi[x * pomdp->m + a] += nlp->policy[x * pomdp->m * pomdp->z * nlp->k +
+                                                             a * pomdp->z * nlp->k + 0 * nlp->k + xp]; 
             }
         }
     }
@@ -340,15 +276,15 @@ int pomdp_nlp_get_policy(const POMDP *pomdp, POMDPNLP *nlp, POMDPStochasticFSC *
     // For eta, first copy the entire policy, then normalize. The math works out that this is
     // equivalent to the original eta.
     memcpy(policy->eta, nlp->policy, nlp->k * pomdp->m * pomdp->z * nlp->k * sizeof(float));
-    for (unsigned int q = 0; q < nlp->k; q++) {
+    for (unsigned int x = 0; x < nlp->k; x++) {
         for (unsigned int a = 0; a < pomdp->m; a++) {
             for (unsigned int o = 0; o < pomdp->z; o++) {
                 float prActionGivenControllerNode = 0.0f;
-                for (unsigned int qp = 0; qp < nlp->k; qp++) {
+                for (unsigned int xp = 0; xp < nlp->k; xp++) {
                     // Note: The observation is again zero because we are essentially normalizing
                     // by the probability the action is selected.
-                    prActionGivenControllerNode += policy->eta[q * pomdp->m * pomdp->z * nlp->k +
-                                                               a * pomdp->z * nlp->k + 0 * nlp->k + qp]; 
+                    prActionGivenControllerNode += policy->eta[x * pomdp->m * pomdp->z * nlp->k +
+                                                               a * pomdp->z * nlp->k + 0 * nlp->k + xp]; 
                 }
 
                 // Note: If the probability of taking this action is zero, this is going to
@@ -358,16 +294,23 @@ int pomdp_nlp_get_policy(const POMDP *pomdp, POMDPNLP *nlp, POMDPStochasticFSC *
                 // does not matter at all; it will never be used. Thus, we can safely assign these to
                 // zero to prevent the needless nan.
 
-                for (unsigned int qp = 0; qp < nlp->k; qp++) {
+                for (unsigned int xp = 0; xp < nlp->k; xp++) {
                     if (prActionGivenControllerNode > 0.0f && prActionGivenControllerNode) {
-                        policy->eta[q * pomdp->m * pomdp->z * nlp->k +
-                                    a * pomdp->z * nlp->k + o * nlp->k + qp] /= prActionGivenControllerNode;
+                        policy->eta[x * pomdp->m * pomdp->z * nlp->k +
+                                    a * pomdp->z * nlp->k + o * nlp->k + xp] /= prActionGivenControllerNode;
                     } else {
-                        policy->eta[q * pomdp->m * pomdp->z * nlp->k +
-                                    a * pomdp->z * nlp->k + o * nlp->k + qp] = 0.0f;
+                        policy->eta[x * pomdp->m * pomdp->z * nlp->k +
+                                    a * pomdp->z * nlp->k + o * nlp->k + xp] = 0.0f;
                     }
                 }
             }
+        }
+    }
+
+    // Lastly, copy the values of each controller node and state pair.
+    for (unsigned int x = 0; x < nlp->k; x++) {
+        for (unsigned int s = 0; s < pomdp->n; s++) {
+            policy->V[x * pomdp->n + s] = policy->V[x * pomdp->n + s];
         }
     }
 
@@ -389,6 +332,11 @@ int pomdp_nlp_uninitialize(const POMDP *pomdp, POMDPNLP *nlp)
         delete [] nlp->policy;
     }
     nlp->policy = nullptr;
+
+    if (nlp->V != nullptr) {
+        delete [] nlp->V;
+    }
+    nlp->V = nullptr;
 
     return NOVA_SUCCESS;
 }

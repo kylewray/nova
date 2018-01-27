@@ -32,19 +32,21 @@
 
 namespace nova {
 
-int pomdp_stochastic_fsc_initialize(POMDPStochasticFSC *policy, unsigned int k, unsigned int m, unsigned int z)
+int pomdp_stochastic_fsc_initialize(POMDPStochasticFSC *policy, unsigned int k, unsigned int n, unsigned int m, unsigned int z)
 {
     if (policy == nullptr || policy->psi != nullptr || policy->eta != nullptr || k == 0 || m == 0 || z == 0) {
         fprintf(stderr, "Error[pomdp_stochastic_fsc_initialize]: %s\n", "Invalid input.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
+    policy->n = n;
     policy->k = k;
     policy->m = m;
     policy->z = z;
 
     policy->psi = new float[policy->k * policy->m];
     policy->eta = new float[policy->k * policy->m * policy->z * policy->k];
+    policy->V = new float[policy->k * policy->n];
 
     for (unsigned int i = 0; i < policy->k * policy->m; i++) {
         policy->psi[i] = 0.0f;
@@ -54,13 +56,17 @@ int pomdp_stochastic_fsc_initialize(POMDPStochasticFSC *policy, unsigned int k, 
         policy->eta[i] = 0.0f;
     }
 
+    for (unsigned int i = 0; i < policy->k * policy->n; i++) {
+        policy->V[i] = 0.0f;
+    }
+
     return NOVA_SUCCESS;
 }
 
 
-int pomdp_stochastic_fsc_random_action(POMDPStochasticFSC *policy, unsigned int q, unsigned int &a)
+int pomdp_stochastic_fsc_random_action(POMDPStochasticFSC *policy, unsigned int x, unsigned int &a)
 {
-    if (policy == nullptr || q >= policy->k) {
+    if (policy == nullptr || x >= policy->k) {
         fprintf(stderr, "Error[pomdp_stochastic_fsc_random_action]: %s\n", "Invalid input.");
         return NOVA_ERROR_INVALID_DATA;
     }
@@ -71,7 +77,7 @@ int pomdp_stochastic_fsc_random_action(POMDPStochasticFSC *policy, unsigned int 
     double current = 0.0f;
 
     for (unsigned int i = 0; i < policy->m; i++) {
-        current += policy->psi[q * policy->m + i];
+        current += policy->psi[x * policy->m + i];
         if (current >= target) {
             a = i;
             break;
@@ -83,23 +89,23 @@ int pomdp_stochastic_fsc_random_action(POMDPStochasticFSC *policy, unsigned int 
 
 
 int pomdp_stochastic_fsc_random_successor(POMDPStochasticFSC *policy,
-    unsigned int q, unsigned int a, unsigned int o, unsigned int &qp)
+    unsigned int x, unsigned int a, unsigned int o, unsigned int &xp)
 {
-    if (policy == nullptr || q >= policy->k || a >= policy->m || o >= policy->z) {
+    if (policy == nullptr || x >= policy->k || a >= policy->m || o >= policy->z) {
         fprintf(stderr, "Error[pomdp_stochastic_fsc_random_successor]: %s\n", "Invalid input.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
-    qp = 0;
+    xp = 0;
 
     double target = (double)rand() / (double)RAND_MAX;
     double current = 0.0f;
 
     for (unsigned int i = 0; i < policy->k; i++) {
-        current += policy->eta[q * policy->m * policy->z * policy->k +
+        current += policy->eta[x * policy->m * policy->z * policy->k +
                                a * policy->z * policy->k + o * policy->k + i];
         if (current >= target) {
-            qp = i;
+            xp = i;
             break;
         }
     }

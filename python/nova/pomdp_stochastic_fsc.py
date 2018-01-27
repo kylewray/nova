@@ -142,6 +142,16 @@ class POMDPStochasticFSC(npfsc.NovaPOMDPStochasticFSC):
                 The ADR value at this belief.
         """
 
+        # DEBUG RANDOM NOISE
+        #for q in range(self.k):
+        #    for a in range(self.m):
+        #        self.psi[q * self.m + a] = 1.0 / float(self.m)
+        #for q in range(self.k):
+        #    for a in range(self.m):
+        #        for o in range(self.z):
+        #            for qp in range(self.k):
+        #                self.eta[q * self.m * self.z * self.k + a * self.z * self.k + o * self.k + qp] = 1.0 / float(self.k)
+
         adr = 0.0
 
         for trial in range(trials):
@@ -156,6 +166,8 @@ class POMDPStochasticFSC(npfsc.NovaPOMDPStochasticFSC):
                 sp = pomdp.random_successor(s, a)
                 o = pomdp.random_observation(a, sp)
                 qp = self.random_successor(q, a, o)
+
+                print("<time, q, a, sp, o, qp, b> = <%i, %i, %i, %i, %i, %i, [%.3f, %.3f]>" % (t, q, a, sp, o, qp, b[0], b[1]))
 
                 # Important: We obtain a reward from the *true* POMDP model,
                 # not the FSC model! This is essentially sampling from the

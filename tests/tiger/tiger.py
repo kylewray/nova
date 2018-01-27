@@ -34,7 +34,7 @@ from nova.pomdp_pbvi import *
 from nova.pomdp_perseus import *
 from nova.pomdp_hsvi2 import *
 from nova.pomdp_nlp import *
-from nova.pomdp_bi import *
+from nova.pomdp_cbnlp import *
 
 
 files = [
@@ -52,7 +52,7 @@ files = [
 
         #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'perseus', 'expand': None},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "random"},
-#        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "random_unique"},
+        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "random_unique"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "distinct_beliefs"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "pema"},
 
@@ -62,8 +62,8 @@ files = [
         #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'nlp', 'expand': None},
 #        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'nlp', 'expand': "random_unique"},
 
-        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'bi', 'expand': None},
-        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'bi', 'expand': "random_unique"},
+        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'cbnlp', 'expand': None},
+        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'cbnlp', 'expand': "random_unique"},
         ]
 
 
@@ -110,11 +110,11 @@ for f in files:
         cmd += os.path.join(thisFilePath, "nova_nlp_ampl.mod") + " "
         cmd += os.path.join(thisFilePath, "nova_nlp_ampl.dat")
         algorithm = POMDPNLP(tiger, path=thisFilePath, command=cmd, k=5)
-    elif f['algorithm'] == "bi" and f['process'] == "cpu":
+    elif f['algorithm'] == "cbnlp" and f['process'] == "cpu":
         cmd = "python3 " + os.path.join(thisFilePath, "..", "..", "python", "neos_snopt.py") + " "
-        cmd += os.path.join(thisFilePath, "nova_bi_ampl.mod") + " "
-        cmd += os.path.join(thisFilePath, "nova_bi_ampl.dat")
-        algorithm = POMDPBeliefInfusion(tiger, path=thisFilePath, command=cmd, k=7, r=5)
+        cmd += os.path.join(thisFilePath, "nova_cbnlp_ampl.mod") + " "
+        cmd += os.path.join(thisFilePath, "nova_cbnlp_ampl.dat")
+        algorithm = POMDPCBNLP(tiger, path=thisFilePath, command=cmd, k=3, r=5)
 
     policy = algorithm.solve()
     print(policy)
@@ -138,12 +138,12 @@ for f in files:
                         [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]],
                         linewidth=10, color='blue')
         pylab.show()
-    elif f['algorithm'] in ["nlp", "bi"]:
+    elif f['algorithm'] in ["nlp", "cbnlp"]:
         G = nx.DiGraph()
 
-        Q = ["q%i" % (q) for q in range(policy.k)]
-        A = ["q%i-a%i" % (q, a) for q in range(policy.k) for a in range(policy.m)]
-        O = ["q%i-a%i-o%i" % (q, a, o) for q in range(policy.k)
+        X = ["x%i" % (x) for x in range(policy.k)]
+        A = ["x%i-a%i" % (x, a) for x in range(policy.k) for a in range(policy.m)]
+        O = ["x%i-a%i-o%i" % (x, a, o) for x in range(policy.k)
                                     for a in range(policy.m) for o in range(policy.z)]
 
         edges = list()
@@ -154,36 +154,36 @@ for f in files:
         psiW = list()
         etaW = list()
 
-        for q in range(policy.k):
+        for x in range(policy.k):
             for a in range(policy.m):
-                w = policy.psi[q * policy.m + a]
+                w = policy.psi[x * policy.m + a]
                 if w > 0.0 and w <= 1.0:
-                    psi += [("q%i" % (q), "q%i-a%i" % (q, a), w)]
+                    psi += [("x%i" % (x), "x%i-a%i" % (x, a), w)]
                     psiW += [w * 6.0]
                 else:
-                    A.remove("q%i-a%i" % (q, a))
+                    A.remove("x%i-a%i" % (x, a))
                     continue
 
                 for o in range(policy.z):
-                    obs += [("q%i-a%i" % (q, a), "q%i-a%i-o%i" % (q, a, o))]
+                    obs += [("x%i-a%i" % (x, a), "x%i-a%i-o%i" % (x, a, o))]
 
-                    for qp in range(policy.k):
-                        w = policy.eta[q * policy.m * policy.z * policy.k +
+                    for xp in range(policy.k):
+                        w = policy.eta[x * policy.m * policy.z * policy.k +
                                        a * policy.z * policy.k +
-                                       o * policy.k + qp]
+                                       o * policy.k + xp]
                         if w > 0.0 and w <= 1.0:
-                            eta += [("q%i-a%i-o%i" % (q, a, o), "q%i" % (qp), w)]
+                            eta += [("x%i-a%i-o%i" % (x, a, o), "x%i" % (xp), w)]
                             etaW += [w * 6.0]
 
         G.add_weighted_edges_from(psi)
         G.add_edges_from(obs)
         G.add_weighted_edges_from(eta)
 
-        shells = [Q, A, O]
+        shells = [X, A, O]
         pos = nx.shell_layout(G, shells)
         #pos = nx.circular_layout(G)
 
-        nx.draw_networkx_nodes(G, pos, node_list=Q, node_color='k', node_shape='o', node_size=1000)
+        nx.draw_networkx_nodes(G, pos, node_list=X, node_color='k', node_shape='o', node_size=1000)
         nx.draw_networkx_nodes(G, pos, node_list=A, node_color='r', node_shape='s', node_size=1000)
         nx.draw_networkx_nodes(G, pos, node_list=O, node_color='y', node_shape='^', node_size=1000)
 

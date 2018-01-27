@@ -30,12 +30,18 @@
 #include <cstdio>
 #include <fstream>
 #include <string>
+#include <sstream>
 
 namespace nova {
 
 int pomdp_ampl_save_data_file(const POMDP *pomdp, unsigned int k, unsigned int r,
         const char *path, const char *filename)
 {
+    if (path == nullptr) {
+        fprintf(stderr, "Error[pomdp_ampl_save_data_file]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
     std::string pathAndFilename(path);
     pathAndFilename += "/";
     pathAndFilename += filename;
@@ -108,6 +114,91 @@ int pomdp_ampl_save_data_file(const POMDP *pomdp, unsigned int k, unsigned int r
     file << std::endl;
 
     file.close();
+
+    return NOVA_SUCCESS;
+}
+
+
+int pomdp_ampl_parse_solver_output(const POMDP *pomdp, unsigned int k,
+        float *policy, float *V, std::string &solverOutput)
+{
+    if (k == 0 || policy == nullptr || V == nullptr) {
+        fprintf(stderr, "Error[pomdp_ampl_parse_solver_output]: %s\n", "Invalid arguments.");
+        return NOVA_ERROR_INVALID_DATA;
+    }
+
+    // Set the default values to 0.0. Not all of the values need to be set because of this.
+    for (unsigned int x = 0; x < k; x++) {
+        for (unsigned int a = 0; a < pomdp->m; a++) {
+            for (unsigned int o = 0; o < pomdp->z; o++) {
+                for (unsigned int xp = 0; xp < k; xp++) {
+                    policy[x * pomdp->m * pomdp->z * k +
+                           a * pomdp->z * k + o * k + xp] = 0.0f; 
+                }
+            }
+        }
+    }
+
+    // Go through every line in the output and parse the result of the solver.
+    // Importantly, we assume the solver's output is of the form:
+    // <x> <a> <o> <xp> <probability>.
+    std::stringstream stream(solverOutput);
+    std::string line;
+
+    while (std::getline(stream, line, '\n')) {
+        // Get the relevant data from the line.
+        std::string data[5];
+        unsigned int counter = 0;
+        bool newSpace = true;
+
+        for (unsigned int i = 0; i < line.length() && counter < 5; i++) {
+            if (line[i] == ' ' && newSpace) {
+                counter++;
+                newSpace = false;
+            } else if (line[i] != ' ' && !newSpace) {
+                newSpace = true;
+            }
+
+            if (line[i] != ' ') {
+                data[counter] += line[i];
+            }
+        }
+
+        // All data elements need to store some kind of data.
+        if (counter == 4) {
+            // Read the raw data as 'policy' for now, which contains psi and eta.
+            int x = std::atoi(data[0].c_str());
+            int a = std::atoi(data[1].c_str());
+            int o = std::atoi(data[2].c_str());
+            int xp = std::atoi(data[3].c_str());
+            float probability = std::atof(data[4].c_str());
+
+            if (x < 0 || x >= k || a < 0 || a >= pomdp->m ||
+                    o < 0 || o >= pomdp->z || xp < 0 || xp >= k ||
+                    probability < 0.0f || probability > 1.0f) {
+                fprintf(stderr, "Error[pomdp_ampl_parse_solver_output]: %s\n",
+                                "Failed to parse the policy.");
+                return NOVA_ERROR_INVALID_DATA;
+            } else {
+                policy[x * pomdp->m * pomdp->z * k +
+                       a * pomdp->z * k + o * k + xp] = probability; 
+            }
+        } else if (counter == 2) {
+            // Read the raw data as 'V' for now.
+            int x = std::atoi(data[0].c_str());
+            int s = std::atoi(data[1].c_str());
+            float value = std::atof(data[2].c_str());
+
+            if (x < 0 || x >= k || s < 0 || s >= pomdp->n ||
+                    value < 0.0f || value > 1.0f) {
+                fprintf(stderr, "Error[pomdp_ampl_parse_solver_output]: %s\n",
+                                "Failed to parse the value.");
+                return NOVA_ERROR_INVALID_DATA;
+            } else {
+                V[x * pomdp->n + s] = value;
+            }
+        }
+    }
 
     return NOVA_SUCCESS;
 }

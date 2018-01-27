@@ -28,6 +28,8 @@
 
 #include <nova/pomdp/pomdp.h>
 
+#include <string>
+
 namespace nova {
 
 /**
@@ -41,6 +43,17 @@ namespace nova {
  */
 extern "C" int pomdp_ampl_save_data_file(const POMDP *pomdp, unsigned int k,
         unsigned int r, const char *path, const char *filename);
+
+/**
+ *  Parse the standard format assumed returned by any solver command.
+ *  @param  pomdp   The POMDP used for the solver.
+ *  @param  k       The number of controller nodes.
+ *  @param  policy  The policy probabilities (k-m-z-k array). This will be modified.
+ *  @param  V       The values of each state (k-n array). This will be modified.
+ *  @return Return NOVA_SUCCESS on success; otherwise return an error.
+ */
+extern "C" int pomdp_ampl_parse_solver_output(const POMDP *pomdp, unsigned int k,
+        float *policy, float *V, std::string &solverOutput);
 
 };
 

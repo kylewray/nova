@@ -22,8 +22,8 @@
  */
 
 
-#ifndef NOVA_POMDP_BELIEF_INFUSION_H
-#define NOVA_POMDP_BELIEF_INFUSION_H
+#ifndef NOVA_POMDP_CBNLP_H
+#define NOVA_POMDP_CBNLP_H
 
 
 #include <nova/pomdp/pomdp.h>
@@ -34,71 +34,77 @@ namespace nova {
 
 /**
  *  The necessary variables to perform belief-infused non-linear programming (NLP) on a POMDP within nova.
+ *
+ *  Note: Total number of nodes is (k + r) in the 'policy' variable. The first k are FSC nodes,
+ *  the remaining r are the belief points following the order of B.
+ *
  *  @param  path    The path where the AMPL files will be saved.
  *  @param  command The command to execute the AMPL solver; the policy will be extracted from stdout.
  *  @param  k       The number of controller nodes desired in the final policy.
  *  @param  r       The number of belief points to find and add during belief infusion.
  *  @param  B       The set of r belief points each over the n states.
- *  @param  lambda  The probabilistic weight placed on each belief point conditioned on the controller node.
+ *  @param  lambda  The probabilistic weight placed on doing PBVI. FSC is (1-lambda).
  *  @param  policy  The resultant (intermediate) controller action and transition probabilities.
+ *  @param  V       The resultant values for each controller node and state pair.
  */
-typedef struct NovaPOMDPBeliefInfusion {
+typedef struct NovaPOMDPCBNLP {
     char *path;
     char *command;
     unsigned int k;
     unsigned int r;
     float *B;
-    float *lambda;
+    float lambda;
     float *policy;
-} POMDPBeliefInfusion;
+    float *V;
+} POMDPCBNLP;
 
 /**
  *  Execute all the belief-infused NLP steps for the infinite horizon POMDP model specified.
  *  @param  pomdp   The POMDP object.
- *  @param  bi      The POMDPBeliefInfusion object containing algorithm variables.
+ *  @param  cbnlp   The POMDPCBNLP object containing algorithm variables.
  *  @param  policy  The resultant controller node probabilities. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_bi_execute(const POMDP *pomdp, POMDPBeliefInfusion *bi, POMDPStochasticFSC *policy);
+extern "C" int pomdp_cbnlp_execute(const POMDP *pomdp, POMDPCBNLP *bi, POMDPStochasticFSC *policy);
 
 /**
  *  Step 1/3: The initialization step of the belief-infused NLP solution. This saves the POMDP as an AMLP data file.
  *  @param  pomdp   The POMDP object.
- *  @param  bi      The POMDPBeliefInfusion object containing algorithm variables.
+ *  @param  cbnlp   The POMDPCBNLP object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_bi_initialize(const POMDP *pomdp, POMDPBeliefInfusion *bi);
+extern "C" int pomdp_cbnlp_initialize(const POMDP *pomdp, POMDPCBNLP *bi);
 
 /**
  *  Step 2/3: Perform the solving of the belief-infused NLP. There is only one call to update for the NLP solution.
  *  @param  pomdp   The POMDP object.
- *  @param  bi      The POMDPBeliefInfusion object containing algorithm variables.
+ *  @param  cbnlp   The POMDPCBNLP object containing algorithm variables.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_bi_update(const POMDP *pomdp, POMDPBeliefInfusion *bi);
+extern "C" int pomdp_cbnlp_update(const POMDP *pomdp, POMDPCBNLP *bi);
 
 /**
  *  Step 3/4: The get resultant policy step of the belief-infused NLP solution. This parses the solver result.
  *  @param  pomdp   The POMDP object.
- *  @param  bi      The POMDPBeliefInfusion object containing algorithm variables.
+ *  @param  cbnlp   The POMDPCBNLP object containing algorithm variables.
  *  @param  policy  The resultant controller node probabilities. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_bi_get_policy(const POMDP *pomdp, POMDPBeliefInfusion *pbvi, POMDPStochasticFSC *policy);
+extern "C" int pomdp_cbnlp_get_policy(const POMDP *pomdp, POMDPCBNLP *pbvi, POMDPStochasticFSC *policy);
 
 /**
  *  Step 4/4: The uninitialization step of PBVI. This frees variables and removes temporary files.
  *  @param  pomdp   The POMDP object.
- *  @param  bi      The POMDPBeliefInfusion object containing algorithm variables.
+ *  @param  cbnlp   The POMDPCBNLP object containing algorithm variables.
  *  @param  policy  The resultant controller node probabilities. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
-extern "C" int pomdp_bi_uninitialize(const POMDP *pomdp, POMDPBeliefInfusion *bi);
+extern "C" int pomdp_cbnlp_uninitialize(const POMDP *pomdp, POMDPCBNLP *bi);
 
 };
 
  
-#endif // NOVA_POMDP_BELIEF_INFUSION_H
+#endif // NOVA_POMDP_CBNLP_H
 
 
 

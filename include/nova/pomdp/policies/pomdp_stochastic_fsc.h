@@ -31,51 +31,56 @@ namespace nova {
 /*
  *  A structure for POMDP stochastic finite state controller (FSC) policies within nova.
  *  @param  k       The number of controller nodes.
+ *  @param  n       The number of states in the POMDP.
  *  @param  m       The number of actions in the POMDP.
  *  @param  z       The number of observations in the POMDP.
  *  @param  psi     The probabilities each action will be taken in controller nodes (k-m array).
  *  @param  eta     The probabilities of controller node state transitions (k-a-o-k array).
+ *  @param  V       The values for each controller node and state pair.
  */
 typedef struct NovaPOMDPStochasticFSC {
     unsigned int k;
+    unsigned int n;
     unsigned int m;
     unsigned int z;
     float *psi;
     float *eta;
+    float *V;
 } POMDPStochasticFSC;
 
 /**
  *  Assign variables and allocate the memory *only* for the policy's internal arrays given the parameters.
  *  @param  policy  The stochastic FSC. Arrays within will be created.
  *  @param  k       The number of controller nodes.
+ *  @param  n       The number of states.
  *  @param  m       The number of actions.
  *  @param  z       The number of observations.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_stochastic_fsc_initialize(POMDPStochasticFSC *policy,
-    unsigned int k, unsigned int m, unsigned int z);
+    unsigned int k, unsigned int n, unsigned int m, unsigned int z);
 
 /**
  *  Randomly sample an action given a controller node.
  *  @param  policy  The stochastic FSC.
- *  @param  q       The current controller node (0 to k-1).
+ *  @param  x       The current controller node (0 to k-1).
  *  @param  a       The randomly sampled action. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_stochastic_fsc_random_action(POMDPStochasticFSC *policy,
-    unsigned int q, unsigned int &a);
+    unsigned int x, unsigned int &a);
 
 /**
  *  Randomly sample a successor contoller node given a controller node, action taken, and subsequent observation.
  *  @param  policy  The stochastic FSC.
- *  @param  q       The current controller node (0 to k-1).
+ *  @param  x       The current controller node (0 to k-1).
  *  @param  a       The action taken (0 to m-1).
  *  @param  o       The observation made (0 to z-1).
- *  @param  qp      The randomly sampled successor controller node. This will be modified.
+ *  @param  xp      The randomly sampled successor controller node. This will be modified.
  *  @return Returns zero upon success, non-zero otherwise.
  */
 extern "C" int pomdp_stochastic_fsc_random_successor(POMDPStochasticFSC *policy,
-    unsigned int q, unsigned int a, unsigned int o, unsigned int &qp);
+    unsigned int x, unsigned int a, unsigned int o, unsigned int &xp);
 
 /**
  *  Free the memory for *only* the policy's internal arrays.
