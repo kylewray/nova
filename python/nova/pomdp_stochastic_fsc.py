@@ -34,6 +34,8 @@ import random
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 import nova_pomdp_stochastic_fsc as npfsc
 
+import pomdp_alpha_vectors as npav
+
 
 class POMDPStochasticFSC(npfsc.NovaPOMDPStochasticFSC):
     """ The stochastic FSC representation of a POMDP policy.
@@ -48,10 +50,12 @@ class POMDPStochasticFSC(npfsc.NovaPOMDPStochasticFSC):
         """ The constructor for the POMDPStochasticFSC class. """
 
         self.k = 0
+        self.n = 0
         self.m = 0
         self.z = 0
         self.psi = ct.POINTER(ct.c_float)()
         self.eta = ct.POINTER(ct.c_float)()
+        self.V = ct.POINTER(ct.c_float)()
 
     def __del__(self):
         """ Free the memory of the policy when this object is deleted. """
@@ -69,105 +73,142 @@ class POMDPStochasticFSC(npfsc.NovaPOMDPStochasticFSC):
         """
 
         result = "k: %i" % (self.k) + "\n"
+        result += "n: %i" % (self.n) + "\n"
         result += "m: %i" % (self.m) + "\n"
         result += "z: %i" % (self.z) + "\n\n"
 
         result += "psi:\n%s" % (str(np.array([[self.psi[i * self.m + a] \
-                                            for i in range(self.k)] \
-                                        for a in range(self.m)]))) + "\n\n"
+                                            for a in range(self.m)] \
+                                        for i in range(self.k)]))) + "\n\n"
 
-        result += "eta:\n%s" % (str(np.array([[[[self.eta[q * self.m * self.z * self.k +
+        result += "eta:\n%s" % (str(np.array([[[[self.eta[x * self.m * self.z * self.k +
                                                           a * self.z * self.k +
-                                                          o * self.k + qp] \
-                                            for qp in range(self.k)] \
+                                                          o * self.k + xp] \
+                                            for xp in range(self.k)] \
                                         for o in range(self.z)] \
                                     for a in range(self.m)] \
-                                for q in range(self.k)]))) + "\n\n"
+                                for x in range(self.k)]))) + "\n\n"
+
+        result += "V:\n%s" % (str(np.array([[self.V[i * self.n + s] \
+                                            for i in range(self.k)] \
+                                        for s in range(self.n)]))) + "\n\n"
 
         return result
 
-    def random_action(self, q):
-        """ Take a random action following psi given the controller node q.
+    def random_action(self, x):
+        """ Take a random action following psi given the controller node x.
 
             Parameters:
-                q   --  The current controller node.
+                x   --  The current controller node.
 
             Returns:
                 A random action selected following psi.
         """
 
-        q = ct.c_uint(q)
+        x = ct.c_uint(x)
         a = ct.c_uint(0)
 
-        result = npfsc._nova.pomdp_stochastic_fsc_random_action(self, q, ct.byref(a))
+        result = npfsc._nova.pomdp_stochastic_fsc_random_action(self, x, ct.byref(a))
         if result != 0:
             print("Failed to select a random action.")
             raise Exception()
 
         return a.value
 
-    def random_successor(self, q, a, o):
+    def random_successor(self, x, a, o):
         """ Select a random successor following eta given the node, action, and observation.
 
             Parameters:
-                q   --  The current controller node.
-                a   --  The action taken at q.
+                x   --  The current controller node.
+                a   --  The action taken at x.
                 o   --  The observate made after the action was taken.
 
             Returns:
                 A random successor selected following eta.
         """
 
-        q = ct.c_uint(q)
+        x = ct.c_uint(x)
         a = ct.c_uint(a)
         o = ct.c_uint(o)
-        qp = ct.c_uint(0)
+        xp = ct.c_uint(0)
 
-        result = npfsc._nova.pomdp_stochastic_fsc_random_successor(self, q, a, o, ct.byref(qp))
+        result = npfsc._nova.pomdp_stochastic_fsc_random_successor(self, x, a, o, ct.byref(xp))
         if result != 0:
             print("Failed to select a random successor.")
             raise Exception()
 
-        return qp.value
+        return xp.value
 
-    def compute_adr(self, pomdp, b0, trials=100):
+    def compute_adr(self, pomdp, b0, trials=100, hybrid=False, hybridLambda=None, hybridNumBeliefs=None):
         """ Compute the average discounted reward (ADR) at a given belief.
 
             Parameters:
-                pomdp   --  The POMDP to compute the ADR.
-                b0      --  A numpy array for the initial belief (n array).
-                trials  --  The number of trials to average over. Default is 100.
+                pomdp               --  The POMDP to compute the ADR.
+                b0                  --  A numpy array for the initial belief (n array).
+                trials              --  The number of trials to average over. Default is 100.
+                hybrid              --  Optionally, enable the stochastic FSC PBVI's argmax eta.
+                hybridLambda        --  The probabilistic coin flip to do an argmax.
+                hybridNumBeliefs    --  From 1 to k of the end FSC nodes can be used for argmax.
 
             Returns:
                 The ADR value at this belief.
         """
 
-        # DEBUG RANDOM NOISE
-        #for q in range(self.k):
-        #    for a in range(self.m):
-        #        self.psi[q * self.m + a] = 1.0 / float(self.m)
-        #for q in range(self.k):
-        #    for a in range(self.m):
-        #        for o in range(self.z):
-        #            for qp in range(self.k):
-        #                self.eta[q * self.m * self.z * self.k + a * self.z * self.k + o * self.k + qp] = 1.0 / float(self.k)
+        if (hybrid is not True or hybridLambda < 0.0 or hybridLambda > 1.0 or
+                hybridNumBeliefs < 1 or hybridNumBeliefs > self.k):
+            hybrid = False
+
+        if hybrid is True:
+            hybridAlphaVectors = npav.POMDPAlphaVectors()
+            hybridAlphaVectors.n = self.n
+            hybridAlphaVectors.m = self.k
+            hybridAlphaVectors.r = hybridNumBeliefs
+
+            array_type_kk_float = ct.c_float * (hybridNumBeliefs * self.n)
+            hybridGamma = np.array([[self.V[(self.k - hybridNumBeliefs + i) * self.n + s]
+                                    for s in range(self.n)] for i in range(hybridNumBeliefs)])
+            print(hybridGamma)
+            hybridAlphaVectors.Gamma = array_type_kk_float(*hybridGamma.flatten())
+
+            array_type_k_uint = ct.c_uint * (hybridNumBeliefs)
+            hybridPi = np.array([int(self.k - hybridNumBeliefs + i) for i in range(hybridNumBeliefs)])
+            print(hybridPi)
+            hybridAlphaVectors.pi = array_type_k_uint(*hybridPi.flatten())
 
         adr = 0.0
 
         for trial in range(trials):
             b = b0.copy()
             s = random.choice([i for i in range(pomdp.n) if b0[i] > 0.0])
-            q = 0
+            x = 0
             discount = 1.0
             discountedReward = 0.0
 
             for t in range(pomdp.horizon):
-                a = self.random_action(q)
+                a = self.random_action(x)
                 sp = pomdp.random_successor(s, a)
                 o = pomdp.random_observation(a, sp)
-                qp = self.random_successor(q, a, o)
+                bp = pomdp.belief_update(b, a, o)
 
-                print("<time, q, a, sp, o, qp, b> = <%i, %i, %i, %i, %i, %i, [%.3f, %.3f]>" % (t, q, a, sp, o, qp, b[0], b[1]))
+                # The successor is chosen following normal or hybrid rules.
+                if hybrid is True:
+                    isCurrentlyAnFSCNode = (x < self.k - hybridNumBeliefs)
+                #    print("  FSC Node? ", isCurrentlyAnFSCNode)
+
+                    # Flip a coin following lambda if this is an FSC node. If we use the
+                    # argmax nodes, then the action corresponding to the argmax is actually
+                    # the xp node. Otherwise, just follow eta.
+                    if isCurrentlyAnFSCNode and random.random() < hybridLambda:
+                        xp = hybridAlphaVectors.action(bp)
+                        #xp = random.choice(hybridPi.tolist())
+                #        print("  Selecting a belief successor!")
+                    else:
+                        xp = self.random_successor(x, a, o)
+                else:
+                    # Normal Stochastic FSC.
+                    xp = self.random_successor(x, a, o)
+
+                #print("<time, x, a, sp, o, xp, b> = <%i, %i, %i, %i, %i, %i, [%.3f, %.3f]>" % (t, x, a, sp, o, xp, b[0], b[1]))
 
                 # Important: We obtain a reward from the *true* POMDP model,
                 # not the FSC model! This is essentially sampling from the
@@ -179,11 +220,14 @@ class POMDPStochasticFSC(npfsc.NovaPOMDPStochasticFSC):
                 discountedReward += discount * beliefReward
 
                 discount *= pomdp.gamma
-                b = pomdp.belief_update(b, a, o)
+                b = bp
                 s = sp
-                q = qp
+                x = xp
 
             adr = (float(trial) * adr + discountedReward) / float(trial + 1)
+
+        print(adr)
+        time.sleep(1)
 
         return adr
 

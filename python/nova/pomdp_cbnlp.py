@@ -60,9 +60,11 @@ class POMDPCBNLP(npcb.NovaPOMDPCBNLP):
         self.command = ct.create_string_buffer(str.encode(command))
         self.k = int(k)
         self.r = int(r)
+        self.numTotalNodes = int(k) + int(r)
         self.B = ct.POINTER(ct.c_float)()
-        self.lmbd = float(0.0)
+        self.lmbd = float(lmbd)
         self.policy = ct.POINTER(ct.c_float)()
+        self.V = ct.POINTER(ct.c_float)()
 
         # Attempt to initialize the algorithm.
         result = npcb._nova.pomdp_cbnlp_initialize(self.pomdpPtr, self)
@@ -85,7 +87,6 @@ class POMDPCBNLP(npcb.NovaPOMDPCBNLP):
                 The string of the POMDP compressed-belief NLP.
         """
 
-
         result = "path: %s" % (self.path) + "\n"
         result += "command: %s" % (self.command) + "\n"
         result += "k: %i" % (self.k) + "\n"
@@ -97,13 +98,17 @@ class POMDPCBNLP(npcb.NovaPOMDPCBNLP):
 
         result += "lambda: %s" % (self.lmbd) + "\n\n"
 
-        result += "policy:\n%s" % (str(np.array([[[[self.policy[q * self.pomdp.n * self.pomdp.z * self.k
-                                                                + s * self.pomdp.z * self.k
-                                                                + o * self.k + qp] \
-                                        for qp in range(self.k)] \
+        result += "policy:\n%s" % (str(np.array([[[[self.policy[x * self.pomdp.n * self.pomdp.z * self.numTotalNodes
+                                                                + s * self.pomdp.z * self.numTotalNodes
+                                                                + o * self.numTotalNodes + xp] \
+                                        for xp in range(self.numTotalNodes)] \
                                     for o in range(self.pomdp.z)] \
                                 for s in range(self.pomdp.n)] \
-                            for q in range(self.k)]))) + "\n\n"
+                            for x in range(self.numTotalNodes)]))) + "\n\n"
+
+        result += "V:\n%s" % (str(np.array([[self.V[i * self.pomdp.n + s] \
+                                            for i in range(self.numTotalNodes)] \
+                                        for s in range(self.pomdp.n)]))) + "\n\n"
 
         return result
 

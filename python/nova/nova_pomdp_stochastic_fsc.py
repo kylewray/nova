@@ -43,26 +43,29 @@ class NovaPOMDPStochasticFSC(ct.Structure):
     """ The C struct POMDPStochasticFSC object. """
 
     _fields_ = [("k", ct.c_uint),
+                ("n", ct.c_uint),
                 ("m", ct.c_uint),
                 ("z", ct.c_uint),
                 ("psi", ct.POINTER(ct.c_float)),
                 ("eta", ct.POINTER(ct.c_float)),
+                ("V", ct.POINTER(ct.c_float)),
                 ]
 
 
 # Functions from 'pomdp_stochastic_fsc.h'.
 _nova.pomdp_stochastic_fsc_initialize.argtypes = (ct.POINTER(NovaPOMDPStochasticFSC),
                                                   ct.c_uint,        # k
+                                                  ct.c_uint,        # n
                                                   ct.c_uint,        # m
                                                   ct.c_uint)        # z
 _nova.pomdp_stochastic_fsc_random_action.argtypes = (ct.POINTER(NovaPOMDPStochasticFSC),
-                                                     ct.c_uint,                 # q
+                                                     ct.c_uint,                 # x
                                                      ct.POINTER(ct.c_uint))     # a
 _nova.pomdp_stochastic_fsc_random_successor.argtypes = (ct.POINTER(NovaPOMDPStochasticFSC),
-                                                        ct.c_uint,              # q
+                                                        ct.c_uint,              # x
                                                         ct.c_uint,              # a
                                                         ct.c_uint,              # o
-                                                        ct.POINTER(ct.c_uint))  # qp
+                                                        ct.POINTER(ct.c_uint))  # xp
 _nova.pomdp_stochastic_fsc_uninitialize.argtypes = tuple([ct.POINTER(NovaPOMDPStochasticFSC)])
 
 

@@ -58,6 +58,7 @@ class POMDPNLP(npn.NovaPOMDPNLP):
         self.command = ct.create_string_buffer(str.encode(command))
         self.k = int(k)
         self.policy = ct.POINTER(ct.c_float)()
+        self.V = ct.POINTER(ct.c_float)()
 
         # Attempt to initialize the algorithm.
         result = npn._nova.pomdp_nlp_initialize(self.pomdpPtr, self)
@@ -92,6 +93,10 @@ class POMDPNLP(npn.NovaPOMDPNLP):
                                     for o in range(self.pomdp.z)] \
                                 for s in range(self.pomdp.n)] \
                             for q in range(self.k)]))) + "\n\n"
+
+        result += "V:\n%s" % (str(np.array([[self.V[i * self.pomdp.n + s] \
+                                            for i in range(self.k)] \
+                                        for s in range(self.pomdp.n)]))) + "\n\n"
 
         return result
 

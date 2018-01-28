@@ -120,22 +120,32 @@ int pomdp_ampl_save_data_file(const POMDP *pomdp, unsigned int k, unsigned int r
 
 
 int pomdp_ampl_parse_solver_output(const POMDP *pomdp, unsigned int k,
-        float *policy, float *V, std::string &solverOutput)
+        float *policy, float *psi, float *eta, float *V, std::string &solverOutput)
 {
-    if (k == 0 || policy == nullptr || V == nullptr) {
+    if (k == 0) {
         fprintf(stderr, "Error[pomdp_ampl_parse_solver_output]: %s\n", "Invalid arguments.");
         return NOVA_ERROR_INVALID_DATA;
     }
 
     // Set the default values to 0.0. Not all of the values need to be set because of this.
-    for (unsigned int x = 0; x < k; x++) {
-        for (unsigned int a = 0; a < pomdp->m; a++) {
-            for (unsigned int o = 0; o < pomdp->z; o++) {
-                for (unsigned int xp = 0; xp < k; xp++) {
-                    policy[x * pomdp->m * pomdp->z * k +
-                           a * pomdp->z * k + o * k + xp] = 0.0f; 
-                }
-            }
+    if (policy != nullptr) {
+        for (unsigned int i = 0; i < k * pomdp->m * pomdp->z * k; i++) {
+            policy[i] = 0.0f; 
+        }
+    }
+    if (psi != nullptr) {
+        for (unsigned int i = 0; i < k * pomdp->m; i++) {
+            psi[i] = 0.0f;
+        }
+    }
+    if (eta != nullptr) {
+        for (unsigned int i = 0; i < k * pomdp->m * pomdp->z * k; i++) {
+            eta[i] = 0.0f; 
+        }
+    }
+    if (V != nullptr) {
+        for (unsigned int i = 0; i < k * pomdp->n; i++) {
+            V[i] = 0.0f;
         }
     }
 
@@ -165,13 +175,13 @@ int pomdp_ampl_parse_solver_output(const POMDP *pomdp, unsigned int k,
         }
 
         // All data elements need to store some kind of data.
-        if (counter == 4) {
+        if (counter == 5 && data[0] == "policy" && policy != nullptr) {
             // Read the raw data as 'policy' for now, which contains psi and eta.
-            int x = std::atoi(data[0].c_str());
-            int a = std::atoi(data[1].c_str());
-            int o = std::atoi(data[2].c_str());
-            int xp = std::atoi(data[3].c_str());
-            float probability = std::atof(data[4].c_str());
+            int x = std::atoi(data[1].c_str());
+            int a = std::atoi(data[2].c_str());
+            int o = std::atoi(data[3].c_str());
+            int xp = std::atoi(data[4].c_str());
+            float probability = std::atof(data[5].c_str());
 
             if (x < 0 || x >= k || a < 0 || a >= pomdp->m ||
                     o < 0 || o >= pomdp->z || xp < 0 || xp >= k ||
@@ -183,14 +193,45 @@ int pomdp_ampl_parse_solver_output(const POMDP *pomdp, unsigned int k,
                 policy[x * pomdp->m * pomdp->z * k +
                        a * pomdp->z * k + o * k + xp] = probability; 
             }
-        } else if (counter == 2) {
-            // Read the raw data as 'V' for now.
-            int x = std::atoi(data[0].c_str());
-            int s = std::atoi(data[1].c_str());
-            float value = std::atof(data[2].c_str());
+        } else if (counter == 3 && data[0] == "psi" && psi != nullptr) {
+            // Read the raw data as 'psi' for now.
+            int x = std::atoi(data[1].c_str());
+            int a = std::atoi(data[2].c_str());
+            float probability = std::atof(data[4].c_str());
 
-            if (x < 0 || x >= k || s < 0 || s >= pomdp->n ||
-                    value < 0.0f || value > 1.0f) {
+            if (x < 0 || x >= k || a < 0 || a >= pomdp->m ||
+                    probability < 0.0f || probability > 1.0f) {
+                fprintf(stderr, "Error[pomdp_ampl_parse_solver_output]: %s\n",
+                                "Failed to parse eta.");
+                return NOVA_ERROR_INVALID_DATA;
+            } else {
+                psi[x * pomdp->m + a] = probability; 
+            }
+        } else if (counter == 5 && data[0] == "eta" && eta != nullptr) {
+            // Read the raw data as 'eta' for now.
+            int x = std::atoi(data[1].c_str());
+            int a = std::atoi(data[2].c_str());
+            int o = std::atoi(data[3].c_str());
+            int xp = std::atoi(data[4].c_str());
+            float probability = std::atof(data[5].c_str());
+
+            if (x < 0 || x >= k || a < 0 || a >= pomdp->m ||
+                    o < 0 || o >= pomdp->z || xp < 0 || xp >= k ||
+                    probability < 0.0f || probability > 1.0f) {
+                fprintf(stderr, "Error[pomdp_ampl_parse_solver_output]: %s\n",
+                                "Failed to parse eta.");
+                return NOVA_ERROR_INVALID_DATA;
+            } else {
+                eta[x * pomdp->m * pomdp->z * k +
+                    a * pomdp->z * k + o * k + xp] = probability; 
+            }
+        } else if (counter == 3 && data[0] == "value" && V != nullptr) {
+            // Read the raw data as 'V' for now.
+            int x = std::atoi(data[1].c_str());
+            int s = std::atoi(data[2].c_str());
+            float value = std::atof(data[3].c_str());
+
+            if (x < 0 || x >= k || s < 0 || s >= pomdp->n) {
                 fprintf(stderr, "Error[pomdp_ampl_parse_solver_output]: %s\n",
                                 "Failed to parse the value.");
                 return NOVA_ERROR_INVALID_DATA;

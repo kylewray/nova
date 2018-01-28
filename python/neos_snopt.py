@@ -131,13 +131,25 @@ class NEOSSNOPT(object):
                 value = max(0.0, min(1.0, float(line[2])))
 
                 if len(var) == 4: # and value > 0.0:
-                    result += "%i %i %i %i %.5f\n" % (var[0], var[1], var[2], var[3], value)
-            elif param[0:1] == "V":
-                var = [int(v) - 1 for v in param[2:-1].split(',')]
+                    result += "policy %i %i %i %i %.5f\n" % (var[0], var[1], var[2], var[3], value)
+            elif param[0:3] == "psi":
+                var = [int(v) - 1 for v in param[4:-1].split(',')]
                 value = max(0.0, min(1.0, float(line[2])))
 
+                if len(var) == 4: # and value > 0.0:
+                    result += "psi %i %i %.5f\n" % (var[0], var[1], value)
+            elif param[0:3] == "eta":
+                var = [int(v) - 1 for v in param[4:-1].split(',')]
+                value = max(0.0, min(1.0, float(line[2])))
+
+                if len(var) == 4: # and value > 0.0:
+                    result += "eta %i %i %i %i %.5f\n" % (var[0], var[1], var[2], var[3], value)
+            elif param[0:1] == "V":
+                var = [int(v) - 1 for v in param[2:-1].split(',')]
+                value = float(line[2])
+
                 if len(var) == 2: # and value > 0.0:
-                    result += "%i %i %.5f\n" % (var[0], var[1], value)
+                    result += "value %i %i %.5f\n" % (var[0], var[1], value)
 
             counter += 1
 

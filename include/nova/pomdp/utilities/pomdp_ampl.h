@@ -46,14 +46,21 @@ extern "C" int pomdp_ampl_save_data_file(const POMDP *pomdp, unsigned int k,
 
 /**
  *  Parse the standard format assumed returned by any solver command.
+ *
+ *  Note: Either policy or <psi, eta> can be specified. Whatever the solver output
+ *  provides, in combination with whatever variable exists, will determine
+ *  what is assigned.
+ *
  *  @param  pomdp   The POMDP used for the solver.
  *  @param  k       The number of controller nodes.
- *  @param  policy  The policy probabilities (k-m-z-k array). This will be modified.
+ *  @param  policy  The policy probabilities (k-m-z-k array). This may be modified.
+ *  @param  psi     The action probabilities (k-m array). This may be modified.
+ *  @param  eta     The successor probabilities (k-m-z-k array). This may be modified.
  *  @param  V       The values of each state (k-n array). This will be modified.
  *  @return Return NOVA_SUCCESS on success; otherwise return an error.
  */
 extern "C" int pomdp_ampl_parse_solver_output(const POMDP *pomdp, unsigned int k,
-        float *policy, float *V, std::string &solverOutput);
+        float *policy, float *psi, float *eta, float *V, std::string &solverOutput);
 
 };
 

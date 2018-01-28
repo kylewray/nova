@@ -77,17 +77,19 @@ int pomdp_cbnlp_save_model_file(const POMDP *pomdp, POMDPCBNLP *cbnlp, const cha
 
     file << "var V {1..(NUM_NODES + NUM_BELIEFS), 1..NUM_STATES};" << std::endl;
     file << "var policy {1..(NUM_NODES + NUM_BELIEFS), 1..NUM_ACTIONS, 1..NUM_OBSERVATIONS, ";
-    file << "1..(NUM_NODES + NUM_BELIEFS)} >= 0.0;" << std::endl;
+    //file << "1..(NUM_NODES + NUM_BELIEFS)} >= 0.0;" << std::endl;
+    file << "1..NUM_NODES} >= 0.0;" << std::endl;
     file << std::endl;
 
     file << "maximize Value:" << std::endl;
-    file << "   sum {s in 1..NUM_STATES} B[1, s] * V[NUM_NODES + 1, s];" << std::endl;
+    //file << "   sum {s in 1..NUM_STATES} B[1, s] * V[NUM_NODES + 1, s];" << std::endl;
+    file << "   sum {s in 1..NUM_STATES} B[1, s] * V[1, s];" << std::endl;
     //file << "   sum {x in (NUM_NODES + 1)..(NUM_NODES + NUM_BELIEFS), s in 1..NUM_STATES} ";
     //file << "B[x - NUM_NODES, s] * V[x, s];" << std::endl;
     file << std::endl;
 
     file << "subject to Bellman_Constraint_V_Nodes {x in 1..NUM_NODES, s in 1..NUM_STATES}:" << std::endl;
-    file << "  V[x, s] = sum {a in 1..NUM_ACTIONS} ((sum {xp in 1..(NUM_NODES + NUM_BELIEFS)} ";
+    file << "  V[x, s] = sum {a in 1..NUM_ACTIONS} ((sum {xp in 1..NUM_NODES} ";
     file << "policy[x, a, 1, xp]) * R[s, a] + (gamma * (1.0 - lambda)) * sum {sp in 1..NUM_STATES} ";
     file << "(T[s, a, sp] * sum {o in 1..NUM_OBSERVATIONS} (O[a, sp, o] * sum {xp in 1..NUM_NODES} ";
     file << "(policy[x, a, o, xp] * V[xp, sp]))) + (gamma * lambda / NUM_BELIEFS) * ";
@@ -97,32 +99,37 @@ int pomdp_cbnlp_save_model_file(const POMDP *pomdp, POMDPCBNLP *cbnlp, const cha
 
     file << "subject to Bellman_Constraint_V_Beliefs {x in (NUM_NODES + 1)..(NUM_NODES + NUM_BELIEFS), ";
     file << "s in 1..NUM_STATES}:" << std::endl;
-    file << "  V[x, s] = sum {a in 1..NUM_ACTIONS} ((sum {xp in 1..(NUM_NODES + NUM_BELIEFS)} ";
+    file << "  V[x, s] = sum {a in 1..NUM_ACTIONS} ((sum {xp in 1..NUM_NODES} ";
     file << "policy[x, a, 1, xp]) * R[s, a] + gamma * sum {sp in 1..NUM_STATES} (T[s, a, sp] * ";
     file << "sum {o in 1..NUM_OBSERVATIONS} (O[a, sp, o] * sum {xp in 1..NUM_NODES} ";
-    file << "(policy[x, 1, 1, xp] * V[xp, sp]))));" << std::endl;
+    //file << "(policy[x, 1, 1, xp] * V[xp, sp]))));" << std::endl;
+    file << "(policy[x, a, o, xp] * V[xp, sp]))));" << std::endl;
     file << std::endl;
 
     file << "subject to Probability_Constraint_Normalization {x in 1..(NUM_NODES + NUM_BELIEFS), ";
     file << "o in 1..NUM_OBSERVATIONS}:" << std::endl;
-    file << "  sum {xp in 1..(NUM_NODES + NUM_BELIEFS), a in 1..NUM_ACTIONS} policy[x, a, o, xp] = 1.0;" << std::endl;
+    file << "  sum {xp in 1..NUM_NODES, a in 1..NUM_ACTIONS} policy[x, a, o, xp] = 1.0;" << std::endl;
     file << std::endl;
 
     file << "subject to Probability_Constraint_Action_Probabilities {x in 1..(NUM_NODES + NUM_BELIEFS), ";
     file << "a in 1..NUM_ACTIONS, o in 1..NUM_OBSERVATIONS}:" << std::endl;
-    file << "  sum {xp in 1..(NUM_NODES + NUM_BELIEFS)} policy[x, a, o, xp] = ";
-    file << "sum {xp in 1..(NUM_NODES + NUM_BELIEFS)} policy[x, a, 1, xp];" << std::endl;
+    file << "  sum {xp in 1..NUM_NODES} policy[x, a, o, xp] = ";
+    file << "sum {xp in 1..NUM_NODES} policy[x, a, 1, xp];" << std::endl;
     file << std::endl;
 
+    /*
     file << "subject to Probability_Constraint_Cannot_Choose_To_Go_To_Beliefs {x in 1..(NUM_NODES + NUM_BELIEFS), ";
     file << "a in 1..NUM_ACTIONS, o in 1..NUM_OBSERVATIONS}:" << std::endl;
     file << "  sum {xp in (NUM_NODES + 1)..(NUM_NODES + NUM_BELIEFS)} policy[x, a, o, xp] = 0.0;" << std::endl;
     file << std::endl;
+    //*/
 
+    /*
     file << "subject to Probability_Constraint_Ignore_Action_Observation {x in (NUM_NODES + 1)..(NUM_NODES + NUM_BELIEFS), ";
     file << "a in 2..NUM_ACTIONS, o in 2..NUM_OBSERVATIONS, xp in 1..(NUM_NODES + NUM_BELIEFS)}:" << std::endl;
     file << "  policy[x, a, o, xp] = policy[x, 1, 1, xp];" << std::endl;
     file << std::endl;
+    //*/
 
     file.close();
 
@@ -151,7 +158,7 @@ int pomdp_cbnlp_save_data_file_beliefs(const POMDP *pomdp, POMDPCBNLP *cbnlp, co
     }
     file << std::endl;
 
-    file << "let lambda := " << cbnlp->lambda << ";" << std::endl;
+    file << "let lambda := " << cbnlp->lmbd << ";" << std::endl;
     file << std::endl;
 
     file.close();
@@ -173,7 +180,7 @@ int pomdp_cbnlp_explore_beliefs(const POMDP *pomdp, POMDPCBNLP *cbnlp)
         }
         cbnlp->B[0 * pomdp->n + s] = pomdp->B[0 * pomdp->rz + i];
     }
-    cbnlp->lambda[0 * cbnlp->r + 0] = 1.0f;
+    cbnlp->lmbd[0 * cbnlp->r + 0] = 1.0f;
     */
 
     // TODO: For the time being, copy the values from the POMDP... Assume we did the
@@ -194,7 +201,7 @@ int pomdp_cbnlp_explore_beliefs(const POMDP *pomdp, POMDPCBNLP *cbnlp)
     }
 
     // TODO: Assume this is given. Don't assign here.
-    cbnlp->lambda = 0.3f;
+    //cbnlp->lmbd = 0.3f;
 
     return NOVA_SUCCESS;
 }
@@ -297,7 +304,6 @@ int pomdp_cbnlp_initialize(const POMDP *pomdp, POMDPCBNLP *cbnlp)
     for (unsigned int i = 0; i < cbnlp->r * pomdp->n; i++) {
         cbnlp->B[i] = 0.0f;
     }
-    cbnlp->lambda = 0.0f;
     cbnlp->V = new float[numTotalNodes * pomdp->n];
     for (unsigned int i = 0; i < numTotalNodes * pomdp->n; i++) {
         cbnlp->V[i] = 0.0f;
@@ -356,7 +362,7 @@ int pomdp_cbnlp_update(const POMDP *pomdp, POMDPCBNLP *cbnlp)
         return NOVA_ERROR_EXECUTING_COMMAND;
     }
 
-    result = pomdp_ampl_parse_solver_output(pomdp, cbnlp->k + cbnlp->r, cbnlp->policy, cbnlp->V, solverOutput);
+    result = pomdp_ampl_parse_solver_output(pomdp, cbnlp->k + cbnlp->r, cbnlp->policy, nullptr, nullptr, cbnlp->V, solverOutput);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[pomdp_cbnlp_update]: %s\n",
                         "Failed to parse the result to obtain the policy.");
@@ -435,11 +441,7 @@ int pomdp_cbnlp_get_policy(const POMDP *pomdp, POMDPCBNLP *cbnlp, POMDPStochasti
     }
 
     // Lastly, copy the values of each controller node and state pair.
-    for (unsigned int x = 0; x < numTotalNodes; x++) {
-        for (unsigned int s = 0; s < pomdp->n; s++) {
-            policy->V[x * pomdp->n + s] = policy->V[x * pomdp->n + s];
-        }
-    }
+    memcpy(policy->V, cbnlp->V, numTotalNodes * pomdp->n * sizeof(float));
 
     return NOVA_SUCCESS;
 }

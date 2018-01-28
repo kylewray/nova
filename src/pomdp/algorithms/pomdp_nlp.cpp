@@ -235,7 +235,7 @@ int pomdp_nlp_update(const POMDP *pomdp, POMDPNLP *nlp)
         return NOVA_ERROR_EXECUTING_COMMAND;
     }
 
-    result = pomdp_ampl_parse_solver_output(pomdp, nlp->k, nlp->policy, nlp->V, solverOutput);
+    result = pomdp_ampl_parse_solver_output(pomdp, nlp->k, nlp->policy, nullptr, nullptr, nlp->V, solverOutput);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[pomdp_nlp_update]: %s\n",
                         "Failed to parse the result to obtain the policy.");
@@ -308,11 +308,7 @@ int pomdp_nlp_get_policy(const POMDP *pomdp, POMDPNLP *nlp, POMDPStochasticFSC *
     }
 
     // Lastly, copy the values of each controller node and state pair.
-    for (unsigned int x = 0; x < nlp->k; x++) {
-        for (unsigned int s = 0; s < pomdp->n; s++) {
-            policy->V[x * pomdp->n + s] = policy->V[x * pomdp->n + s];
-        }
-    }
+    memcpy(policy->V, nlp->V, nlp->k * pomdp->n * sizeof(float));
 
     return NOVA_SUCCESS;
 }

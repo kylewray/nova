@@ -51,6 +51,7 @@ class NovaPOMDPNLP(ct.Structure):
                 ("command", ct.POINTER(ct.c_char)),
                 ("k", ct.c_uint),
                 ("policy", ct.POINTER(ct.c_float)),
+                ("V", ct.POINTER(ct.c_float)),
                 ]
 
 
