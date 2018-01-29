@@ -53,7 +53,9 @@ class NovaPOMDPCBNLP(ct.Structure):
                 ("r", ct.c_uint),
                 ("B", ct.POINTER(ct.c_float)),
                 ("lmbd", ct.c_float),
-                ("policy", ct.POINTER(ct.c_float)),
+                ("psi", ct.POINTER(ct.c_float)),
+                ("eta", ct.POINTER(ct.c_float)),
+                ("V", ct.POINTER(ct.c_float)),
                 ]
 
 

@@ -157,11 +157,11 @@ int pomdp_ampl_parse_solver_output(const POMDP *pomdp, unsigned int k,
 
     while (std::getline(stream, line, '\n')) {
         // Get the relevant data from the line.
-        std::string data[5];
+        std::string data[10];
         unsigned int counter = 0;
         bool newSpace = true;
 
-        for (unsigned int i = 0; i < line.length() && counter < 5; i++) {
+        for (unsigned int i = 0; i < line.length() && counter < 10; i++) {
             if (line[i] == ' ' && newSpace) {
                 counter++;
                 newSpace = false;
@@ -197,7 +197,7 @@ int pomdp_ampl_parse_solver_output(const POMDP *pomdp, unsigned int k,
             // Read the raw data as 'psi' for now.
             int x = std::atoi(data[1].c_str());
             int a = std::atoi(data[2].c_str());
-            float probability = std::atof(data[4].c_str());
+            float probability = std::atof(data[3].c_str());
 
             if (x < 0 || x >= k || a < 0 || a >= pomdp->m ||
                     probability < 0.0f || probability > 1.0f) {

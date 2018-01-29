@@ -76,45 +76,37 @@ int pomdp_cbnlp_save_model_file(const POMDP *pomdp, POMDPCBNLP *cbnlp, const cha
     file << std::endl;
 
     file << "var V {1..(NUM_NODES + NUM_BELIEFS), 1..NUM_STATES};" << std::endl;
-    file << "var policy {1..(NUM_NODES + NUM_BELIEFS), 1..NUM_ACTIONS, 1..NUM_OBSERVATIONS, ";
-    //file << "1..(NUM_NODES + NUM_BELIEFS)} >= 0.0;" << std::endl;
+    file << "var psi {1..(NUM_NODES + NUM_BELIEFS), 1..NUM_ACTIONS} >= 0.0;" << std::endl;
+    file << "var eta {1..(NUM_NODES + NUM_BELIEFS), 1..NUM_ACTIONS, 1..NUM_OBSERVATIONS, ";
     file << "1..NUM_NODES} >= 0.0;" << std::endl;
     file << std::endl;
 
     file << "maximize Value:" << std::endl;
-    //file << "   sum {s in 1..NUM_STATES} B[1, s] * V[NUM_NODES + 1, s];" << std::endl;
     file << "   sum {s in 1..NUM_STATES} B[1, s] * V[1, s];" << std::endl;
-    //file << "   sum {x in (NUM_NODES + 1)..(NUM_NODES + NUM_BELIEFS), s in 1..NUM_STATES} ";
-    //file << "B[x - NUM_NODES, s] * V[x, s];" << std::endl;
     file << std::endl;
 
     file << "subject to Bellman_Constraint_V_Nodes {x in 1..NUM_NODES, s in 1..NUM_STATES}:" << std::endl;
-    file << "  V[x, s] = sum {a in 1..NUM_ACTIONS} ((sum {xp in 1..NUM_NODES} ";
-    file << "policy[x, a, 1, xp]) * R[s, a] + (gamma * (1.0 - lambda)) * sum {sp in 1..NUM_STATES} ";
-    file << "(T[s, a, sp] * sum {o in 1..NUM_OBSERVATIONS} (O[a, sp, o] * sum {xp in 1..NUM_NODES} ";
-    file << "(policy[x, a, o, xp] * V[xp, sp]))) + (gamma * lambda / NUM_BELIEFS) * ";
-    file << "sum {xp in (NUM_NODES + 1)..(NUM_NODES + NUM_BELIEFS), sp in 1..NUM_STATES} ";
-    file << "(B[xp - NUM_NODES, sp] * V[xp, sp]));" << std::endl;
+    file << "  V[x, s] = sum {a in 1..NUM_ACTIONS} (psi[x, a] * (R[s, a] ";
+    file << "+ (gamma * (1.0 - lambda)) * sum {sp in 1..NUM_STATES} (T[s, a, sp] * sum {o in 1..NUM_OBSERVATIONS} ";
+    file << "(O[a, sp, o] * sum {xp in 1..NUM_NODES} (eta[x, a, o, xp] * V[xp, sp]))) ";
+    file << "+ (gamma * lambda / NUM_BELIEFS) * sum {xp in (NUM_NODES + 1)..(NUM_NODES + NUM_BELIEFS), ";
+    file << "sp in 1..NUM_STATES} (B[xp - NUM_NODES, sp] * V[xp, sp])));" << std::endl;
     file << std::endl;
 
     file << "subject to Bellman_Constraint_V_Beliefs {x in (NUM_NODES + 1)..(NUM_NODES + NUM_BELIEFS), ";
     file << "s in 1..NUM_STATES}:" << std::endl;
-    file << "  V[x, s] = sum {a in 1..NUM_ACTIONS} ((sum {xp in 1..NUM_NODES} ";
-    file << "policy[x, a, 1, xp]) * R[s, a] + gamma * sum {sp in 1..NUM_STATES} (T[s, a, sp] * ";
-    file << "sum {o in 1..NUM_OBSERVATIONS} (O[a, sp, o] * sum {xp in 1..NUM_NODES} ";
-    //file << "(policy[x, 1, 1, xp] * V[xp, sp]))));" << std::endl;
-    file << "(policy[x, a, o, xp] * V[xp, sp]))));" << std::endl;
+    file << "  V[x, s] = sum {a in 1..NUM_ACTIONS} (psi[x, a] * (R[s, a] ";
+    file << "+ gamma * sum {sp in 1..NUM_STATES} (T[s, a, sp] * sum {o in 1..NUM_OBSERVATIONS} ";
+    file << "(O[a, sp, o] * sum {xp in 1..NUM_NODES} (eta[x, a, o, xp] * V[xp, sp])))));" << std::endl;
     file << std::endl;
 
-    file << "subject to Probability_Constraint_Normalization {x in 1..(NUM_NODES + NUM_BELIEFS), ";
-    file << "o in 1..NUM_OBSERVATIONS}:" << std::endl;
-    file << "  sum {xp in 1..NUM_NODES, a in 1..NUM_ACTIONS} policy[x, a, o, xp] = 1.0;" << std::endl;
+    file << "subject to Probability_Constraint_Normalization_Psi {x in 1..(NUM_NODES + NUM_BELIEFS)}:" << std::endl;
+    file << "  sum {a in 1..NUM_ACTIONS} psi[x, a] = 1.0;" << std::endl;
     file << std::endl;
 
-    file << "subject to Probability_Constraint_Action_Probabilities {x in 1..(NUM_NODES + NUM_BELIEFS), ";
+    file << "subject to Probability_Constraint_Normalization_Eta {x in 1..(NUM_NODES + NUM_BELIEFS), ";
     file << "a in 1..NUM_ACTIONS, o in 1..NUM_OBSERVATIONS}:" << std::endl;
-    file << "  sum {xp in 1..NUM_NODES} policy[x, a, o, xp] = ";
-    file << "sum {xp in 1..NUM_NODES} policy[x, a, 1, xp];" << std::endl;
+    file << "  sum {xp in 1..NUM_NODES} eta[x, a, o, xp] = 1.0;" << std::endl;
     file << std::endl;
 
     /*
@@ -296,9 +288,13 @@ int pomdp_cbnlp_initialize(const POMDP *pomdp, POMDPCBNLP *cbnlp)
     unsigned int numTotalNodes = cbnlp->k + cbnlp->r;
 
     // Create the variables that change over iteration (i.e., not the path and command).
-    cbnlp->policy = new float[numTotalNodes * pomdp->m * pomdp->z * numTotalNodes];
+    cbnlp->psi = new float[numTotalNodes * pomdp->m];
+    for (unsigned int i = 0; i < numTotalNodes * pomdp->m; i++) {
+        cbnlp->psi[i] = 0.0f;
+    }
+    cbnlp->eta = new float[numTotalNodes * pomdp->m * pomdp->z * numTotalNodes];
     for (unsigned int i = 0; i < numTotalNodes * pomdp->m * pomdp->z * numTotalNodes; i++) {
-        cbnlp->policy[i] = 0.0f;
+        cbnlp->eta[i] = 0.0f;
     }
     cbnlp->B = new float[cbnlp->r * pomdp->n];
     for (unsigned int i = 0; i < cbnlp->r * pomdp->n; i++) {
@@ -362,7 +358,7 @@ int pomdp_cbnlp_update(const POMDP *pomdp, POMDPCBNLP *cbnlp)
         return NOVA_ERROR_EXECUTING_COMMAND;
     }
 
-    result = pomdp_ampl_parse_solver_output(pomdp, cbnlp->k + cbnlp->r, cbnlp->policy, nullptr, nullptr, cbnlp->V, solverOutput);
+    result = pomdp_ampl_parse_solver_output(pomdp, cbnlp->k + cbnlp->r, nullptr, cbnlp->psi, cbnlp->eta, cbnlp->V, solverOutput);
     if (result != NOVA_SUCCESS) {
         fprintf(stderr, "Error[pomdp_cbnlp_update]: %s\n",
                         "Failed to parse the result to obtain the policy.");
@@ -391,6 +387,11 @@ int pomdp_cbnlp_get_policy(const POMDP *pomdp, POMDPCBNLP *cbnlp, POMDPStochasti
         return NOVA_ERROR_POLICY_CREATION;
     }
 
+    // Copy psi and eta over.
+    memcpy(policy->psi, cbnlp->psi, numTotalNodes * pomdp->m * sizeof(float));
+    memcpy(policy->eta, cbnlp->eta, numTotalNodes * pomdp->m * pomdp->z * numTotalNodes * sizeof(float));
+
+    /* TODO: Delete this...
     // Reset psi and compute it by summing over xp with observation index 0 (arbitrary).
     for (unsigned int x = 0; x < numTotalNodes; x++) {
         for (unsigned int a = 0; a < pomdp->m; a++) {
@@ -439,6 +440,7 @@ int pomdp_cbnlp_get_policy(const POMDP *pomdp, POMDPCBNLP *cbnlp, POMDPStochasti
             }
         }
     }
+    */
 
     // Lastly, copy the values of each controller node and state pair.
     memcpy(policy->V, cbnlp->V, numTotalNodes * pomdp->n * sizeof(float));
@@ -462,10 +464,15 @@ int pomdp_cbnlp_uninitialize(const POMDP *pomdp, POMDPCBNLP *cbnlp)
     }
     cbnlp->B = nullptr;
 
-    if (cbnlp->policy != nullptr) {
-        delete [] cbnlp->policy;
+    if (cbnlp->psi != nullptr) {
+        delete [] cbnlp->psi;
     }
-    cbnlp->policy = nullptr;
+    cbnlp->psi = nullptr;
+
+    if (cbnlp->eta != nullptr) {
+        delete [] cbnlp->eta;
+    }
+    cbnlp->eta = nullptr;
 
     if (cbnlp->V != nullptr) {
         delete [] cbnlp->V;

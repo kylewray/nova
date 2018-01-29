@@ -44,7 +44,8 @@ namespace nova {
  *  @param  r       The number of belief points to find and add during belief infusion.
  *  @param  B       The set of r belief points each over the n states.
  *  @param  lmbd    The probabilistic weight placed on doing PBVI. FSC is (1-lambda).
- *  @param  policy  The resultant (intermediate) controller action and transition probabilities.
+ *  @param  psi     The resultant (intermediate) controller node action probabilities.
+ *  @param  eta     The resultant (intermediate) controller node transition probabilities.
  *  @param  V       The resultant values for each controller node and state pair.
  */
 typedef struct NovaPOMDPCBNLP {
@@ -54,7 +55,8 @@ typedef struct NovaPOMDPCBNLP {
     unsigned int r;
     float *B;
     float lmbd;
-    float *policy;
+    float *psi;
+    float *eta;
     float *V;
 } POMDPCBNLP;
 

@@ -63,7 +63,8 @@ class POMDPCBNLP(npcb.NovaPOMDPCBNLP):
         self.numTotalNodes = int(k) + int(r)
         self.B = ct.POINTER(ct.c_float)()
         self.lmbd = float(lmbd)
-        self.policy = ct.POINTER(ct.c_float)()
+        self.psi = ct.POINTER(ct.c_float)()
+        self.eta = ct.POINTER(ct.c_float)()
         self.V = ct.POINTER(ct.c_float)()
 
         # Attempt to initialize the algorithm.
@@ -93,22 +94,26 @@ class POMDPCBNLP(npcb.NovaPOMDPCBNLP):
         result += "r: %i" % (self.r) + "\n\n"
 
         result += "B:\n%s" % (str(np.array([[self.B[i * self.pomdp.n + s] \
-                        for s in range(self.pomdp.n)] \
-                    for i in range(self.r)]))) + "\n\n"
+                                for s in range(self.pomdp.n)] \
+                            for i in range(self.r)]))) + "\n\n"
 
         result += "lambda: %s" % (self.lmbd) + "\n\n"
 
-        result += "policy:\n%s" % (str(np.array([[[[self.policy[x * self.pomdp.n * self.pomdp.z * self.numTotalNodes
-                                                                + s * self.pomdp.z * self.numTotalNodes
-                                                                + o * self.numTotalNodes + xp] \
+        result += "psi:\n%s" % (str(np.array([[self.psi[i * self.pomdp.m + a] \
+                                for a in range(self.pomdp.m)] \
+                            for i in range(self.numTotalNodes)]))) + "\n\n"
+
+        result += "eta:\n%s" % (str(np.array([[[[self.eta[x * self.pomdp.n * self.pomdp.z * self.numTotalNodes
+                                                          + s * self.pomdp.z * self.numTotalNodes
+                                                          + o * self.numTotalNodes + xp] \
                                         for xp in range(self.numTotalNodes)] \
                                     for o in range(self.pomdp.z)] \
                                 for s in range(self.pomdp.n)] \
                             for x in range(self.numTotalNodes)]))) + "\n\n"
 
         result += "V:\n%s" % (str(np.array([[self.V[i * self.pomdp.n + s] \
-                                            for i in range(self.numTotalNodes)] \
-                                        for s in range(self.pomdp.n)]))) + "\n\n"
+                                for s in range(self.pomdp.n)] \
+                            for i in range(self.numTotalNodes)]))) + "\n\n"
 
         return result
 

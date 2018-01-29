@@ -136,7 +136,7 @@ class NEOSSNOPT(object):
                 var = [int(v) - 1 for v in param[4:-1].split(',')]
                 value = max(0.0, min(1.0, float(line[2])))
 
-                if len(var) == 4: # and value > 0.0:
+                if len(var) == 2: # and value > 0.0:
                     result += "psi %i %i %.5f\n" % (var[0], var[1], value)
             elif param[0:3] == "eta":
                 var = [int(v) - 1 for v in param[4:-1].split(',')]
