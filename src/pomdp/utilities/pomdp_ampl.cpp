@@ -65,13 +65,37 @@ int pomdp_ampl_save_data_file(const POMDP *pomdp, unsigned int k, unsigned int r
 
     if (r > 1) {
         for (unsigned int i = 0; i < pomdp->r && i < r; i++) {
-            for (unsigned int s = 0; s < pomdp->n; s++) {
-                file << "let B[" << (i + 1) << ", " << (s + 1) << "] := " << pomdp->B[i * pomdp->n + s] << ";" << std::endl;
+            for (unsigned int j = 0; j < pomdp->rz; j++) {
+                int s = pomdp->Z[i * pomdp->rz + j];
+                if (s < 0) {
+                    break;
+                }
+
+                float probability = pomdp->B[i * pomdp->rz + j];
+                if (probability < 0.000001f) {
+                    probability = 0.0f;
+                } else if (probability > 0.999999f) {
+                    probability = 1.0f;
+                }
+
+                file << "let B[" << (i + 1) << ", " << (s + 1) << "] := " << probability << ";" << std::endl;
             }
         }
     } else if (r == 1) {
-        for (unsigned int s = 0; s < pomdp->n; s++) {
-            file << "let b0[" << (s + 1) << "] := " << pomdp->B[0 * pomdp->n + s] << ";" << std::endl;
+        for (unsigned int j = 0; j < pomdp->rz; j++) {
+            int s = pomdp->Z[0 * pomdp->rz + j];
+            if (s < 0) {
+                break;
+            }
+
+            float probability = pomdp->B[0 * pomdp->rz + j];
+            if (probability < 0.000001f) {
+                probability = 0.0f;
+            } else if (probability > 0.999999f) {
+                probability = 1.0f;
+            }
+
+            file << "let b0[" << (s + 1) << "] := " << probability << ";" << std::endl;
         }
     }
     file << std::endl;
@@ -87,8 +111,15 @@ int pomdp_ampl_save_data_file(const POMDP *pomdp, unsigned int k, unsigned int r
                     break;
                 }
 
+                float probability = pomdp->T[s * pomdp->m * pomdp->ns + a * pomdp->ns + i];
+                if (probability < 0.000001f) {
+                    probability = 0.0f;
+                } else if (probability > 0.999999f) {
+                    probability = 1.0f;
+                }
+
                 file << "let T[" << (s + 1) << ", " << (a + 1) << ", " << (sp + 1) << "] := ";
-                file << pomdp->T[s * pomdp->m * pomdp->ns + a * pomdp->ns + i] << ";" << std::endl;
+                file << probability << ";" << std::endl;
             }
         }
     }
@@ -97,8 +128,17 @@ int pomdp_ampl_save_data_file(const POMDP *pomdp, unsigned int k, unsigned int r
     for (unsigned int a = 0; a < pomdp->m; a++) {
         for (unsigned int sp = 0; sp < pomdp->n; sp++) {
             for (unsigned int o = 0; o < pomdp->z; o++) {
-                file << "let O[" << (a + 1) << ", " << (sp + 1) << ", " << (o + 1) << "] := ";
-                file << pomdp->O[a * pomdp->n * pomdp->z + sp * pomdp->z + o] << ";" << std::endl;
+                float probability = pomdp->O[a * pomdp->n * pomdp->z + sp * pomdp->z + o];
+                if (probability < 0.000001f) {
+                    probability = 0.0f;
+                } else if (probability > 0.999999f) {
+                    probability = 1.0f;
+                }
+
+                if (probability > 0.0f) {
+                    file << "let O[" << (a + 1) << ", " << (sp + 1) << ", " << (o + 1) << "] := ";
+                    file << probability << ";" << std::endl;
+                }
             }
         }
     }
@@ -106,7 +146,6 @@ int pomdp_ampl_save_data_file(const POMDP *pomdp, unsigned int k, unsigned int r
 
     for (unsigned int s = 0; s < pomdp->n; s++) {
         for (unsigned int a = 0; a < pomdp->m; a++) {
-
             file << "let R[" << (s + 1) << ", " << (a + 1) << "] := ";
             file << pomdp->R[s * pomdp->m + a] << ";" << std::endl;
         }

@@ -64,16 +64,101 @@ class MDPValueFunction(nmvf.NovaMDPValueFunction):
                 The string of the MDP value function.
         """
 
-        result = "S:\n%s" % (str(np.array([self.S[i] \
-                    for i in range(self.r)]))) + "\n\n"
+        result = ""
 
-        result += "V:\n%s" % (str(np.array([[self.Gamma[i * self.n + s] \
-                    for i in range(self.r)] for s in range(self.n)]))) + "\n\n"
+        if self.r == 0:
+            result += "V:\n%s" % (str(np.array([self.V[i] \
+                        for i in range(self.n)]))) + "\n\n"
 
-        result += "pi:\n%s" % (str(np.array([self.pi[i] \
-                    for i in range(self.r)]))) + "\n\n"
+            result += "pi:\n%s" % (str(np.array([self.pi[i] \
+                        for i in range(self.n)]))) + "\n\n"
+        else:
+            result += "r: %i" % (self.r) + "\n\n"
+
+            result += "S:\n%s" % (str(np.array([self.S[i] \
+                        for i in range(self.r)]))) + "\n\n"
+
+            result += "V:\n%s" % (str(np.array([self.V[i] \
+                        for i in range(self.r)]))) + "\n\n"
+
+            result += "pi:\n%s" % (str(np.array([self.pi[i] \
+                        for i in range(self.r)]))) + "\n\n"
 
         return result
+
+    def save(self, filename):
+        """ Save the policy to a file.
+
+            Parameters:
+                filename    --  The filename where the policy will be saved.
+        """
+
+        with open(filename, 'wb') as f:
+            f.write("%i %i %i\n" % (self.n, self.m, self.r))
+
+            if self.r == 0:
+                for s in range(self.n):
+                    f.write("%.6f " % (self.V[s]))
+                f.write("\n")
+
+                for s in range(self.n):
+                    f.write("%i " % (self.pi[s]))
+                f.write("\n")
+
+            else:
+                for i in range(self.r):
+                    f.write("%i " % (self.S[i]))
+                f.write("\n")
+
+                for i in range(self.r):
+                    f.write("%.6f " % (self.V[i]))
+                f.write("\n")
+
+                for i in range(self.r):
+                    f.write("%i " % (self.pi[i]))
+                f.write("\n")
+
+    def load(self, filename):
+        """ Load the policy to a file.
+
+            Parameters:
+                filename    --  The filename where the policy will be loaded.
+        """
+
+        with open(filename, 'rb') as f:
+            result = npfsc._nova.mdp_value_function_uninitialize(self)
+
+            header = f.readline().split()
+            self.n = int(header[0])
+            self.m = int(header[1])
+            self.r = int(header[2])
+
+            result = npfsc._nova.mdp_value_function_initialize(self, self.n, self.m, self.r)
+            if result != 0:
+                print("Failed to initialize the value function.")
+                raise Exception()
+
+            if self.r == 0:
+                line = f.readline().split()
+                for s in range(self.n):
+                    self.V[s] = float(line[s])
+
+                line = f.readline().split()
+                for s in range(self.n):
+                    self.pi[s] = int(line[s])
+
+            else:
+                line = f.readline().split()
+                for i in range(self.r):
+                    self.S[i] = int(line[i])
+
+                line = f.readline().split()
+                for i in range(self.r):
+                    self.V[i] = float(line[i])
+
+                line = f.readline().split()
+                for i in range(self.r):
+                    self.pi[i] = int(line[i])
 
     def value_and_action(self, s):
         """ Compute the optimal value and action at a state.

@@ -77,9 +77,9 @@ class POMDPStochasticFSC(npfsc.NovaPOMDPStochasticFSC):
         result += "m: %i" % (self.m) + "\n"
         result += "z: %i" % (self.z) + "\n\n"
 
-        result += "psi:\n%s" % (str(np.array([[self.psi[i * self.m + a] \
+        result += "psi:\n%s" % (str(np.array([[self.psi[x * self.m + a] \
                                             for a in range(self.m)] \
-                                        for i in range(self.k)]))) + "\n\n"
+                                        for x in range(self.k)]))) + "\n\n"
 
         result += "eta:\n%s" % (str(np.array([[[[self.eta[x * self.m * self.z * self.k +
                                                           a * self.z * self.k +
@@ -89,11 +89,80 @@ class POMDPStochasticFSC(npfsc.NovaPOMDPStochasticFSC):
                                     for a in range(self.m)] \
                                 for x in range(self.k)]))) + "\n\n"
 
-        result += "V:\n%s" % (str(np.array([[self.V[i * self.n + s] \
+        result += "V:\n%s" % (str(np.array([[self.V[x * self.n + s] \
                                             for s in range(self.n)] \
-                                        for i in range(self.k)]))) + "\n\n"
+                                        for x in range(self.k)]))) + "\n\n"
 
         return result
+
+    def save(self, filename):
+        """ Save the policy to a file.
+
+            Parameters:
+                filename    --  The filename where the policy will be saved.
+        """
+
+        with open(filename, 'wb') as f:
+            f.write("%i %i %i %i\n" % (self.k, self.n, self.m, self.z))
+
+            for x in range(self.k):
+                for a in range(self.m):
+                    f.write("%.6f " % (self.psi[x * self.m + a]))
+                f.write("\n")
+
+            for x in range(self.k):
+                for a in range(self.m):
+                    for o in range(self.z):
+                        for xp in range(self.k):
+                            f.write("%.6f " % (self.eta[x * self.m * self.z * self.k +
+                                                        a * self.z * self.k +
+                                                        o * self.k + xp]))
+                        f.write("\n")
+
+            for x in range(self.k):
+                for s in range(self.n):
+                    f.write("%.6f " % (self.V[x * self.n + s]))
+                f.write("\n")
+
+    def load(self, filename):
+        """ Load the policy to a file.
+
+            Parameters:
+                filename    --  The filename where the policy will be loaded.
+        """
+
+        with open(filename, 'rb') as f:
+            result = npfsc._nova.pomdp_stochastic_fsc_uninitialize(self)
+
+            header = f.readline().split()
+            self.k = int(header[0])
+            self.n = int(header[1])
+            self.m = int(header[2])
+            self.z = int(header[3])
+
+            result = npfsc._nova.pomdp_stochastic_fsc_initialize(self, self.k, self.n, self.m, self.z)
+            if result != 0:
+                print("Failed to initialize the stochastic FSC.")
+                raise Exception()
+
+            for x in range(self.k):
+                line = f.readline().split()
+                for a in range(self.m):
+                    self.psi[x * self.m + a] = float(line[a])
+
+            for x in range(self.k):
+                for a in range(self.m):
+                    for o in range(self.z):
+                        line = f.readline().split()
+                        for xp in range(self.k):
+                            self.eta[x * self.m * self.z * self.k +
+                                     a * self.z * self.k +
+                                     o * self.k + xp] = float(line[xp])
+
+            for x in range(self.k):
+                line = f.readline().split()
+                for s in range(self.n):
+                    self.V[x * self.n + s] = float(line[s])
 
     def random_action(self, x):
         """ Take a random action following psi given the controller node x.

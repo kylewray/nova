@@ -76,7 +76,7 @@ int mdp_vi_execute(const MDP *mdp, MDPVI *vi, MDPValueFunction *policy)
 
     int result = mdp_vi_initialize(mdp, vi);
     if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[mdp_vi_execute]: %s\n", "Failed to initialize the  variables.");
+        fprintf(stderr, "Error[mdp_vi_execute]: %s\n", "Failed to initialize the variables.");
         return result;
     }
 
@@ -102,7 +102,7 @@ int mdp_vi_execute(const MDP *mdp, MDPVI *vi, MDPValueFunction *policy)
 
     result = mdp_vi_uninitialize(mdp, vi);
     if (result != NOVA_SUCCESS) {
-        fprintf(stderr, "Error[mdp_vi_execute]: %s\n", "Failed to uninitialize the  variables.");
+        fprintf(stderr, "Error[mdp_vi_execute]: %s\n", "Failed to uninitialize the variables.");
         return result;
     }
 

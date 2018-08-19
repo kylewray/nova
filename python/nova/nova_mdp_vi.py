@@ -47,10 +47,10 @@ else:
 class NovaMDPVI(ct.Structure):
     """ The C struct MDPVI object. """
 
-    _fields_ = [("Vinitial", ct.POINTER(ct.c_float)),
+    _fields_ = [("VInitial", ct.POINTER(ct.c_float)),
                 ("currentHorizon", ct.c_uint),
                 ("V", ct.POINTER(ct.c_float)),
-                ("Vprime", ct.POINTER(ct.c_float)),
+                ("VPrime", ct.POINTER(ct.c_float)),
                 ("pi", ct.POINTER(ct.c_uint)),
                 ]
 
@@ -76,11 +76,11 @@ _nova.mdp_vi_uninitialize.argtypes = (ct.POINTER(mdp.MDP),
 class NovaMDPVIGPU(ct.Structure):
     """ The C struct MDPVIGPU object. """
 
-    _fields_ = [("Vinitial", ct.POINTER(ct.c_float)),
+    _fields_ = [("VInitial", ct.POINTER(ct.c_float)),
                 ("numThreads", ct.c_uint),
                 ("currentHorizon", ct.c_uint),
                 ("d_V", ct.POINTER(ct.c_float)),
-                ("d_Vprime", ct.POINTER(ct.c_float)),
+                ("d_VPrime", ct.POINTER(ct.c_float)),
                 ("d_pi", ct.POINTER(ct.c_uint)),
                 ]
 

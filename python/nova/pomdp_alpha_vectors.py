@@ -73,6 +73,54 @@ class POMDPAlphaVectors(npav.NovaPOMDPAlphaVectors):
 
         return result
 
+    def save(self, filename):
+        """ Save the policy to a file.
+
+            Parameters:
+                filename    --  The filename where the policy will be saved.
+        """
+
+        with open(filename, 'wb') as f:
+            f.write("%i %i %i\n" % (self.n, self.m, self.r))
+
+            for i in range(self.r):
+                for s in range(self.n):
+                    f.write("%.6f " % (self.Gamma[i * self.n + s]))
+                f.write("\n")
+
+            for i in range(self.r):
+                f.write("%i " % (self.pi[i]))
+            f.write("\n")
+
+    def load(self, filename):
+        """ Load the policy to a file.
+
+            Parameters:
+                filename    --  The filename where the policy will be loaded.
+        """
+
+        with open(filename, 'rb') as f:
+            result = npfsc._nova.pomdp_alpha_vectors_uninitialize(self)
+
+            header = f.readline().split()
+            self.n = int(header[0])
+            self.m = int(header[1])
+            self.r = int(header[2])
+
+            result = npfsc._nova.pomdp_alpha_vectors_initialize(self, self.n, self.m, self.r)
+            if result != 0:
+                print("Failed to initialize the alpha vectors.")
+                raise Exception()
+
+            for i in range(self.r):
+                line = f.readline().split()
+                for s in range(self.n):
+                    self.Gamma[i * self.n + s] = float(line[i])
+
+            line = f.readline().split()
+            for i in range(self.r):
+                self.pi[i] = float(line[i])
+
     def value_and_action(self, b):
         """ Compute the optimal value and action at a belief state.
 

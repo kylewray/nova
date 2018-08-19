@@ -105,6 +105,7 @@ for trial in trials:
 
     policy = algorithm.solve()
     #print(algorithm)
+    #print(policy)
 
     prettyActions = ["L", "U", "R", "D", "X"]
 
