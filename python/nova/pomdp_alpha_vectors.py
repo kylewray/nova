@@ -100,14 +100,14 @@ class POMDPAlphaVectors(npav.NovaPOMDPAlphaVectors):
         """
 
         with open(filename, 'rb') as f:
-            result = npfsc._nova.pomdp_alpha_vectors_uninitialize(self)
+            result = npav._nova.pomdp_alpha_vectors_uninitialize(self)
 
             header = f.readline().split()
             self.n = int(header[0])
             self.m = int(header[1])
             self.r = int(header[2])
 
-            result = npfsc._nova.pomdp_alpha_vectors_initialize(self, self.n, self.m, self.r)
+            result = npav._nova.pomdp_alpha_vectors_initialize(self, self.n, self.m, self.r)
             if result != 0:
                 print("Failed to initialize the alpha vectors.")
                 raise Exception()

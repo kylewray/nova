@@ -126,14 +126,14 @@ class MDPValueFunction(nmvf.NovaMDPValueFunction):
         """
 
         with open(filename, 'rb') as f:
-            result = npfsc._nova.mdp_value_function_uninitialize(self)
+            result = nmvf._nova.mdp_value_function_uninitialize(self)
 
             header = f.readline().split()
             self.n = int(header[0])
             self.m = int(header[1])
             self.r = int(header[2])
 
-            result = npfsc._nova.mdp_value_function_initialize(self, self.n, self.m, self.r)
+            result = nmvf._nova.mdp_value_function_initialize(self, self.n, self.m, self.r)
             if result != 0:
                 print("Failed to initialize the value function.")
                 raise Exception()
@@ -171,8 +171,8 @@ class MDPValueFunction(nmvf.NovaMDPValueFunction):
                 a   --  The optimal action at this state.
         """
 
-        Vs = self.V[s].value
-        a = self.pi[s].value
+        Vs = self.V[s]
+        a = self.pi[s]
 
         return Vs, a
 
