@@ -164,6 +164,32 @@ class POMDPStochasticFSC(npfsc.NovaPOMDPStochasticFSC):
                 for s in range(self.n):
                     self.V[x * self.n + s] = float(line[s])
 
+    def value(self, x, b):
+        """ Compute the optimal value at a belief state given a controller node.
+
+            Parameters:
+                x   --  The current controller node.
+                b   --  A numpy array for the belief (n array).
+
+            Returns:
+                The value at this node given the belief.
+        """
+
+        # TODO: Implement this.
+        return 0.0
+
+        #array_type_n_float = ct.c_float * (self.n)
+        #belief = array_type_n_float(*b)
+
+        #Vxb = ct.c_float(0.0)
+
+        #result = npfsc._nova.pomdp_stochastic_fsc_value_and_action(self, x, belief, ct.byref(Vb))
+        #if result != 0:
+        #    print("Failed to compute the value.")
+        #    raise Exception()
+
+        #return Vxb.value
+
     def random_action(self, x):
         """ Take a random action following psi given the controller node x.
 
@@ -253,97 +279,6 @@ class POMDPStochasticFSC(npfsc.NovaPOMDPStochasticFSC):
                 x = xp
 
             adr = (float(trial) * adr + discountedReward) / float(trial + 1)
-
-        return adr
-
-    def compute_adr_hybrid(self, pomdp, b0, trials=100, hybridLambda=None, hybridNumBeliefs=None):
-        """ Compute the average discounted reward (ADR) at a given belief, with hybrid control.
-
-            Parameters:
-                pomdp               --  The POMDP to compute the ADR.
-                b0                  --  A numpy array for the initial belief (n array).
-                trials              --  The number of trials to average over. Default is 100.
-                hybridLambda        --  The probabilistic coin flip to do an argmax.
-                hybridNumBeliefs    --  From 1 to k of the end FSC nodes can be used for argmax.
-
-            Returns:
-                The ADR value at this belief.
-        """
-
-        if (hybridLambda < 0.0 or hybridLambda > 1.0 or
-                hybridNumBeliefs < 1 or hybridNumBeliefs > self.k):
-            raise Exception()
-
-        #hybridAlphaVectors = npav.POMDPAlphaVectors()
-        #hybridAlphaVectors.n = self.n
-        #hybridAlphaVectors.m = self.k
-        #hybridAlphaVectors.r = hybridNumBeliefs
-
-        #array_type_kk_float = ct.c_float * (hybridNumBeliefs * self.n)
-        #hybridGamma = np.array([[self.V[(self.k - hybridNumBeliefs + i) * self.n + s]
-        #                        for s in range(self.n)] for i in range(hybridNumBeliefs)])
-        #hybridAlphaVectors.Gamma = array_type_kk_float(*hybridGamma.flatten())
-
-        #array_type_k_uint = ct.c_uint * (hybridNumBeliefs)
-        #hybridPi = np.array([int(self.k - hybridNumBeliefs + i) for i in range(hybridNumBeliefs)])
-        #hybridAlphaVectors.pi = array_type_k_uint(*hybridPi.flatten())
-
-        #print(hybridGamma)
-        #print(hybridPi)
-
-
-        hybridAlphaVectors = np.array([[self.V[(self.k - hybridNumBeliefs + i) * self.n + s]
-                                for s in range(self.n)] for i in range(hybridNumBeliefs)])
-
-
-        adr = 0.0
-
-        for trial in range(trials):
-            b = b0.copy()
-            s = random.choice([i for i in range(pomdp.n) if b0[i] > 0.0])
-            x = 0
-            discount = 1.0
-            discountedReward = 0.0
-
-            for t in range(pomdp.horizon):
-                a = self.random_action(x)
-                sp = pomdp.random_successor(s, a)
-                o = pomdp.random_observation(a, sp)
-                bp = pomdp.belief_update(b, a, o)
-
-                # The successor is chosen following hybrid rules.
-                isCurrentlyAnFSCNode = (x < self.k - hybridNumBeliefs)
-
-                # Flip a coin following lambda if this is an FSC node. If we use the
-                # argmax nodes, then the action corresponding to the argmax is actually
-                # the xp node. Otherwise, just follow eta.
-                if isCurrentlyAnFSCNode and random.random() < hybridLambda:
-                    xp = self.k - hybridNumBeliefs + (hybridAlphaVectors * np.asmatrix(bp).transpose()).argmax()
-                    #xp = hybridAlphaVectors.action(bp)
-                    #xp = random.choice(hybridPi.tolist())
-                else:
-                    xp = self.random_successor(x, a, o)
-
-                #print("<time, x, a, sp, o, xp, b> = <%i, %i, %i, %i, %i, %i, [%.3f, %.3f]>" % (t, x, a, sp, o, xp, b[0], b[1]))
-
-                # Important: We obtain a reward from the *true* POMDP model,
-                # not the FSC model! This is essentially sampling from the
-                # true policy tree. So we retain the belief over time
-                # and compute the average discounted belief-reward.
-                beliefReward = 0.0
-                for i in range(pomdp.n):
-                    beliefReward += b[i] * pomdp.R[i * pomdp.m + a]
-                discountedReward += discount * beliefReward
-
-                discount *= pomdp.gamma
-                b = bp
-                s = sp
-                x = xp
-
-            adr = (float(trial) * adr + discountedReward) / float(trial + 1)
-
-        print(adr)
-        time.sleep(10)
 
         return adr
 

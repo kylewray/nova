@@ -34,7 +34,6 @@ from nova.pomdp_pbvi import *
 from nova.pomdp_perseus import*
 from nova.pomdp_hsvi2 import*
 from nova.pomdp_nlp import*
-from nova.pomdp_cbnlp import*
 
 from pylab import *
 
@@ -42,30 +41,25 @@ from pylab import *
 numTrials = 10
 adrTrials = 100
 
-#algorithms = ['pbvi', 'perseus', 'hsvi2', 'nlp', 'cbnlp']
-#algorithms = ['perseus', 'nlp', 'cbnlp']
-#algorithms = ['perseus', 'cbnlp']
-#algorithms = ['nlp', 'perseus']
-#algorithms = ['cbnlp']
-algorithms = ['perseus']
+algorithms = ['pbvi', 'perseus', 'hsvi2', 'nlp']
 
 files = [
-#        {'name': "tiger", 'filename': "domains/tiger_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4, 'numBeliefsToAdd': 10, 'numControllerNodes': 3, 'maxExpandTrials': 10, 'numHybridBeliefs': 6},
-        ##{'name': "shuttle", 'filename': "domains/shuttle_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4, 'numBeliefsToAdd': 300, 'numControllerNodes': 3, 'maxExpandTrials': 100, 'numHybridBeliefs': 5},
-        ##{'name': "paint", 'filename': "domains/paint_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4, 'numBeliefsToAdd': 300, 'numControllerNodes': 3, 'maxExpandTrials': 100, 'numHybridBeliefs': 5},
-#        {'name': "grid-4x3", 'filename': "domains/4x3_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 5, 'numBeliefsToAdd': 500, 'numControllerNodes': 5, 'maxExpandTrials': 100, 'numHybridBeliefs': 10},
-#        {'name': "tiger-grid", 'filename': "domains/tiger_grid.pomdp", 'filetype': "cassandra",'numExpandSteps': 6, 'numBeliefsToAdd': 800, 'numControllerNodes': 14, 'maxExpandTrials': 300, 'numHybridBeliefs': 30},
-#        {'name': "aloha-10", 'filename': "domains/aloha_10.pomdp", 'filetype': "cassandra", 'numExpandSteps': 6, 'numBeliefsToAdd': 800, 'numControllerNodes': 10, 'maxExpandTrials': 300, 'numHybridBeliefs': 50},
-        {'name': "hallway2", 'filename': "domains/hallway2.pomdp", 'filetype': "cassandra", 'numExpandSteps': 6, 'numBeliefsToAdd': 1000, 'numControllerNodes': 7, 'maxExpandTrials': 300, 'numHybridBeliefs': 10},
-        ##{'name': "aloha-30", 'filename': "domains/aloha_30.pomdp", 'filetype': "cassandra", 'numExpandSteps': 8, 'numBeliefsToAdd': 3000, 'numControllerNodes': 3, 'maxExpandTrials': 400, 'numHybridBeliefs': 5},
-#        {'name': "tag", 'filename': "domains/tag.pomdp", 'filetype': "cassandra", 'numExpandSteps': 10, 'numBeliefsToAdd': 5000, 'numControllerNodes': 8, 'maxExpandTrials': 500, 'numHybridBeliefs': 95},
-        ##{'name': "fourth", 'filename': "domains/fourth.pomdp", 'filetype': "cassandra", 'numExpandSteps': 10, 'numBeliefsToAdd': 5000, 'numControllerNodes': 3, 'maxExpandTrials': 500, 'numHybridBeliefs': 5},
-        ##{'name': "rock-sample (7x8)", 'filename': "domains/rockSample_7_8.pomdp", 'filetype': "cassandra", 'numExpandSteps': 11, 'numBeliefsToAdd': 10000, 'numControllerNodes': 3, 'maxExpandTrials': 1000, 'numHybridBeliefs': 5},
-        ##{'name': "auv-navigation", 'filename': "domains/auvNavigation.pomdp", 'filetype': "cassandra", 'numExpandSteps': 11, 'numBeliefsToAdd': 10000, 'numControllerNodes': 3, 'maxExpandTrials': 1000, 'numHybridBeliefs': 5},
-        ##{'name': "drive_san_francisco", 'filename': "domains/drive_san_francisco.pomdp", 'filetype': "cassandra", 'numExpandSteps': 8, 'numBeliefsToAdd': 30, 'numControllerNodes': 3, 'maxExpandTrials': 1000, 'numHybridBeliefs': 5},
-        ##{'name': "drive_seattle", 'filename': "domains/drive_seattle.pomdp", 'filetype': "cassandra", 'numExpandSteps': 9, 'numBeliefsToAdd': 30, 'numControllerNodes': 3, 'maxExpandTrials': 1000, 'numHybridBeliefs': 5},
-        ##{'name': "drive_new_york_city", 'filename': "domains/drive_new_york_city.pomdp", 'filetype': "cassandra", 'numExpandSteps': 9, 'numBeliefsToAdd': 30, 'numControllerNodes': 3, 'maxExpandTrials': 1000, 'numHybridBeliefs': 5},
-        ##{'name': "drive_boston", 'filename': "domains/drive_boston.pomdp", 'filetype': "cassandra", 'numExpandSteps': 10, 'numBeliefsToAdd': 30, 'numControllerNodes': 3, 'maxExpandTrials': 1000, 'numHybridBeliefs': 5},
+        {'name': "tiger", 'filename': "domains/tiger_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4, 'numBeliefsToAdd': 10, 'numControllerNodes': 3, 'maxExpandTrials': 10},
+        #{'name': "shuttle", 'filename': "domains/shuttle_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4, 'numBeliefsToAdd': 300, 'numControllerNodes': 3, 'maxExpandTrials': 100},
+        #{'name': "paint", 'filename': "domains/paint_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 4, 'numBeliefsToAdd': 300, 'numControllerNodes': 3, 'maxExpandTrials': 100},
+        {'name': "grid-4x3", 'filename': "domains/4x3_95.pomdp", 'filetype': "cassandra", 'numExpandSteps': 5, 'numBeliefsToAdd': 500, 'numControllerNodes': 5, 'maxExpandTrials': 100},
+        {'name': "tiger-grid", 'filename': "domains/tiger_grid.pomdp", 'filetype': "cassandra",'numExpandSteps': 6, 'numBeliefsToAdd': 800, 'numControllerNodes': 14, 'maxExpandTrials': 300},
+        {'name': "aloha-10", 'filename': "domains/aloha_10.pomdp", 'filetype': "cassandra", 'numExpandSteps': 6, 'numBeliefsToAdd': 800, 'numControllerNodes': 10, 'maxExpandTrials': 300},
+        {'name': "hallway2", 'filename': "domains/hallway2.pomdp", 'filetype': "cassandra", 'numExpandSteps': 6, 'numBeliefsToAdd': 1000, 'numControllerNodes': 7, 'maxExpandTrials': 300},
+        #{'name': "aloha-30", 'filename': "domains/aloha_30.pomdp", 'filetype': "cassandra", 'numExpandSteps': 8, 'numBeliefsToAdd': 3000, 'numControllerNodes': 3, 'maxExpandTrials': 400},
+        {'name': "tag", 'filename': "domains/tag.pomdp", 'filetype': "cassandra", 'numExpandSteps': 10, 'numBeliefsToAdd': 5000, 'numControllerNodes': 8, 'maxExpandTrials': 500},
+        #{'name': "fourth", 'filename': "domains/fourth.pomdp", 'filetype': "cassandra", 'numExpandSteps': 10, 'numBeliefsToAdd': 5000, 'numControllerNodes': 3, 'maxExpandTrials': 500},
+        #{'name': "rock-sample (7x8)", 'filename': "domains/rockSample_7_8.pomdp", 'filetype': "cassandra", 'numExpandSteps': 11, 'numBeliefsToAdd': 10000, 'numControllerNodes': 3, 'maxExpandTrials': 1000},
+        #{'name': "auv-navigation", 'filename': "domains/auvNavigation.pomdp", 'filetype': "cassandra", 'numExpandSteps': 11, 'numBeliefsToAdd': 10000, 'numControllerNodes': 3, 'maxExpandTrials': 1000},
+        #{'name': "drive_san_francisco", 'filename': "domains/drive_san_francisco.pomdp", 'filetype': "cassandra", 'numExpandSteps': 8, 'numBeliefsToAdd': 30, 'numControllerNodes': 3, 'maxExpandTrials': 1000},
+        #{'name': "drive_seattle", 'filename': "domains/drive_seattle.pomdp", 'filetype': "cassandra", 'numExpandSteps': 9, 'numBeliefsToAdd': 30, 'numControllerNodes': 3, 'maxExpandTrials': 1000},
+        #{'name': "drive_new_york_city", 'filename': "domains/drive_new_york_city.pomdp", 'filetype': "cassandra", 'numExpandSteps': 9, 'numBeliefsToAdd': 30, 'numControllerNodes': 3, 'maxExpandTrials': 1000},
+        #{'name': "drive_boston", 'filename': "domains/drive_boston.pomdp", 'filetype': "cassandra", 'numExpandSteps': 10, 'numBeliefsToAdd': 30, 'numControllerNodes': 3, 'maxExpandTrials': 1000},
         ]
 
 
@@ -119,14 +113,6 @@ for f in files:
                     cmd += os.path.join(thisFilePath, "nova_nlp_ampl.mod") + " "
                     cmd += os.path.join(thisFilePath, "nova_nlp_ampl.dat")
                     algorithm = POMDPNLP(pomdp, path=thisFilePath, command=cmd, k=f['numControllerNodes'])
-                elif a == "cbnlp":
-                    pomdp.expand(method='random_unique', numBeliefsToAdd=f['numHybridBeliefs'], maxTrials=f['maxExpandTrials'])
-                    cmd = "python3 "
-                    cmd += os.path.join(thisFilePath, "..", "..", "..", "python", "neos_snopt.py") + " "
-                    cmd += os.path.join(thisFilePath, "nova_cbnlp_ampl.mod") + " "
-                    cmd += os.path.join(thisFilePath, "nova_cbnlp_ampl.dat")
-                    cbnlpLambda = 0.5
-                    algorithm = POMDPCBNLP(pomdp, path=thisFilePath, command=cmd, k=f['numControllerNodes'], r=f['numHybridBeliefs'], lmbd=cbnlpLambda)
 
                 # Solve and count the time it takes to complete the solving step.
                 timing = (time.time(), time.clock())
@@ -141,16 +127,13 @@ for f in files:
                 if a in ["pbvi", "perseus", "hsvi2"]:
                     Vb0 = policy.value(b0)
                     sizeOfSolution = float(policy.r)
-                elif a in ["nlp", "cbnlp"]:
-                    Vb0 = 0.0 #policy.value(b0) # TODO: Compute with policy.V now.
+                elif a in ["nlp"]:
+                    # Note: The initial controller is always index 0.
+                    Vb0 = policy.value(0, b0)
                     sizeOfSolution = float(policy.k)
 
                 # Finally, compute the ADR and write the result to the file!
-                if a == "cbnlp":
-                    ADRb0 = policy.compute_adr_hybrid(pomdp, b0, trials=adrTrials,
-                                hybridLambda=cbnlpLambda, hybridNumBeliefs=f['numHybridBeliefs'])
-                else:
-                    ADRb0 = policy.compute_adr(pomdp, b0, trials=adrTrials)
+                ADRb0 = policy.compute_adr(pomdp, b0, trials=adrTrials)
 
                 # Note: use the time.time() function, which measures wall-clock time.
                 out.write("%i,%i,%i,%i,%i,%i,%i,%.5f,%.5f,%.5f\n" %

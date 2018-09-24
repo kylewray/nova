@@ -34,13 +34,12 @@ from nova.pomdp_pbvi import *
 from nova.pomdp_perseus import *
 from nova.pomdp_hsvi2 import *
 from nova.pomdp_nlp import *
-from nova.pomdp_cbnlp import *
 
 
 files = [
         #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': None},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "random"},
-#        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "random_unique"},
+        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "random_unique"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "distinct_beliefs"},
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'pbvi', 'expand': "pema"},
 
@@ -57,13 +56,10 @@ files = [
         #{'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'perseus', 'expand': "pema"},
 
         #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'hsvi2', 'expand': None},
-#        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'hsvi2', 'expand': None},
+        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'hsvi2', 'expand': None},
 
         #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'nlp', 'expand': None},
-#        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'nlp', 'expand': "random_unique"},
-
-        #{'filename': "tiger_pomdp.raw", 'filetype': "raw", 'process': 'cpu', 'algorithm': 'cbnlp', 'expand': None},
-        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'cbnlp', 'expand': "random_unique"},
+        {'filename': "tiger_95.pomdp", 'filetype': "cassandra", 'process': 'cpu', 'algorithm': 'nlp', 'expand': "random_unique"},
         ]
 
 
@@ -110,11 +106,6 @@ for f in files:
         cmd += os.path.join(thisFilePath, "nova_nlp_ampl.mod") + " "
         cmd += os.path.join(thisFilePath, "nova_nlp_ampl.dat")
         algorithm = POMDPNLP(tiger, path=thisFilePath, command=cmd, k=5)
-    elif f['algorithm'] == "cbnlp" and f['process'] == "cpu":
-        cmd = "python3 " + os.path.join(thisFilePath, "..", "..", "python", "neos_snopt.py") + " "
-        cmd += os.path.join(thisFilePath, "nova_cbnlp_ampl.mod") + " "
-        cmd += os.path.join(thisFilePath, "nova_cbnlp_ampl.dat")
-        algorithm = POMDPCBNLP(tiger, path=thisFilePath, command=cmd, k=3, r=5)
 
     policy = algorithm.solve()
     print(policy)
@@ -138,7 +129,7 @@ for f in files:
                         [policy.Gamma[i * policy.n + 0], policy.Gamma[i * policy.n + 1]],
                         linewidth=10, color='blue')
         pylab.show()
-    elif f['algorithm'] in ["nlp", "cbnlp"]:
+    elif f['algorithm'] in ["nlp"]:
         G = nx.DiGraph()
 
         X = ["x%i" % (x) for x in range(policy.k)]
