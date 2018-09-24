@@ -115,11 +115,11 @@ class POMDPAlphaVectors(npav.NovaPOMDPAlphaVectors):
             for i in range(self.r):
                 line = f.readline().split()
                 for s in range(self.n):
-                    self.Gamma[i * self.n + s] = float(line[i])
+                    self.Gamma[i * self.n + s] = float(line[s])
 
             line = f.readline().split()
             for i in range(self.r):
-                self.pi[i] = float(line[i])
+                self.pi[i] = int(line[i])
 
     def value_and_action(self, b):
         """ Compute the optimal value and action at a belief state.
