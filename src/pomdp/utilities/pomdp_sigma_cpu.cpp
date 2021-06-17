@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 #include <algorithm>
+#include <vector>
 
 #include <nova/error_codes.h>
 #include <nova/constants.h>
