@@ -29,6 +29,7 @@
 #include <nova/pomdp/pomdp.h>
 
 #include <utility>
+#include <vector>
 
 namespace nova {
 
